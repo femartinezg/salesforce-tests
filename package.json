@@ -1,0 +1,180 @@
+{
+  "name": "salesforce-tests",
+  "displayName": "Salesforce Tests",
+  "version": "0.0.1",
+  "description": "Salesforce test suite integrated with your Salesforce org.",
+  "categories": [
+    "Testing",
+    "Visualization"
+  ],
+  "keywords": [
+    "salesforce",
+    "apex",
+    "testing",
+    "development",
+    "debugging"
+  ],
+  "publisher": "femartinezg",
+  "author": {
+    "name": "Fernando Martinez",
+    "url": "https://github.com/femartinezg"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/femartinezg/salesforce-tests"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "main": "./out/src/extension.js",
+  "icon": "images/icon128bg.png",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "salesforce-tests.runTestClass",
+        "title": "Run Test Class",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests"
+      },
+      {
+        "command": "salesforce-tests.refreshOrg",
+        "title": "Refresh Org",
+        "enablement": "!statusLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "salesforce-tests.refreshApexTests",
+        "title": "Refresh Apex Tests",
+        "enablement": "view == apexTestsTreeView && !apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "salesforce-tests.refreshCodeCoverage",
+        "title": "Refresh Code Coverage",
+        "enablement": "view == codeCoverageTreeView && !codeCoverageLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "salesforce-tests.findTest",
+        "title": "Find",
+        "enablement": "view == apexTestsTreeView",
+        "category": "Salesforce Tests",
+        "icon": "$(search)"
+      },
+      {
+        "command": "salesforce-tests.findClass",
+        "title": "Find",
+        "enablement": "view == codeCoverageTreeView",
+        "category": "Salesforce Tests",
+        "icon": "$(search)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sfTests",
+          "title": "Salesforce Tests",
+          "icon": "$(beaker)"
+        }
+      ]
+    },
+    "views": {
+      "sfTests": [
+        {
+          "id": "statusTreeView",
+          "name": "Status",
+          "icon": "$(beaker)",
+          "initialSize": 1
+        },
+        {
+          "id": "apexTestsTreeView",
+          "name": "Apex Tests",
+          "icon": "$(beaker)",
+          "initialSize": 4
+        },
+        {
+          "id": "codeCoverageTreeView",
+          "name": "Code Coverage",
+          "icon": "$(beaker)",
+          "initialSize": 2
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "statusTreeView",
+        "contents": "Loading..."
+      },
+      {
+        "view": "apexTestsTreeView",
+        "contents": "Loading..."
+      },
+      {
+        "view": "codeCoverageTreeView",
+        "contents": "Loading..."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "salesforce-tests.refreshOrg",
+          "when": "view == statusTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "salesforce-tests.refreshApexTests",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "salesforce-tests.refreshCodeCoverage",
+          "when": "view == codeCoverageTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "salesforce-tests.findTest",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "salesforce-tests.findClass",
+          "when": "view == codeCoverageTreeView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "salesforce-tests.refreshOrg",
+          "when": "view == statusTreeView && viewItem == statusOrg",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@salesforce/core": "^8.11.0"
+  }
+}
