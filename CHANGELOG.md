@@ -2,7 +2,7 @@
 
 All notable changes to the "Salesforce Tests" extension will be documented in this file.
 
-## [0.0.1] - 2025-05-25
+## [0.1.0] - 2025-05-25
 
 ### Added
 - Initial release of the Salesforce Tests extension

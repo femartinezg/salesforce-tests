@@ -62,7 +62,7 @@ The extension contributes the following commands:
 
 ## Recent Changes
 
-**v0.0.1** - Initial release with test discovery and execution functionality.
+**v0.1.0** - Initial release with test discovery, execution functionality, and code coverage visualization.
 
 For a complete history of changes, see the [CHANGELOG](CHANGELOG.md).
 
