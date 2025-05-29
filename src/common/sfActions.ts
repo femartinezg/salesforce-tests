@@ -101,6 +101,13 @@ export async function retrieveCodeCoverage() {
                         }
                     }
                 }
+
+                contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
+                    if (apexClass.codeCoverage === undefined) {
+                        apexClass.codeCoverage = -1;
+                    }
+                });
+                
                 resolve();
             } catch (e: unknown) {
                 if(e instanceof Error) {
@@ -161,20 +168,30 @@ export async function runTestClass(testClass: ApexTestClass): Promise<void> {
             return;
         }
 
-        for(let coverage of coverageResult.coverage) {
-            let apexClass = contextManager.codeCoverageData.apexClasses?.find((apexClass: ApexClass) => coverage.name === apexClass.name);
-            if (apexClass) {
-                if(coverage.totalLines === 0) {
-                    apexClass.codeCoverage = 100;
-                } else {
-                    apexClass.codeCoverage = (coverage.totalCovered / coverage.totalLines) * 100;
-                }
-            }
-        }
-        contextManager.codeCoverageData.refresh();
+        getCodeCoverage(coverageResult.coverage);
     } catch (error: any) {
         vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
         testClass.status = undefined;
         contextManager.apexTestsData.refresh();
     }
+}
+
+async function getCodeCoverage(coverage: any[]) {
+    for(let coverageItem of coverage) {
+        let apexClass = contextManager.codeCoverageData.apexClasses?.find((apexClass: ApexClass) => coverageItem.name === apexClass.name);
+        if (apexClass) {
+            if(coverageItem.totalLines === 0) {
+                apexClass.codeCoverage = 100;
+            } else {
+                apexClass.codeCoverage = (coverageItem.totalCovered / coverageItem.totalLines) * 100;
+            }
+        }
+
+        contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
+            if (apexClass.codeCoverage === undefined) {
+                apexClass.codeCoverage = -1;
+            }
+        });
+    }
+    contextManager.codeCoverageData.refresh();
 }

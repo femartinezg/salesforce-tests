@@ -50,8 +50,7 @@ export class ContextManager {
         this.apexTestsData.refresh();
         this.codeCoverageData.refresh();
 
-        await retrieveCodeCoverage();
-        this.codeCoverageData.refresh();
+        retrieveCodeCoverage().then(() => this.codeCoverageData.refresh());
     }
 
     public async reset() {

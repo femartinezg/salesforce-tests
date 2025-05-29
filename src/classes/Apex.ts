@@ -28,7 +28,10 @@ export class ApexClass extends Apex {
 
         if (this.codeCoverage === undefined) {
             item.iconPath = new vscode.ThemeIcon('file-code', undefined);
+            item.description = 'Loading...';
             return item;
+        } else if (this.codeCoverage < 0) {
+            item.description = '';
         } else {
             item.description = `${this.codeCoverage.toFixed(2)}%`
         }

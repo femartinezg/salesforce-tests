@@ -19,6 +19,5 @@ export async function refreshCodeCoverage() {
     const { apexClasses } = await retrieveApexClasses();
     contextManager.codeCoverageData.apexClasses = apexClasses;
     contextManager.codeCoverageData.refresh();
-    await retrieveCodeCoverage();
-    contextManager.codeCoverageData.refresh();
+    retrieveCodeCoverage().then(() => contextManager.codeCoverageData.refresh());
 }
