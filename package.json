@@ -61,14 +61,14 @@
       {
         "command": "salesforce-tests.findTest",
         "title": "Find",
-        "enablement": "view == apexTestsTreeView",
+        "enablement": "view == apexTestsTreeView && !apexTestsLoading",
         "category": "Salesforce Tests",
         "icon": "$(search)"
       },
       {
         "command": "salesforce-tests.findClass",
         "title": "Find",
-        "enablement": "view == codeCoverageTreeView",
+        "enablement": "view == codeCoverageTreeView && !codeCoverageLoading",
         "category": "Salesforce Tests",
         "icon": "$(search)"
       }
