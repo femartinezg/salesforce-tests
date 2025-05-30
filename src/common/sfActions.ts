@@ -94,6 +94,8 @@ export async function retrieveCodeCoverage() {
                     const totalLines = numLinesCovered + numLinesUncovered;
 
                     if (apexClass) {
+                        apexClass.totalLines = totalLines;
+                        apexClass.coveredLines = numLinesCovered;
                         if(totalLines === 0) {
                             apexClass.codeCoverage = 100;
                         } else {
@@ -105,6 +107,8 @@ export async function retrieveCodeCoverage() {
                 contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
                     if (apexClass.codeCoverage === undefined) {
                         apexClass.codeCoverage = -1;
+                        apexClass.totalLines = -1;
+                        apexClass.coveredLines = -1;
                     }
                 });
                 
@@ -180,6 +184,8 @@ async function getCodeCoverage(coverage: any[]) {
     for(let coverageItem of coverage) {
         let apexClass = contextManager.codeCoverageData.apexClasses?.find((apexClass: ApexClass) => coverageItem.name === apexClass.name);
         if (apexClass) {
+            apexClass.totalLines = coverageItem.totalLines;
+            apexClass.coveredLines = coverageItem.totalCovered;
             if(coverageItem.totalLines === 0) {
                 apexClass.codeCoverage = 100;
             } else {
@@ -190,6 +196,8 @@ async function getCodeCoverage(coverage: any[]) {
         contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
             if (apexClass.codeCoverage === undefined) {
                 apexClass.codeCoverage = -1;
+                apexClass.totalLines = -1;
+                apexClass.coveredLines = -1;
             }
         });
     }

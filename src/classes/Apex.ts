@@ -17,10 +17,11 @@ abstract class Apex {
 
 export class ApexClass extends Apex {
     public codeCoverage?: number;
+    public totalLines?: number;
+    public coveredLines?: number;
 
-    constructor(id: string, name: string, codeCoverage?: number) {
+    constructor(id: string, name: string) {
         super(id, name);
-        this.codeCoverage = codeCoverage;
     }
 
     getTreeItem(): vscode.TreeItem {
@@ -29,11 +30,14 @@ export class ApexClass extends Apex {
         if (this.codeCoverage === undefined) {
             item.iconPath = new vscode.ThemeIcon('file-code', undefined);
             item.description = 'Loading...';
+            item.tooltip = `${item.label}`;
             return item;
         } else if (this.codeCoverage < 0) {
             item.description = '';
+            item.tooltip = `${item.label}`;
         } else {
-            item.description = `${this.codeCoverage.toFixed(2)}%`
+            item.description = `${this.codeCoverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
+            item.tooltip = `${item.label}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
         }
         
         let color = undefined;
