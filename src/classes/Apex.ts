@@ -64,7 +64,7 @@ export class ApexTestClass extends Apex {
 
     getTreeItem(): vscode.TreeItem {
         const item = super.getTreeItem();
-        item.iconPath = new vscode.ThemeIcon('play-circle', undefined);
+        item.iconPath = new vscode.ThemeIcon('circle-large-outline', undefined);
         if (this.status === 'Running') {
             item.iconPath = new vscode.ThemeIcon('sync', undefined);
         } else if (this.status === 'Passed') {
@@ -72,11 +72,6 @@ export class ApexTestClass extends Apex {
         } else if (this.status === 'Failed') {
             item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
         }
-        item.command = {
-            command: 'salesforce-tests.runTestClass',
-            title: 'Run Test Class',
-            arguments: [this.name]
-        };
         return item;
     }
 }

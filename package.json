@@ -35,7 +35,8 @@
         "command": "salesforce-tests.runTestClass",
         "title": "Run Test Class",
         "enablement": "!apexTestsLoading",
-        "category": "Salesforce Tests"
+        "category": "Salesforce Tests",
+        "icon": "$(run)"
       },
       {
         "command": "salesforce-tests.refreshOrg",
@@ -150,6 +151,11 @@
         {
           "command": "salesforce-tests.refreshOrg",
           "when": "view == statusTreeView && viewItem == statusOrg",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.runTestClass",
+          "when": "view == apexTestsTreeView",
           "group": "inline"
         }
       ]

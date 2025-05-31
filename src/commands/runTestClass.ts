@@ -3,11 +3,16 @@ import { contextManager } from '../common';
 import { ApexTestClass } from '../classes/Apex';
 import { runTestClass } from '../common/sfActions';
 
-export async function runTestClassCommandHandler(testClassName?: string) {
+export async function runTestClassCommandHandler(runTestInput?: any) {
     const testClasses = contextManager.apexTestsData.testClasses;
     let testClass = undefined;
+    let testClassName: string | undefined = undefined;
 
-    if(!testClassName) {
+    if(runTestInput instanceof Object) {
+        testClassName = runTestInput.label;
+    }
+
+    if(!runTestInput) {
         const options = testClasses?.map((testClass: ApexTestClass) => {return testClass.name}) || [];
         testClassName = await vscode.window.showQuickPick(options, {
             placeHolder: 'Select the Apex test class to run'
