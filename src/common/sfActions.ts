@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { contextManager } from ".";
 import { ApexClass, ApexTestClass } from "../classes/Apex";
+import { TestRun } from '../classes/TestRun';
 
 export async function retrieveOrgInfo(): Promise<{ status: boolean, alias?: string, username?: string }> {
     const { exec } = require('child_process');
@@ -227,6 +228,8 @@ export async function runTestClass(testClass: ApexTestClass): Promise<void> {
 
         const success = result.result.summary.outcome === 'Passed';
         const coverageResult = result.result.coverage;
+        const summary = result.result.summary;
+
         if(success) {
             vscode.window.showInformationMessage(`${testClass.name} passed.`);
             testClass.status = 'Passed';
@@ -237,11 +240,27 @@ export async function runTestClass(testClass: ApexTestClass): Promise<void> {
             contextManager.apexTestsData.refresh();
         }
 
-        if(!coverageResult.coverage) {
-            return;
+        if(coverageResult.coverage) {
+            getCodeCoverage(coverageResult.coverage);
         }
 
-        getCodeCoverage(coverageResult.coverage);
+        if(coverageResult.summary) {
+            contextManager.statusData.orgWideCoverage = parseInt(coverageResult.summary.orgWideCoverage.split('%')[0]);
+            contextManager.statusData.refresh();
+        }
+
+        if(summary) {
+            const testRun = new TestRun(
+                testClass.name,
+                'Test Class',
+                success,
+                new Date(summary.testStartTime),
+                parseInt(summary.testExecutionTime)
+            );
+
+            contextManager.statusData.pushTestRun(testRun);
+            contextManager.statusData.refresh();
+        }
     } catch (error: any) {
         vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
         testClass.status = undefined;
@@ -271,4 +290,36 @@ async function getCodeCoverage(coverage: any[]) {
         });
     }
     contextManager.codeCoverageData.refresh();
+}
+
+export async function retrieveOrgCoverage() {
+    const { exec } = require('child_process');
+
+    return new Promise<number>((resolve, reject) => {
+        const query = 'SELECT Id, PercentCovered FROM ApexOrgWideCoverage';
+        const command = `sf data query --query "${query}" --use-tooling-api --json`;
+
+        exec(command, (error: any, stdout: string) => {
+            if (error) {
+                reject(new Error(error));
+                return;
+            }
+
+            try {
+                const result = JSON.parse(stdout);
+                const records = result.result.records || [];
+                if (records.length > 0) {
+                    resolve(records[0].PercentCovered);
+                } else {
+                    reject(new Error("No coverage data found"));
+                }
+            } catch (e: unknown) {
+                if(e instanceof Error) {
+                    reject(e);
+                } else {
+                    reject(new Error("Unexpected error"));
+                }
+            }
+        })
+    });
 }

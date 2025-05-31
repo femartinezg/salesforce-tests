@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { StatusTreeViewProvider } from '../views/StatusTreeViewProvider';
 import { ApexTestsTreeViewProvider } from '../views/ApexTestsTreeViewProvider';
 import { CodeCoverageTreeViewProvider } from '../views/CodeCoverageTreeViewProvider';
-import { retrieveApexClasses, retrieveCodeCoverage, retrieveOrgInfo } from './sfActions';
+import { retrieveApexClasses, retrieveCodeCoverage, retrieveOrgCoverage, retrieveOrgInfo } from './sfActions';
 
 export class ContextManager {
     private static instance: ContextManager | undefined;
@@ -50,6 +50,10 @@ export class ContextManager {
         this.apexTestsData.refresh();
         this.codeCoverageData.refresh();
 
+        retrieveOrgCoverage().then((orgWideCoverage) => {
+            this.statusData.orgWideCoverage = orgWideCoverage;
+            this.statusData.refresh();
+        });
         retrieveCodeCoverage().then(() => this.codeCoverageData.refresh());
     }
 
