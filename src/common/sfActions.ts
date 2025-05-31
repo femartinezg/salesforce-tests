@@ -233,23 +233,15 @@ export async function runTestClass(testClass: ApexTestClass): Promise<void> {
         if(success) {
             vscode.window.showInformationMessage(`${testClass.name} passed.`);
             testClass.status = 'Passed';
-            contextManager.apexTestsData.refresh();
         } else {
             vscode.window.showErrorMessage(`${testClass.name} failed.`);
             testClass.status = 'Failed';
-            contextManager.apexTestsData.refresh();
-        }
-
-        if(coverageResult.coverage) {
-            getCodeCoverage(coverageResult.coverage);
-        }
-
-        if(coverageResult.summary) {
-            contextManager.statusData.orgWideCoverage = parseInt(coverageResult.summary.orgWideCoverage.split('%')[0]);
-            contextManager.statusData.refresh();
         }
 
         if(summary) {
+            testClass.startTime = new Date(summary.testStartTime);
+            testClass.duration = parseInt(summary.testExecutionTime);
+
             const testRun = new TestRun(
                 testClass.name,
                 'Test Class',
@@ -259,12 +251,23 @@ export async function runTestClass(testClass: ApexTestClass): Promise<void> {
             );
 
             contextManager.statusData.pushTestRun(testRun);
-            contextManager.statusData.refresh();
         }
+
+        if(coverageResult.coverage) {
+            getCodeCoverage(coverageResult.coverage);
+        }
+
+        if(coverageResult.summary) {
+            contextManager.statusData.orgWideCoverage = parseInt(coverageResult.summary.orgWideCoverage.split('%')[0]);
+        }
+
+        contextManager.statusData.refresh();
+        contextManager.apexTestsData.refresh();
     } catch (error: any) {
         vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
         testClass.status = undefined;
         contextManager.apexTestsData.refresh();
+        contextManager.statusData.refresh();
     }
 }
 

@@ -56,6 +56,8 @@ export class ApexClass extends Apex {
 
 export class ApexTestClass extends Apex {
     public status: string | undefined;
+    public startTime?: Date;
+    public duration?: number; // ms
 
     constructor(id: string, name: string, status?: string) {
         super(id, name);
@@ -72,6 +74,29 @@ export class ApexTestClass extends Apex {
         } else if (this.status === 'Failed') {
             item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
         }
+
+        let tooltip = `${this.name}`;
+        let description = '';
+
+        if (this.status === 'Passed') {
+            tooltip = `✓ ${this.name}`;
+        } else if (this.status === 'Failed') {
+            tooltip = `✕ ${this.name}`;
+        } else if (this.status === 'Running') {
+            description = 'Running...';
+        }
+
+        if (this.startTime && this.duration) {
+            let startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
+            let startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
+            let tooltipTimeString = `${startDateString} ${startTimeString}`;
+            tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
+            description = `${startTimeString} (${this.duration}ms)`;
+        }
+
+        item.tooltip = tooltip;
+        item.description = description;
+
         return item;
     }
 }
