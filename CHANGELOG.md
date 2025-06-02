@@ -2,6 +2,26 @@
 
 All notable changes to the "Salesforce Tests" extension will be documented in this file.
 
+## [0.2.0] - 2025-06-02
+
+### Added
+- Display total lines and covered lines in code coverage view
+- Show org-wide code coverage and last test runs in the status view
+- Enhanced tooltips and descriptions in the status view
+- Show start time and duration for Apex test runs in the tests view
+- Enhanced tooltips and descriptions in the tests view
+
+### Changed
+- Retrieve code coverage asynchronously for better performance
+- Added a button to run test commands directly
+
+### Fixed
+- Improved test/class detection and overall performance
+- Fixed the find action when panels are still loading
+- Various minor bug fixes
+
+---
+
 ## [0.1.0] - 2025-05-25
 
 ### Added

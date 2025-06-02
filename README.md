@@ -21,8 +21,9 @@ This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar,
 
 - **View all Apex test classes**: Browse and discover all test classes available in your connected Salesforce org.
 - **Run tests with a single click**: Execute Apex test classes directly from the sidebar with real-time feedback on test status.
-- **Visual test results**: Tests display with clear visual indicators showing their status (passed, failed, or running).
-- **View Code Coverage**: Instantly see code coverage metrics for your Apex classes directly in the sidebar.
+- **Visual test results**: Tests display with clear visual indicators showing their status (running, passed, or failed).
+- **View Code Coverage**: Instantly see code coverage metrics for your Apex classes, including total and covered lines, directly in the sidebar.
+- **Display info about test runs**: Check org-wide code coverage, last test runs, start time, duration, and more directly from the panel.
 
 ## Requirements
 
@@ -40,13 +41,15 @@ To use this extension, you need:
 ## Usage
 
 1. Open the Salesforce Tests view by clicking the test tube icon in the Activity Bar.
-2. View your authenticated org information in the Status section.
+2. View your authenticated org information in the Status section, including org-wide code coverage and last test runs.
 3. Browse available test classes in the Apex Tests section.
-4. Click on any test class to run it.
+4. Click on the run button for quick execution.
 5. View test results with visual indicators:
    - ⏳ Running: Test is currently executing
    - ✅ Passed: Test completed successfully
    - ❌ Failed: Test failed
+6. See code coverage details, including total and covered lines, in the Code Coverage section.
+7. Hover over items for enhanced tooltips and additional information.
 
 ## Commands
 
@@ -55,14 +58,10 @@ The extension contributes the following commands:
 * `Salesforce Tests: Run Test Class`: Execute a specific Apex test class
 * `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
 
-## Known Issues
-
-- Test execution is synchronous and may take time for complex test classes.
-- Status changes when switching orgs may need a VS Code restart to reflect properly.
-
 ## Recent Changes
 
-**v0.1.0** - Initial release with test discovery, execution functionality, and code coverage visualization.
+**v0.2.0** – Enhanced performance, added total and covered lines in code coverage, improved test run information, and various UI/UX enhancements.
+**v0.1.0** – Initial release with test discovery, execution functionality, and code coverage visualization.
 
 For a complete history of changes, see the [CHANGELOG](CHANGELOG.md).
 
@@ -75,12 +74,11 @@ This extension is actively being developed. Here's what we're planning:
 - ✅ Add functionality to run Apex tests
 - ✅ Add code coverage visualization
 - ⏳ Add support to run individual Apex test methods
-- ⬜ Add test suite functionality (group tests runs)
-- ⬜ Add rerun (failed) tests functionality
+- ⬜ Add test suite functionality (group test runs)
+- ⬜ Add rerun tests functionality
 
 ### Improvements
 
-- ⏳ Enhance the Status view with more detailed org information
 - ⏳ Improve overall user feedback and error messages
 - ⏳ Migrate commands to @salesforce/core node package for better reliability
 - ⏳ Make test result details visible to the user
