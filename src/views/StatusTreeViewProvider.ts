@@ -58,6 +58,7 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
             orgItem.tooltip = 'Default Salesforce org not found. Please authenticate using the Salesforce CLI to enable Salesforce features in this extension.';
             orgItem.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('errorForeground'));
             orgItem.contextValue = 'statusOrg';
+            children.push(orgItem);
         } else {
             orgItem = new vscode.TreeItem(this.alias || this.username || 'Authenticated');
             orgItem.description = this.username;
@@ -67,15 +68,16 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
             orgItem.iconPath = new vscode.ThemeIcon('cloud');
             orgItem.contextValue = 'statusOrg';
             orgItem.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+
+            lastTestRunsItem = new vscode.TreeItem('Last Test Runs');
+            lastTestRunsItem.iconPath = new vscode.ThemeIcon('activate-breakpoints');
+            lastTestRunsItem.contextValue = 'statusLastTestRuns';
+            lastTestRunsItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+
+            children.push(orgItem);
+            children.push(lastTestRunsItem);
         }
 
-        lastTestRunsItem = new vscode.TreeItem('Last Test Runs');
-        lastTestRunsItem.iconPath = new vscode.ThemeIcon('activate-breakpoints');
-        lastTestRunsItem.contextValue = 'statusLastTestRuns';
-        lastTestRunsItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-
-        children.push(orgItem);
-        children.push(lastTestRunsItem);
         return children;
     }
 
