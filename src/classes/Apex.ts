@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { formatDuration } from '../common/utils';
 
 abstract class Apex {
     public id: string;
@@ -91,7 +92,7 @@ export class ApexTestClass extends Apex {
             let startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
             let tooltipTimeString = `${startDateString} ${startTimeString}`;
             tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
-            description = `${startTimeString} (${this.duration}ms)`;
+            description = `${startTimeString} (${formatDuration(this.duration)})`;
         }
 
         item.tooltip = tooltip;
