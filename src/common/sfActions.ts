@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { contextManager } from ".";
+import { getContextManager } from ".";
 import { ApexClass, ApexTestClass } from "../classes/Apex";
 import { TestRun } from '../classes/TestRun';
+import { ContextManager } from './ContextManager';
 
 export async function retrieveOrgInfo(): Promise<{ status: boolean, alias?: string, username?: string }> {
     const { exec } = require('child_process');
@@ -141,6 +142,7 @@ function parseBody(body: string): boolean | undefined {
 }
 
 export async function retrieveCodeCoverage() {
+    const contextManager = getContextManager();
     const { exec } = require('child_process');
 
     return new Promise<void>((resolve, reject) => {
@@ -194,7 +196,7 @@ export async function retrieveCodeCoverage() {
     });
 }
 
-export async function runTestClass(testClass: ApexTestClass): Promise<void> {
+export async function runTestClass(testClass: ApexTestClass, contextManager: ContextManager): Promise<void> {
     testClass.status = 'Running';
     contextManager.apexTestsData.refresh();
 
@@ -272,6 +274,7 @@ export async function runTestClass(testClass: ApexTestClass): Promise<void> {
 }
 
 async function getCodeCoverage(coverage: any[]) {
+    const contextManager = getContextManager();
     for(let coverageItem of coverage) {
         let apexClass = contextManager.codeCoverageData.apexClasses?.find((apexClass: ApexClass) => coverageItem.name === apexClass.name);
         if (apexClass) {

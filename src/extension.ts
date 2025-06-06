@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import { runTestClassCommandHandler }  from './commands/runTestClass';
-import { contextManager } from './common';
+import { getContextManager, getNewContextManager } from './common';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
 import { findClass, findTest } from './commands/find';
 
 export async function activate(context: vscode.ExtensionContext) {
     registerFileSystemWatchers();
     registerCommands(context);
+    const contextManager = getContextManager();
     await contextManager.init();
 
     const outputChannel = vscode.window.createOutputChannel('Salesforce Tests');
@@ -19,7 +20,8 @@ function registerFileSystemWatchers() {
     // Handle change org
     const sfConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.sf/config.json');
     sfConfigWatcher.onDidChange(async () => {
-        contextManager.reset();
+        const contextManager = getNewContextManager();
+        await contextManager.init();
     });
 }
 
