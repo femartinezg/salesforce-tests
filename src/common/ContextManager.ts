@@ -5,7 +5,7 @@ import { CodeCoverageTreeViewProvider } from '../views/CodeCoverageTreeViewProvi
 import { retrieveApexClasses, retrieveCodeCoverage, retrieveOrgCoverage, retrieveOrgInfo } from './sfActions';
 
 export class ContextManager {
-    private static instance: ContextManager | undefined;
+    private static instance: ContextManager;
 
     public statusData: StatusTreeViewProvider;
     public apexTestsData: ApexTestsTreeViewProvider;
@@ -15,6 +15,11 @@ export class ContextManager {
         if (!this.instance) {
             this.instance = new ContextManager();
         }
+        return this.instance;
+    }
+
+    public static resetInstance() {
+        this.instance = new ContextManager();
         return this.instance;
     }
 

@@ -1,3 +1,9 @@
 import { ContextManager } from './ContextManager';
 
-export const contextManager = ContextManager.getInstance();
+export function getContextManager() {
+    return ContextManager.getInstance();
+}
+
+export function getNewContextManager() {
+    return ContextManager.resetInstance();
+}

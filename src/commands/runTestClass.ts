@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { contextManager } from '../common';
+import { getContextManager } from '../common';
 import { ApexTestClass } from '../classes/Apex';
 import { runTestClass } from '../common/sfActions';
 
 export async function runTestClassCommandHandler(runTestInput?: any) {
+    const contextManager = getContextManager();
     const testClasses = contextManager.apexTestsData.testClasses;
     let testClass = undefined;
     let testClassName: string | undefined = undefined;
@@ -30,6 +31,6 @@ export async function runTestClassCommandHandler(runTestInput?: any) {
         title: `Running ${testClassName}...`,
         cancellable: false
     }, async () => {
-        await runTestClass(testClass);
+        await runTestClass(testClass, contextManager);
     });
 }
