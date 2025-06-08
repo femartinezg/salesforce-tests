@@ -20,7 +20,11 @@ function registerFileSystemWatchers() {
     // Handle change org
     const sfConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.sf/config.json');
     sfConfigWatcher.onDidChange(async () => {
-        const contextManager = getNewContextManager();
+        let contextManager = getContextManager();
+        contextManager.runTestCancelTokens.forEach(token => {
+            token.cancel();
+        });
+        contextManager = getNewContextManager();
         await contextManager.init();
     });
 }

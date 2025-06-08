@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getContextManager } from '../common';
 import { ApexTestClass } from '../classes/Apex';
 import { runTestClass } from '../common/sfActions';
+import { sleep } from '../common/utils';
 
 export async function runTestClassCommandHandler(runTestInput?: any) {
     const contextManager = getContextManager();
@@ -31,6 +32,23 @@ export async function runTestClassCommandHandler(runTestInput?: any) {
         title: `Running ${testClassName}...`,
         cancellable: false
     }, async () => {
-        await runTestClass(testClass, contextManager);
+        let isFinished = false;
+        
+        let cancellationToken = new vscode.CancellationTokenSource();
+        contextManager.runTestCancelTokens.push(cancellationToken);
+        cancellationToken.token.onCancellationRequested(() => {
+            isFinished = true;
+            cancellationToken?.dispose();
+        });
+
+        runTestClass(testClass, contextManager, cancellationToken.token).then(() => {
+            isFinished = true
+            cancellationToken?.dispose();
+            contextManager.runTestCancelTokens.splice(contextManager.runTestCancelTokens.indexOf(cancellationToken), 1);
+        });
+
+        while (!isFinished) {
+            await sleep(200);
+        }
     });
 }

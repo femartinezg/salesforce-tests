@@ -2,7 +2,11 @@ import { getContextManager, getNewContextManager } from "../common";
 import { retrieveApexClasses, retrieveCodeCoverage } from "../common/sfActions";
 
 export async function refreshOrg() {
-    const contextManager = getNewContextManager();
+    let contextManager = getContextManager();
+    contextManager.runTestCancelTokens.forEach(token => {
+        token.cancel();
+    });
+    contextManager = getNewContextManager();
     contextManager.init();
 }
 
