@@ -197,6 +197,7 @@ export async function retrieveCodeCoverage() {
 }
 
 export async function runTestClass(testClass: ApexTestClass, contextManager: ContextManager): Promise<void> {
+    let oldStatus = testClass.status;
     testClass.status = 'Running';
     contextManager.apexTestsData.refresh();
 
@@ -223,11 +224,13 @@ export async function runTestClass(testClass: ApexTestClass, contextManager: Con
                 vscode.window.showErrorMessage(`Error running ${testClass.name}: Unexpected error`);
             }
 
-            testClass.status = undefined;
+            testClass.status = oldStatus;
+            testClass.executionBlocked = true;
             contextManager.apexTestsData.refresh();
             return;
         }
 
+        testClass.executionBlocked = false;
         const success = result.result.summary.outcome === 'Passed';
         const coverageResult = result.result.coverage;
         const summary = result.result.summary;
