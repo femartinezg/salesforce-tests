@@ -10,6 +10,7 @@ export class ContextManager {
     public statusData: StatusTreeViewProvider;
     public apexTestsData: ApexTestsTreeViewProvider;
     public codeCoverageData: CodeCoverageTreeViewProvider;
+    public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
 
     public static getInstance(): ContextManager {
         if (!this.instance) {

@@ -196,7 +196,7 @@ export async function retrieveCodeCoverage() {
     });
 }
 
-export async function runTestClass(testClass: ApexTestClass, contextManager: ContextManager): Promise<void> {
+export async function runTestClass(testClass: ApexTestClass, contextManager: ContextManager, cancellationToken: vscode.CancellationToken): Promise<void> {
     let oldStatus = testClass.status;
     testClass.status = 'Running';
     contextManager.apexTestsData.refresh();
@@ -216,6 +216,10 @@ export async function runTestClass(testClass: ApexTestClass, contextManager: Con
         });
 
         const result = JSON.parse(stdout);
+
+        if(cancellationToken.isCancellationRequested) {
+            return;
+        }
 
         if (result.status != 0 && result.status != 100) {
             if(result.name && result.message) {
