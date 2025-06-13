@@ -3,6 +3,7 @@ import { getContextManager } from ".";
 import { ApexClass, ApexTestClass } from "../classes/Apex";
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
+import { MessageType, showTestResultMessage } from './messaging';
 
 export async function retrieveOrgInfo(): Promise<{ status: boolean, alias?: string, username?: string, orgName?: string }> {
     const { exec } = require('child_process');
@@ -228,10 +229,10 @@ export async function runTestClass(testClass: ApexTestClass, contextManager: Con
         if (result.status != 0 && result.status != 100) {
             message.push('✕ Error running test');
             if(result.name && result.message) {
-                vscode.window.showErrorMessage(`Error running ${testClass.name}: ${result.name} - ${result.message}`);
+                showTestResultMessage(`Error running ${testClass.name}: ${result.name} - ${result.message}`, MessageType.Error, contextManager);
                 message.push(`${result.name}: ${result.message}`);
             } else {
-                vscode.window.showErrorMessage(`Error running ${testClass.name}: Unexpected error`);
+                showTestResultMessage(`Error running ${testClass.name}: Unexpected error`, MessageType.Error, contextManager);
                 message.push(`Unexpected error`);
             }
 
@@ -249,11 +250,11 @@ export async function runTestClass(testClass: ApexTestClass, contextManager: Con
         const tests = result.result.tests;
 
         if(success) {
-            vscode.window.showInformationMessage(`${testClass.name} passed.`);
+            showTestResultMessage(`${testClass.name} passed.`, MessageType.Info, contextManager);
             testClass.status = 'Passed';
             message.push(`✓ Passed`);
         } else {
-            vscode.window.showErrorMessage(`${testClass.name} failed.`);
+            showTestResultMessage(`${testClass.name} failed.`, MessageType.Error, contextManager);
             testClass.status = 'Failed';
             message.push('✕ Failed');
         }
