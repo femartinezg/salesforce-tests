@@ -8,13 +8,14 @@ export async function activate(context: vscode.ExtensionContext) {
     registerFileSystemWatchers();
     registerCommands(context);
     const contextManager = getContextManager();
-    await contextManager.init();
-
-    const outputChannel = vscode.window.createOutputChannel('Salesforce Tests');
-    outputChannel.appendLine('Salesforce Tests extension activated.');
+    contextManager.init();
+    contextManager.printOutput('Salesforce Tests extension activated');
 }
 
-export function deactivate() {}
+export function deactivate() {
+    const contextManager = getContextManager();
+    contextManager.printOutput('Salesforce Tests extension deactivated');
+}
 
 function registerFileSystemWatchers() {
     // Handle change org
