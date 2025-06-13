@@ -27,6 +27,8 @@ export async function runTestClassCommandHandler(runTestInput?: any) {
         return;
     }
 
+    contextManager.printOutput(`Running test: ${testClass.name}`);
+
     vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: `Running ${testClassName}...`,
@@ -41,7 +43,8 @@ export async function runTestClassCommandHandler(runTestInput?: any) {
             cancellationToken?.dispose();
         });
 
-        runTestClass(testClass, contextManager, cancellationToken.token).then(() => {
+        runTestClass(testClass, contextManager, cancellationToken.token).then((message) => {
+            if(message) contextManager.printOutput(message);
             isFinished = true
             cancellationToken?.dispose();
             contextManager.runTestCancelTokens.splice(contextManager.runTestCancelTokens.indexOf(cancellationToken), 1);

@@ -4,7 +4,7 @@ import { ApexClass, ApexTestClass } from "../classes/Apex";
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 
-export async function retrieveOrgInfo(): Promise<{ status: boolean, alias?: string, username?: string }> {
+export async function retrieveOrgInfo(): Promise<{ status: boolean, alias?: string, username?: string, orgName?: string }> {
     const { exec } = require('child_process');
 
     return new Promise((resolve) => {
@@ -17,7 +17,8 @@ export async function retrieveOrgInfo(): Promise<{ status: boolean, alias?: stri
                 const result = JSON.parse(stdout);
                 const alias = result.result.alias || undefined;
                 const username = result.result.username || undefined;
-                resolve({ status: true, alias: alias, username: username });
+                const orgName = result.result.instanceUrl?.split('//')[1].split('.')[0] || undefined;
+                resolve({ status: true, alias: alias, username: username, orgName: orgName });
             } catch (e) {
                 resolve({ status: false });
             }
@@ -196,7 +197,8 @@ export async function retrieveCodeCoverage() {
     });
 }
 
-export async function runTestClass(testClass: ApexTestClass, contextManager: ContextManager, cancellationToken: vscode.CancellationToken): Promise<void> {
+export async function runTestClass(testClass: ApexTestClass, contextManager: ContextManager, cancellationToken: vscode.CancellationToken): Promise<string[]|undefined> {
+    let message: string[] = [];
     let oldStatus = testClass.status;
     testClass.status = 'Running';
     contextManager.apexTestsData.refresh();
@@ -221,30 +223,39 @@ export async function runTestClass(testClass: ApexTestClass, contextManager: Con
             return;
         }
 
+        message.push(`${testClass.name} result`);
+
         if (result.status != 0 && result.status != 100) {
+            message.push('✕ Error running test');
             if(result.name && result.message) {
                 vscode.window.showErrorMessage(`Error running ${testClass.name}: ${result.name} - ${result.message}`);
+                message.push(`${result.name}: ${result.message}`);
             } else {
                 vscode.window.showErrorMessage(`Error running ${testClass.name}: Unexpected error`);
+                message.push(`Unexpected error`);
             }
 
             testClass.status = oldStatus;
             testClass.executionBlocked = true;
             contextManager.apexTestsData.refresh();
-            return;
+
+            return message;
         }
 
         testClass.executionBlocked = false;
         const success = result.result.summary.outcome === 'Passed';
         const coverageResult = result.result.coverage;
         const summary = result.result.summary;
+        const tests = result.result.tests;
 
         if(success) {
             vscode.window.showInformationMessage(`${testClass.name} passed.`);
             testClass.status = 'Passed';
+            message.push(`✓ Passed`);
         } else {
             vscode.window.showErrorMessage(`${testClass.name} failed.`);
             testClass.status = 'Failed';
+            message.push('✕ Failed');
         }
 
         if(summary) {
@@ -260,6 +271,15 @@ export async function runTestClass(testClass: ApexTestClass, contextManager: Con
             );
 
             contextManager.statusData.pushTestRun(testRun);
+            message.push(`TestStartTime: ${summary.testStartTime} | TestExecutionTime: ${summary.testExecutionTime}`);
+        }
+
+        if(!success && tests) {
+            for(let test of tests) {
+                if(test.Outcome === 'Fail') {
+                    message.push(`• ${test.FullName}: ${test.Message} - ${test.StackTrace.replace('\n', '\\n')}`);
+                }
+            }
         }
 
         if(coverageResult.coverage) {
@@ -272,11 +292,15 @@ export async function runTestClass(testClass: ApexTestClass, contextManager: Con
 
         contextManager.statusData.refresh();
         contextManager.apexTestsData.refresh();
+
+        return message;
     } catch (error: any) {
         vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
         testClass.status = undefined;
         contextManager.apexTestsData.refresh();
         contextManager.statusData.refresh();
+
+        return;
     }
 }
 

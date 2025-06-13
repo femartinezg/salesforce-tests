@@ -7,6 +7,8 @@ import { retrieveApexClasses, retrieveCodeCoverage, retrieveOrgCoverage, retriev
 export class ContextManager {
     private static instance: ContextManager;
 
+    public static outputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Salesforce Tests');
+
     public statusData: StatusTreeViewProvider;
     public apexTestsData: ApexTestsTreeViewProvider;
     public codeCoverageData: CodeCoverageTreeViewProvider;
@@ -38,11 +40,12 @@ export class ContextManager {
             return;
         }
 
-        const { status, alias, username } = await retrieveOrgInfo();
+        const { status, alias, username, orgName } = await retrieveOrgInfo();
         this.statusData.isAuthenticated = status;
         this.statusData.alias = alias;
         this.statusData.username = username;
         this.statusData.refresh();
+        this.printOutput(`Connected to org: ${orgName}`);
         
         if(!this.statusData.isAuthenticated) {
             this.apexTestsData.testClasses = [];
@@ -73,5 +76,29 @@ export class ContextManager {
         this.codeCoverageData?.refresh();
 
         await this.init();
+    }
+
+    public printOutput(message: string|string[]): void {
+        let messageList = [];
+
+        if(!message) return;
+        if(typeof message === 'string') {
+            messageList.push(message);
+        } else {
+            messageList = message;
+        }
+        
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+        ContextManager.outputChannel.append(`[${timeString}] `);
+        let isFirst = true;
+        for(let line of messageList) {
+            if(isFirst) {
+                ContextManager.outputChannel.append(`${line}\n`)
+                isFirst = false;
+            } else {
+                ContextManager.outputChannel.append(`           ${line}\n`)
+            }
+        }
     }
 }
