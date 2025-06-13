@@ -101,4 +101,12 @@ export class ContextManager {
             }
         }
     }
+
+    public displayOutput() {
+        if (ContextManager.outputChannel) {
+            ContextManager.outputChannel.show();
+        } else {
+            vscode.window.showErrorMessage('Output channel is not initialized.');
+        }
+    }
 }
