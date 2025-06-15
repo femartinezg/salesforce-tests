@@ -1,7 +1,7 @@
 {
   "name": "salesforce-tests",
   "displayName": "Salesforce Tests",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Salesforce test suite integrated with your Salesforce org.",
   "categories": [
     "Testing",
