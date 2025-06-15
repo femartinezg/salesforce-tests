@@ -60,7 +60,9 @@ The extension contributes the following commands:
 ## Recent Changes
 
 **v0.2.1** – Added test run info to the output channel, improved test run duration readability, and fixed issues related to org connection and test runs.
+
 **v0.2.0** – Enhanced performance, added total and covered lines in code coverage, improved test run information, and various UI/UX enhancements.
+
 **v0.1.0** – Initial release with test discovery, execution functionality, and code coverage visualization.
 
 For a complete history of changes, see the [CHANGELOG](CHANGELOG.md).
