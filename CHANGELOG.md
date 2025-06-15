@@ -2,6 +2,22 @@
 
 All notable changes to the "Salesforce Tests" extension will be documented in this file.
 
+## [0.2.1] - 2025-06-15
+
+### Added
+- Added test run info to the output channel.
+- Added a button in the notification to view test results in the output channel.
+
+### Changed
+- Test run duration is now displayed in a more readable format.
+- A mark is now displayed in the tests view when a test fails to run due to an org being blocked.
+
+### Fixed
+- The last test run node no longer shows up when no org is connected.
+- Changing org now drops the test runs in progress.
+
+---
+
 ## [0.2.0] - 2025-06-02
 
 ### Added

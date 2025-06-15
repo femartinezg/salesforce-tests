@@ -8,7 +8,6 @@ A Visual Studio Code extension that provides an integrated environment for runni
 - [Installation](#installation)
 - [Usage](#usage)
 - [Commands](#commands)
-- [Known Issues](#known-issues)
 - [Recent Changes](#recent-changes)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
@@ -60,6 +59,7 @@ The extension contributes the following commands:
 
 ## Recent Changes
 
+**v0.2.1** – Added test run info to the output channel, improved test run duration readability, and fixed issues related to org connection and test runs.
 **v0.2.0** – Enhanced performance, added total and covered lines in code coverage, improved test run information, and various UI/UX enhancements.
 **v0.1.0** – Initial release with test discovery, execution functionality, and code coverage visualization.
 
@@ -76,13 +76,6 @@ This extension is actively being developed. Here's what we're planning:
 - ⏳ Add support to run individual Apex test methods
 - ⬜ Add test suite functionality (group test runs)
 - ⬜ Add rerun tests functionality
-
-### Improvements
-
-- ⏳ Improve overall user feedback and error messages
-- ⏳ Migrate commands to @salesforce/core node package for better reliability
-- ⏳ Make test result details visible to the user
-- ⏳ Add option to run tests synchronously or asynchronously
 
 *Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned*
 
