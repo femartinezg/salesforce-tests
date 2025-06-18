@@ -1,0 +1,7 @@
+{
+  "printWidth": 100,
+  "experimentalTernaries": true,
+  "experimentalOperatorPosition": "start",
+  "singleQuote": true,
+  "trailingComma": "es5"
+}
