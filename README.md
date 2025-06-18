@@ -3,6 +3,7 @@
 A Visual Studio Code extension that provides an integrated environment for running and managing Salesforce Apex test classes directly from your editor.
 
 ## Table of Contents
+
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -54,8 +55,8 @@ To use this extension, you need:
 
 The extension contributes the following commands:
 
-* `Salesforce Tests: Run Test Class`: Execute a specific Apex test class
-* `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
+- `Salesforce Tests: Run Test Class`: Execute a specific Apex test class
+- `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
 
 ## Recent Changes
 
@@ -79,7 +80,7 @@ This extension is actively being developed. Here's what we're planning:
 - ⬜ Add test suite functionality (group test runs)
 - ⬜ Add rerun tests functionality
 
-*Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned*
+_Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
 
 ## Contributing
 
