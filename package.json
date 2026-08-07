@@ -266,22 +266,22 @@
         {
           "command": "salesforce-tests.rerunFailedTests",
           "when": "view == apexTestsTreeView",
-          "group": "navigation@3"
+          "group": "testActions@1"
         },
         {
           "command": "salesforce-tests.runLocalTests",
           "when": "view == apexTestsTreeView",
-          "group": "navigation@4"
+          "group": "testActions@2"
         },
         {
           "command": "salesforce-tests.createTestSuite",
           "when": "view == apexTestsTreeView",
-          "group": "navigation@5"
+          "group": "suiteActions@1"
         },
         {
           "command": "salesforce-tests.runTestsAffectedByChanges",
           "when": "view == apexTestsTreeView",
-          "group": "navigation@6"
+          "group": "testActions@3"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",
@@ -301,7 +301,7 @@
         {
           "command": "salesforce-tests.findTest",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "salesforce-tests.findClass",
