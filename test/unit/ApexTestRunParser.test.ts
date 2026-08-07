@@ -16,7 +16,14 @@ void describe('parseApexTestRunResponse', () => {
           },
           tests: [{ Outcome: 'Pass', FullName: 'ExampleTest.passes', RunTime: 5 }],
           coverage: {
-            coverage: [{ name: 'Example', totalLines: 10, totalCovered: 8 }],
+            coverage: [
+              {
+                name: 'Example',
+                totalLines: 10,
+                totalCovered: 8,
+                lines: { '2': 1, '7': 0, '9': 0 },
+              },
+            ],
             summary: { orgWideCoverage: '75%' },
           },
         },
@@ -28,7 +35,14 @@ void describe('parseApexTestRunResponse', () => {
         testExecutionTimeMs: 42,
         failures: [],
         tests: [{ fullName: 'ExampleTest.passes', outcome: 'Pass', runTimeMs: 5 }],
-        coverage: [{ name: 'Example', totalLines: 10, coveredLines: 8 }],
+        coverage: [
+          {
+            name: 'Example',
+            totalLines: 10,
+            coveredLines: 8,
+            uncoveredLineNumbers: [7, 9],
+          },
+        ],
         orgWideCoverage: 75,
       }
     );

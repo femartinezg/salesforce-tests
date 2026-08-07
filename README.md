@@ -84,7 +84,7 @@ The extension contributes the following commands:
 - `Salesforce Tests: Run All Local Tests`: Execute all local Apex tests in the org
 - `Salesforce Tests: Run Tests Covering Current Class`: Use org coverage data to run methods that cover the open Apex class
 - `Salesforce Tests: Run Tests Affected by My Changes`: Combine Git changes with org coverage to run relevant methods, including changed test classes
-- `Salesforce Tests: Open Apex Class`: Open the matching class from a standard Salesforce DX source directory
+- `Salesforce Tests: Open Apex Class`: Open the matching local class at its first uncovered line when coverage details are available
 - `Salesforce Tests: Open Test Failure`: Open the first local Apex stack location for a failed test
 - `Salesforce Tests: Export Test Results`: Save the currently visible method results as JUnit XML or JSON
 - `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data

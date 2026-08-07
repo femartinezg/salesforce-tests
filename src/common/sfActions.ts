@@ -89,12 +89,14 @@ export async function retrieveCodeCoverage(targetOrg: string): Promise<void> {
       apexClass.codeCoverage = -1;
       apexClass.totalLines = -1;
       apexClass.coveredLines = -1;
+      apexClass.uncoveredLineNumbers = undefined;
       return;
     }
 
     const totalLines = coverage.coveredLines + coverage.uncoveredLines;
     apexClass.totalLines = totalLines;
     apexClass.coveredLines = coverage.coveredLines;
+    apexClass.uncoveredLineNumbers = coverage.uncoveredLineNumbers;
     apexClass.codeCoverage = totalLines === 0 ? 100 : (coverage.coveredLines / totalLines) * 100;
   });
 }
@@ -285,6 +287,7 @@ function applyTestRunCoverage(
     if (apexClass) {
       apexClass.totalLines = coverageItem.totalLines;
       apexClass.coveredLines = coverageItem.coveredLines;
+      apexClass.uncoveredLineNumbers = coverageItem.uncoveredLineNumbers;
       if (coverageItem.totalLines === 0) {
         apexClass.codeCoverage = 100;
       } else {
@@ -298,6 +301,7 @@ function applyTestRunCoverage(
       apexClass.codeCoverage = -1;
       apexClass.totalLines = -1;
       apexClass.coveredLines = -1;
+      apexClass.uncoveredLineNumbers = undefined;
     }
   });
   contextManager.codeCoverageData.refresh();

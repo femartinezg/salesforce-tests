@@ -1,13 +1,14 @@
 import { SfCliError, type JsonSfCliClient } from './SfCliClient';
 
 const CLASS_COVERAGE_QUERY =
-  'SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate';
+  'SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered, Coverage FROM ApexCodeCoverageAggregate';
 const ORG_WIDE_COVERAGE_QUERY = 'SELECT Id, PercentCovered FROM ApexOrgWideCoverage';
 
 export interface ApexClassCoverage {
   classId: string;
   coveredLines: number;
   uncoveredLines: number;
+  uncoveredLineNumbers: number[];
 }
 
 export async function retrieveApexClassCoverage(
@@ -45,10 +46,22 @@ export function parseApexClassCoverageResponse(response: unknown): ApexClassCove
       throw invalidResponse('Apex class coverage');
     }
 
+    const coverage = asRecord(record.Coverage);
+    if (!coverage || !Array.isArray(coverage.uncoveredLines)) {
+      throw invalidResponse('Apex class coverage');
+    }
+    const uncoveredLineNumbers = coverage.uncoveredLines.map((line) => {
+      if (!isSourceLine(line)) {
+        throw invalidResponse('Apex class coverage');
+      }
+      return line;
+    });
+
     return {
       classId: record.ApexClassOrTriggerId,
       coveredLines: record.NumLinesCovered,
       uncoveredLines: record.NumLinesUncovered,
+      uncoveredLineNumbers,
     };
   });
 }
@@ -118,6 +131,10 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isLineCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function isSourceLine(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 function invalidResponse(operation: string): SfCliError {

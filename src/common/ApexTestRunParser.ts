@@ -16,6 +16,7 @@ export interface ApexTestCoverage {
   name: string;
   totalLines: number;
   coveredLines: number;
+  uncoveredLineNumbers?: number[];
 }
 
 export interface ApexTestRunResult {
@@ -151,7 +152,13 @@ function parseCoverage(value: unknown): {
     if (!name || totalLines === undefined || coveredLines === undefined) {
       throw invalidResponse();
     }
-    return { name, totalLines, coveredLines };
+    const uncoveredLineNumbers = parseUncoveredLineNumbers(item?.lines);
+    return {
+      name,
+      totalLines,
+      coveredLines,
+      ...(uncoveredLineNumbers ? { uncoveredLineNumbers } : {}),
+    };
   });
 
   const coverageSummary = asRecord(coverageResult.summary);
@@ -200,6 +207,28 @@ function parsePercentage(value: unknown): number | undefined {
     return parseNumber(value.replace('%', ''));
   }
   return parseNumber(value);
+}
+
+function parseUncoveredLineNumbers(value: unknown): number[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const lines = asRecord(value);
+  if (!lines) {
+    throw invalidResponse();
+  }
+  const uncoveredLines: number[] = [];
+  for (const [lineValue, hitValue] of Object.entries(lines)) {
+    const line = Number(lineValue);
+    const hits = parseNumber(hitValue);
+    if (!Number.isInteger(line) || line < 1 || hits === undefined) {
+      throw invalidResponse();
+    }
+    if (hits === 0) {
+      uncoveredLines.push(line);
+    }
+  }
+  return uncoveredLines.sort((left, right) => left - right);
 }
 
 function invalidResponse(): SfCliError {

@@ -21,6 +21,7 @@ export class ApexClass extends Apex {
   public codeCoverage?: number;
   public totalLines?: number;
   public coveredLines?: number;
+  public uncoveredLineNumbers?: number[];
 
   constructor(id: string, name: string) {
     super(id, name);
@@ -56,6 +57,9 @@ export class ApexClass extends Apex {
 
     item.description = `${coverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
     item.tooltip = `${this.name}\nCode Coverage: ${coverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
+    if (this.uncoveredLineNumbers && this.uncoveredLineNumbers.length > 0) {
+      item.tooltip += `\nUncovered Lines: ${this.uncoveredLineNumbers.join(', ')}`;
+    }
 
     let color: vscode.ThemeColor;
     if (coverageLevel === 'belowMinimum') {

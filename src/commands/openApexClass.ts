@@ -20,7 +20,16 @@ export async function openApexClassCommandHandler(input?: ApexClass): Promise<vo
 
   const target = await findApexClassSource(apexClass.name);
   if (target) {
-    await vscode.window.showTextDocument(target);
+    const editor = await vscode.window.showTextDocument(target);
+    const firstUncoveredLine = apexClass.uncoveredLineNumbers?.[0];
+    if (firstUncoveredLine) {
+      const position = new vscode.Position(firstUncoveredLine - 1, 0);
+      editor.selection = new vscode.Selection(position, position);
+      editor.revealRange(
+        new vscode.Range(position, position),
+        vscode.TextEditorRevealType.InCenter
+      );
+    }
   }
 }
 

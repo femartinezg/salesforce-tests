@@ -9,7 +9,7 @@ import {
 import { SfCliError, type JsonSfCliClient } from '../../src/common/SfCliClient';
 
 const classCoverageQuery =
-  'SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate';
+  'SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered, Coverage FROM ApexCodeCoverageAggregate';
 const orgWideCoverageQuery = 'SELECT Id, PercentCovered FROM ApexOrgWideCoverage';
 
 void describe('CoverageService', () => {
@@ -21,6 +21,7 @@ void describe('CoverageService', () => {
           ApexClassOrTriggerId: '01p-class',
           NumLinesCovered: 8,
           NumLinesUncovered: 2,
+          Coverage: { uncoveredLines: [7, 9] },
         },
       ]),
       [
@@ -36,7 +37,12 @@ void describe('CoverageService', () => {
     );
 
     assert.deepEqual(await retrieveApexClassCoverage(client, 'developer@example.com'), [
-      { classId: '01p-class', coveredLines: 8, uncoveredLines: 2 },
+      {
+        classId: '01p-class',
+        coveredLines: 8,
+        uncoveredLines: 2,
+        uncoveredLineNumbers: [7, 9],
+      },
     ]);
   });
 
@@ -68,18 +74,28 @@ void describe('CoverageService', () => {
         Id: 'coverage-record',
         NumLinesCovered: 8,
         NumLinesUncovered: 2,
+        Coverage: { uncoveredLines: [] },
       },
       {
         Id: 'coverage-record',
         ApexClassOrTriggerId: '01p-class',
         NumLinesCovered: -1,
         NumLinesUncovered: 2,
+        Coverage: { uncoveredLines: [] },
       },
       {
         Id: 'coverage-record',
         ApexClassOrTriggerId: '01p-class',
         NumLinesCovered: '8',
         NumLinesUncovered: 2,
+        Coverage: { uncoveredLines: [] },
+      },
+      {
+        Id: 'coverage-record',
+        ApexClassOrTriggerId: '01p-class',
+        NumLinesCovered: 8,
+        NumLinesUncovered: 2,
+        Coverage: { uncoveredLines: [0] },
       },
     ];
 

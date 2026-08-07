@@ -20,6 +20,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added an editor action that runs the discovered test methods covering the current Apex class.
 - Added affected-test discovery for tracked and untracked local Apex changes in Git workspaces.
 - Added local export of current method results as JUnit XML or JSON.
+- Added uncovered line details and navigation to the first coverage gap in local Apex source.
 
 ### Changed
 
