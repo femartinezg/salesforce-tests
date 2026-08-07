@@ -4,19 +4,6 @@ import { buildRunTestClassArgs } from '../../src/common/sfCommandArgs';
 
 void describe('buildRunTestClassArgs', () => {
   void it('uses the Salesforce CLI apex run test command order', () => {
-    assert.deepEqual(buildRunTestClassArgs('ExampleTest'), [
-      'apex',
-      'run',
-      'test',
-      '--tests',
-      'ExampleTest',
-      '--synchronous',
-      '--code-coverage',
-      '--json',
-    ]);
-  });
-
-  void it('pins the command to the resolved org when supplied', () => {
     assert.deepEqual(buildRunTestClassArgs('ExampleTest', 'developer@example.com'), [
       'apex',
       'run',
@@ -34,6 +21,6 @@ void describe('buildRunTestClassArgs', () => {
   void it('keeps the class name as one argument', () => {
     const className = 'ExampleTest; echo unsafe';
 
-    assert.equal(buildRunTestClassArgs(className)[4], className);
+    assert.equal(buildRunTestClassArgs(className, 'developer@example.com')[4], className);
   });
 });

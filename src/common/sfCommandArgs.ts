@@ -1,5 +1,5 @@
-export function buildRunTestClassArgs(testClassName: string, targetOrg?: string): string[] {
-  const args = [
+export function buildRunTestClassArgs(testClassName: string, targetOrg: string): string[] {
+  return [
     'apex',
     'run',
     'test',
@@ -8,11 +8,7 @@ export function buildRunTestClassArgs(testClassName: string, targetOrg?: string)
     '--synchronous',
     '--code-coverage',
     '--json',
+    '--target-org',
+    targetOrg,
   ];
-
-  if (targetOrg) {
-    args.push('--target-org', targetOrg);
-  }
-
-  return args;
 }
