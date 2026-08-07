@@ -140,6 +140,13 @@
         "icon": "$(git-compare)"
       },
       {
+        "command": "salesforce-tests.exportTestResults",
+        "title": "Export Test Results",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(export)"
+      },
+      {
         "command": "salesforce-tests.showUnderCoveredClasses",
         "title": "Show Classes Below Coverage Threshold",
         "enablement": "!codeCoverageLoading",

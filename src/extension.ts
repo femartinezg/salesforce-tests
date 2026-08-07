@@ -27,6 +27,7 @@ import {
   runTestsAffectedByChangesCommandHandler,
   runTestsCoveringCurrentClassCommandHandler,
 } from './commands/runImpactedTests';
+import { exportTestResultsCommandHandler } from './commands/exportTestResults';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
@@ -58,6 +59,12 @@ function registerTreeDataProviders(
     vscode.window.registerTreeDataProvider('statusTreeView', contextManager.statusData),
     vscode.window.registerTreeDataProvider('apexTestsTreeView', contextManager.apexTestsData),
     vscode.window.registerTreeDataProvider('codeCoverageTreeView', contextManager.codeCoverageData)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.exportTestResults',
+      exportTestResultsCommandHandler
+    )
   );
 }
 

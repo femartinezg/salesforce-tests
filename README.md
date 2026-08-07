@@ -86,6 +86,7 @@ The extension contributes the following commands:
 - `Salesforce Tests: Run Tests Affected by My Changes`: Combine Git changes with org coverage to run relevant methods, including changed test classes
 - `Salesforce Tests: Open Apex Class`: Open the matching class from a standard Salesforce DX source directory
 - `Salesforce Tests: Open Test Failure`: Open the first local Apex stack location for a failed test
+- `Salesforce Tests: Export Test Results`: Save the currently visible method results as JUnit XML or JSON
 - `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
 - `Salesforce Tests: Refresh Apex Tests`: Reload available unmanaged Apex test classes
 - `Salesforce Tests: Refresh Code Coverage`: Reload class and org-wide coverage
@@ -139,7 +140,7 @@ Planned direction:
 - ✅ Add test suite functionality (group test runs)
 - ✅ Add rerun, failed-test, selection, and local-test actions
 - ⬜ Add persistent test history and slow/flaky-test insights
-- ⬜ Add tests affected by local source changes
+- ✅ Add tests affected by local source changes
 
 _Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
 
