@@ -26,6 +26,10 @@ import {
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
 import {
+  retrieveImpactedApexTests as retrieveImpactedApexTestItems,
+  type ImpactedApexTest,
+} from './ImpactedTestService';
+import {
   buildRunTestLevelArgs,
   buildRunTestSelectorArgs,
   buildRunTestSuiteArgs,
@@ -301,4 +305,11 @@ function applyTestRunCoverage(
 
 export function retrieveOrgCoverage(targetOrg: string): Promise<number> {
   return retrieveOrgWideCoverage(sfCliClient, targetOrg);
+}
+
+export function retrieveImpactedApexTests(
+  apexClassName: string,
+  targetOrg: string
+): Promise<ImpactedApexTest[]> {
+  return retrieveImpactedApexTestItems(sfCliClient, apexClassName, targetOrg);
 }

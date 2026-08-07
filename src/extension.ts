@@ -23,6 +23,7 @@ import {
   createTestSuiteCommandHandler,
   deleteTestSuiteCommandHandler,
 } from './commands/manageTestSuites';
+import { runTestsCoveringCurrentClassCommandHandler } from './commands/runImpactedTests';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
@@ -122,6 +123,12 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runLocalTests', runLocalTestsCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.runTestsCoveringCurrentClass',
+      runTestsCoveringCurrentClassCommandHandler
+    )
   );
   context.subscriptions.push(
     vscode.commands.registerCommand(

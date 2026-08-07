@@ -82,6 +82,7 @@ The extension contributes the following commands:
 - `Salesforce Tests: Rerun Last Test`: Repeat the most recent class, method, or suite
 - `Salesforce Tests: Rerun Failed Tests`: Execute the failed methods from the current results again
 - `Salesforce Tests: Run All Local Tests`: Execute all local Apex tests in the org
+- `Salesforce Tests: Run Tests Covering Current Class`: Use org coverage data to run methods that cover the open Apex class
 - `Salesforce Tests: Open Apex Class`: Open the matching class from a standard Salesforce DX source directory
 - `Salesforce Tests: Open Test Failure`: Open the first local Apex stack location for a failed test
 - `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
@@ -91,6 +92,8 @@ The extension contributes the following commands:
 - `Salesforce Tests: Show All Coverage`: Clear the coverage filter
 
 Suite names must begin with a letter and contain only letters, numbers, spaces, underscores, or hyphens. Creating and deleting suites changes `ApexTestSuite` and `TestSuiteMembership` records in the selected Developer Org, sandbox, or scratch org.
+
+The covering-tests command uses the org's latest `ApexCodeCoverage` records. Run the relevant tests or refresh coverage when that data is stale; it does not infer coverage for local code that has not been deployed.
 
 ## Settings
 

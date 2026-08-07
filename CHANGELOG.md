@@ -17,6 +17,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added a configurable minimum coverage threshold and a quick under-covered class filter.
 - Added failure details on test items and navigation from Apex stack traces to local source.
 - Added creation and deletion of Apex test suites from the sidebar.
+- Added an editor action that runs the discovered test methods covering the current Apex class.
 
 ### Changed
 

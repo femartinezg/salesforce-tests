@@ -126,6 +126,13 @@
         "icon": "$(run-all)"
       },
       {
+        "command": "salesforce-tests.runTestsCoveringCurrentClass",
+        "title": "Run Tests Covering Current Class",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run-all)"
+      },
+      {
         "command": "salesforce-tests.showUnderCoveredClasses",
         "title": "Show Classes Below Coverage Threshold",
         "enablement": "!codeCoverageLoading",
@@ -280,6 +287,13 @@
         {
           "command": "salesforce-tests.findClass",
           "when": "view == codeCoverageTreeView",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "salesforce-tests.runTestsCoveringCurrentClass",
+          "when": "resourceExtname == .cls && !apexTestsLoading",
           "group": "navigation"
         }
       ],
