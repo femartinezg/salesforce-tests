@@ -96,16 +96,22 @@ export class ApexTestClass extends Apex {
       description = 'Running...';
     }
 
-    if (this.startTime && this.duration && this.status !== 'Running' && this.status !== undefined) {
+    if (
+      this.startTime
+      && this.duration !== undefined
+      && this.status !== 'Running'
+      && this.status !== undefined
+    ) {
       const startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
       const startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
       const tooltipTimeString = `${startDateString} ${startTimeString}`;
       tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
       description = `${startTimeString} (${formatDuration(this.duration)})`;
-      if (this.executionBlocked) {
-        tooltip = `${tooltip}\n⚠ Last execution was blocked.`;
-        description = `⚠ ${description}`;
-      }
+    }
+
+    if (this.executionBlocked && this.status !== 'Running') {
+      tooltip = `${tooltip}\n⚠ Last execution was blocked.`;
+      description = description ? `⚠ ${description}` : '⚠ Blocked';
     }
 
     item.tooltip = tooltip;
