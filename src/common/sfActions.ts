@@ -6,6 +6,7 @@ import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
 import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
+import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
 import { buildRunTestClassArgs } from './sfCommandArgs';
@@ -27,60 +28,28 @@ export async function retrieveApexClasses(targetOrg: string): Promise<{
   };
 }
 
-export async function retrieveCodeCoverage() {
+export async function retrieveCodeCoverage(targetOrg: string): Promise<void> {
   const contextManager = getContextManager();
-  const { exec } = require('child_process');
+  const coverageByClassId = new Map(
+    (await retrieveApexClassCoverage(sfCliClient, targetOrg)).map((coverage) => [
+      coverage.classId,
+      coverage,
+    ])
+  );
 
-  return new Promise<void>((resolve, reject) => {
-    const query = `SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate`;
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
+  contextManager.codeCoverageData.apexClasses?.forEach((apexClass) => {
+    const coverage = coverageByClassId.get(apexClass.id);
+    if (!coverage) {
+      apexClass.codeCoverage = -1;
+      apexClass.totalLines = -1;
+      apexClass.coveredLines = -1;
+      return;
+    }
 
-    exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
-
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-
-        for (let coverage of records) {
-          const apexClass = contextManager.codeCoverageData.apexClasses?.find(
-            (apexClass: ApexClass) => coverage.ApexClassOrTriggerId === apexClass.id
-          );
-          const numLinesCovered = coverage.NumLinesCovered || 0;
-          const numLinesUncovered = coverage.NumLinesUncovered || 0;
-          const totalLines = numLinesCovered + numLinesUncovered;
-
-          if (apexClass) {
-            apexClass.totalLines = totalLines;
-            apexClass.coveredLines = numLinesCovered;
-            if (totalLines === 0) {
-              apexClass.codeCoverage = 100;
-            } else {
-              apexClass.codeCoverage = (numLinesCovered / totalLines) * 100;
-            }
-          }
-        }
-
-        contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
-          if (apexClass.codeCoverage === undefined) {
-            apexClass.codeCoverage = -1;
-            apexClass.totalLines = -1;
-            apexClass.coveredLines = -1;
-          }
-        });
-
-        resolve();
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
+    const totalLines = coverage.coveredLines + coverage.uncoveredLines;
+    apexClass.totalLines = totalLines;
+    apexClass.coveredLines = coverage.coveredLines;
+    apexClass.codeCoverage = totalLines === 0 ? 100 : (coverage.coveredLines / totalLines) * 100;
   });
 }
 
@@ -251,34 +220,6 @@ async function getCodeCoverage(coverage: any[]) {
   contextManager.codeCoverageData.refresh();
 }
 
-export async function retrieveOrgCoverage() {
-  const { exec } = require('child_process');
-
-  return new Promise<number>((resolve, reject) => {
-    const query = 'SELECT Id, PercentCovered FROM ApexOrgWideCoverage';
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
-
-    exec(command, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
-
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-        if (records.length > 0) {
-          resolve(records[0].PercentCovered);
-        } else {
-          reject(new Error('No coverage data found'));
-        }
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
-  });
+export function retrieveOrgCoverage(targetOrg: string): Promise<number> {
+  return retrieveOrgWideCoverage(sfCliClient, targetOrg);
 }

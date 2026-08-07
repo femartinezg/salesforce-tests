@@ -63,7 +63,7 @@ export class ContextManager {
     this.codeCoverageData.refresh();
 
     await Promise.all([
-      retrieveOrgCoverage()
+      retrieveOrgCoverage(username)
         .then((orgWideCoverage) => {
           this.statusData.orgWideCoverage = orgWideCoverage;
           this.statusData.refresh();
@@ -71,7 +71,7 @@ export class ContextManager {
         .catch((error: unknown) => {
           this.printOutput(`Unable to retrieve org coverage: ${getErrorMessage(error)}`);
         }),
-      retrieveCodeCoverage()
+      retrieveCodeCoverage(username)
         .then(() => this.codeCoverageData.refresh())
         .catch((error: unknown) => {
           this.printOutput(`Unable to retrieve class coverage: ${getErrorMessage(error)}`);
