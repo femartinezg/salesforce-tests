@@ -1,5 +1,9 @@
 import { getContextManager } from '../common';
-import { retrieveApexClasses, retrieveCodeCoverage } from '../common/sfActions';
+import {
+  retrieveApexClasses,
+  retrieveApexTestSuites,
+  retrieveCodeCoverage,
+} from '../common/sfActions';
 
 export async function refreshOrg() {
   const contextManager = getContextManager();
@@ -16,11 +20,16 @@ export async function refreshApexTests() {
   const targetOrg = contextManager.statusData.username;
   if (!targetOrg) {
     contextManager.apexTestsData.testClasses = [];
+    contextManager.apexTestsData.testSuites = [];
     contextManager.apexTestsData.refresh();
     return;
   }
-  const { testClasses } = await retrieveApexClasses(targetOrg);
+  const [{ testClasses }, testSuites] = await Promise.all([
+    retrieveApexClasses(targetOrg),
+    retrieveApexTestSuites(targetOrg),
+  ]);
   contextManager.apexTestsData.testClasses = testClasses;
+  contextManager.apexTestsData.testSuites = testSuites;
   contextManager.apexTestsData.refresh();
 }
 

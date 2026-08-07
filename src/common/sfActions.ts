@@ -1,15 +1,16 @@
 import * as vscode from 'vscode';
 import { getContextManager } from '.';
-import { ApexClass, ApexTestClass, ApexTestTarget } from '../classes/Apex';
+import { ApexClass, ApexTestClass, ApexTestSuite, ApexTestTarget } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
 import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
 import { parseApexTestRunResponse, type ApexTestCoverage } from './ApexTestRunParser';
 import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
+import { retrieveApexTestSuites as retrieveApexTestSuiteItems } from './ApexTestSuiteService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
-import { buildRunTestSelectorArgs } from './sfCommandArgs';
+import { buildRunTestSelectorArgs, buildRunTestSuiteArgs } from './sfCommandArgs';
 
 const sfCliClient = new SfCliClient();
 
@@ -28,6 +29,12 @@ export async function retrieveApexClasses(targetOrg: string): Promise<{
     ),
     apexClasses: result.apexClasses.map((item) => new ApexClass(item.id, item.name)),
   };
+}
+
+export async function retrieveApexTestSuites(targetOrg: string): Promise<ApexTestSuite[]> {
+  return (await retrieveApexTestSuiteItems(sfCliClient, targetOrg)).map(
+    (item) => new ApexTestSuite(item.id, item.name)
+  );
 }
 
 export async function retrieveCodeCoverage(targetOrg: string): Promise<void> {
@@ -75,7 +82,9 @@ export async function runApexTest(
 
   try {
     const response = await sfCliClient.runJson<unknown>(
-      buildRunTestSelectorArgs(testTarget.selector, targetOrg),
+      testTarget.runKind === 'suite' ?
+        buildRunTestSuiteArgs(testTarget.selector, targetOrg)
+      : buildRunTestSelectorArgs(testTarget.selector, targetOrg),
       cancellationToken
     );
     const result = parseApexTestRunResponse(response);

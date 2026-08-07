@@ -78,7 +78,8 @@ export abstract class ApexTestTarget extends Apex {
     return this.name;
   }
 
-  public abstract get historyType(): 'Test Class' | 'Test Method';
+  public abstract readonly historyType: 'Test Class' | 'Test Method' | 'Test Suite';
+  public abstract readonly runKind: 'tests' | 'suite';
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
@@ -129,6 +130,7 @@ export abstract class ApexTestTarget extends Apex {
 
 export class ApexTestMethod extends ApexTestTarget {
   public readonly historyType = 'Test Method' as const;
+  public readonly runKind = 'tests' as const;
 
   constructor(
     id: string,
@@ -154,6 +156,7 @@ export class ApexTestMethod extends ApexTestTarget {
 
 export class ApexTestClass extends ApexTestTarget {
   public readonly historyType = 'Test Class' as const;
+  public readonly runKind = 'tests' as const;
   public readonly methods: ApexTestMethod[];
 
   constructor(id: string, name: string, status?: string, methodNames: readonly string[] = []) {
@@ -168,6 +171,21 @@ export class ApexTestClass extends ApexTestTarget {
     item.contextValue = 'apexTestClass';
     item.collapsibleState =
       this.methods.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : undefined;
+    return item;
+  }
+}
+
+export class ApexTestSuite extends ApexTestTarget {
+  public readonly historyType = 'Test Suite' as const;
+  public readonly runKind = 'suite' as const;
+
+  getTreeItem(): vscode.TreeItem {
+    const item = super.getTreeItem();
+    item.contextValue = 'apexTestSuite';
+    if (this.status === undefined) {
+      item.iconPath = new vscode.ThemeIcon('beaker');
+      item.description = 'Test Suite';
+    }
     return item;
   }
 }

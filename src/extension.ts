@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import { homedir } from 'node:os';
-import { runTestClassCommandHandler, runTestMethodCommandHandler } from './commands/runTestClass';
+import {
+  runTestClassCommandHandler,
+  runTestMethodCommandHandler,
+  runTestSuiteCommandHandler,
+} from './commands/runTestClass';
 import { getContextManager } from './common';
 import { ContextManager } from './common/ContextManager';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
@@ -62,6 +66,9 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runTestMethod', runTestMethodCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runTestSuite', runTestSuiteCommandHandler)
   );
 
   context.subscriptions.push(

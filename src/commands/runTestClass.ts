@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getContextManager } from '../common';
-import { ApexTestClass, ApexTestMethod, ApexTestTarget } from '../classes/Apex';
+import { ApexTestClass, ApexTestMethod, ApexTestSuite, ApexTestTarget } from '../classes/Apex';
 import { runApexTest } from '../common/sfActions';
 import { getTreeItemLabel } from '../common/treeItemLabel';
 
@@ -53,6 +53,25 @@ export async function runTestMethodCommandHandler(runTestInput?: ApexTestMethod)
   }
 
   await runTestTargetCommand(testMethod);
+}
+
+export async function runTestSuiteCommandHandler(runTestInput?: ApexTestSuite): Promise<void> {
+  const testSuites = getContextManager().apexTestsData.testSuites ?? [];
+  let testSuite = runTestInput instanceof ApexTestSuite ? runTestInput : undefined;
+
+  if (!testSuite) {
+    const selection = await vscode.window.showQuickPick(
+      testSuites.map((suite) => ({ label: suite.name, suite })),
+      { placeHolder: 'Select the Apex test suite to run' }
+    );
+    testSuite = selection?.suite;
+  }
+
+  if (!testSuite) {
+    return;
+  }
+
+  await runTestTargetCommand(testSuite);
 }
 
 async function runTestTargetCommand(testTarget: ApexTestTarget): Promise<void> {

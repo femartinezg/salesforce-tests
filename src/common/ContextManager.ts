@@ -4,6 +4,7 @@ import { ApexTestsTreeViewProvider } from '../views/ApexTestsTreeViewProvider';
 import { CodeCoverageTreeViewProvider } from '../views/CodeCoverageTreeViewProvider';
 import {
   retrieveApexClasses,
+  retrieveApexTestSuites,
   retrieveCodeCoverage,
   retrieveOrgCoverage,
   retrieveOrgInfo,
@@ -47,6 +48,7 @@ export class ContextManager {
     if (!this.statusData.isAuthenticated || !username) {
       this.printOutput('No default Salesforce org is configured.');
       this.apexTestsData.testClasses = [];
+      this.apexTestsData.testSuites = [];
       this.codeCoverageData.apexClasses = [];
       this.apexTestsData.refresh();
       this.codeCoverageData.refresh();
@@ -55,8 +57,12 @@ export class ContextManager {
 
     this.printOutput(`Connected to org: ${orgName ?? username}`);
 
-    const { testClasses, apexClasses } = await retrieveApexClasses(username);
+    const [{ testClasses, apexClasses }, testSuites] = await Promise.all([
+      retrieveApexClasses(username),
+      retrieveApexTestSuites(username),
+    ]);
     this.apexTestsData.testClasses = testClasses;
+    this.apexTestsData.testSuites = testSuites;
     this.codeCoverageData.apexClasses = apexClasses;
 
     this.apexTestsData.refresh();

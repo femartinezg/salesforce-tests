@@ -10,6 +10,21 @@ export function buildRunTestMethodArgs(
   return buildRunTestSelectorArgs(`${testClassName}.${testMethodName}`, targetOrg);
 }
 
+export function buildRunTestSuiteArgs(testSuiteName: string, targetOrg: string): string[] {
+  return [
+    'apex',
+    'run',
+    'test',
+    '--suite-names',
+    testSuiteName,
+    '--synchronous',
+    '--code-coverage',
+    '--json',
+    '--target-org',
+    targetOrg,
+  ];
+}
+
 export function buildRunTestSelectorArgs(testSelector: string, targetOrg: string): string[] {
   return [
     'apex',

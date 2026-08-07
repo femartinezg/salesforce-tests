@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildRunTestClassArgs, buildRunTestMethodArgs } from '../../src/common/sfCommandArgs';
+import {
+  buildRunTestClassArgs,
+  buildRunTestMethodArgs,
+  buildRunTestSuiteArgs,
+} from '../../src/common/sfCommandArgs';
 
 void describe('buildRunTestClassArgs', () => {
   void it('uses the Salesforce CLI apex run test command order', () => {
@@ -31,5 +35,15 @@ void describe('buildRunTestMethodArgs', () => {
 
     assert.equal(args[args.indexOf('--tests') + 1], 'ExampleTest.passes');
     assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+  });
+});
+
+void describe('buildRunTestSuiteArgs', () => {
+  void it('uses the suite flag and pins the resolved org', () => {
+    const args = buildRunTestSuiteArgs('Regression Suite', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--suite-names') + 1], 'Regression Suite');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+    assert.equal(args.includes('--tests'), false);
   });
 });
