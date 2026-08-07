@@ -9,12 +9,17 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added typed, cancellable Salesforce CLI services for org discovery, Apex classes, test results, and coverage.
 - Added unit tests, opt-in Developer Org integration fixtures, continuous integration, and package-content verification.
 - Added explicit trusted-workspace and remote workspace execution behavior.
+- Added discovery and execution of individual Apex test methods and Apex test suites.
+- Added multi-selection, rerun-last, rerun-failed, and run-all-local test actions.
+- Added method-level outcomes and durations to the Apex Tests view.
+- Added navigation from code coverage entries to matching local Apex classes.
 
 ### Changed
 
 - All Apex operations now use the username resolved for the current default-org refresh cycle.
 - Builds now clean compiled output before packaging, and the VSIX uses a reviewed file list.
 - Documentation now covers standalone setup, the default-org model, privacy, remote environments, and troubleshooting.
+- Classes with known low coverage are shown first, while unavailable coverage remains clearly separated.
 
 ### Fixed
 

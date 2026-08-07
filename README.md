@@ -22,11 +22,12 @@ A lightweight, standalone Visual Studio Code extension for running Apex tests an
 
 This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar, allowing you to:
 
-- **View unmanaged Apex test classes**: Browse and discover test classes owned by your connected Salesforce org.
-- **Run tests with a single click**: Execute Apex test classes directly from the sidebar with real-time feedback on test status.
-- **Visual test results**: Tests display with clear visual indicators showing their status (running, passed, or failed).
-- **View Code Coverage**: Instantly see code coverage metrics for your Apex classes, including total and covered lines, directly in the sidebar.
-- **Display info about test runs**: Check org-wide code coverage, last test runs, start time, duration, and more directly from the panel.
+- **Discover Apex tests**: Browse unmanaged test classes, their individual test methods, and Apex test suites from the connected org.
+- **Choose the right scope**: Run a class, a method, a suite, a multi-selection, failed tests, or all local tests.
+- **Rerun quickly**: Rerun the most recent class, method, or suite directly from the status panel.
+- **Inspect results**: See running, passed, failed, and blocked states together with individual method outcomes and durations.
+- **Act on code coverage**: Review org-wide and class-level coverage, with low-coverage classes shown first and navigation to matching local Apex source.
+- **Stay lightweight**: Use Salesforce CLI directly without installing the Salesforce Extension Pack.
 
 ## Requirements
 
@@ -58,13 +59,13 @@ Open that project in VS Code and select the Salesforce Tests icon in the Activit
 
 1. Open the Salesforce Tests view by clicking the test tube icon in the Activity Bar.
 2. View your authenticated org information in the Status section, including org-wide code coverage and last test runs.
-3. Browse available test classes in the Apex Tests section.
-4. Click on the run button for quick execution.
+3. Browse available classes, methods, and suites in the Apex Tests section.
+4. Use the inline run button for one test, or the view actions to select several tests, rerun failures, or run all local tests.
 5. View test results with visual indicators:
    - ⏳ Running: Test is currently executing
    - ✅ Passed: Test completed successfully
    - ❌ Failed: Test failed
-6. See code coverage details, including total and covered lines, in the Code Coverage section.
+6. See code coverage details, including total and covered lines, in the Code Coverage section. Classes with known low coverage appear first; use the inline action to open matching source in the workspace.
 7. Hover over items for enhanced tooltips and additional information.
 
 ## Commands
@@ -72,6 +73,13 @@ Open that project in VS Code and select the Salesforce Tests icon in the Activit
 The extension contributes the following commands:
 
 - `Salesforce Tests: Run Test Class`: Execute a specific Apex test class
+- `Salesforce Tests: Run Test Method`: Execute one method from an Apex test class
+- `Salesforce Tests: Run Test Suite`: Execute an Apex test suite
+- `Salesforce Tests: Run Selected Tests`: Choose and execute multiple classes or methods
+- `Salesforce Tests: Rerun Last Test`: Repeat the most recent class, method, or suite
+- `Salesforce Tests: Rerun Failed Tests`: Execute the failed methods from the current results again
+- `Salesforce Tests: Run All Local Tests`: Execute all local Apex tests in the org
+- `Salesforce Tests: Open Apex Class`: Open the matching class from a standard Salesforce DX source directory
 - `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
 - `Salesforce Tests: Refresh Apex Tests`: Reload available unmanaged Apex test classes
 - `Salesforce Tests: Refresh Code Coverage`: Reload class and org-wide coverage
@@ -110,9 +118,11 @@ Planned direction:
 
 - ✅ Add functionality to run Apex tests
 - ✅ Add code coverage visualization
-- ⏳ Add support to run individual Apex test methods
-- ⬜ Add test suite functionality (group test runs)
-- ⬜ Add rerun tests functionality
+- ✅ Add support to run individual Apex test methods
+- ✅ Add test suite functionality (group test runs)
+- ✅ Add rerun, failed-test, selection, and local-test actions
+- ⬜ Add persistent test history and slow/flaky-test insights
+- ⬜ Add tests affected by local source changes
 
 _Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
 
