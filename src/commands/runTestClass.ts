@@ -118,6 +118,24 @@ export async function runSelectedTestsCommandHandler(): Promise<void> {
   }
 }
 
+export async function rerunFailedTestsCommandHandler(): Promise<void> {
+  const testData = getContextManager().apexTestsData;
+  const failedTargets: ApexTestTarget[] = [
+    ...(testData.testSuites ?? []),
+    ...(testData.testClasses ?? []),
+    ...(testData.testClasses?.flatMap((testClass) => testClass.methods) ?? []),
+  ].filter((target) => target.status === 'Failed');
+
+  if (failedTargets.length === 0) {
+    void vscode.window.showInformationMessage('There are no failed Apex tests to rerun.');
+    return;
+  }
+
+  for (const target of failedTargets) {
+    await runTestTargetCommand(target);
+  }
+}
+
 function findTestTarget(testRun: TestRun): ApexTestTarget | undefined {
   const testData = getContextManager().apexTestsData;
   if (testRun.type === 'Test Suite') {

@@ -84,6 +84,13 @@
         "icon": "$(run-all)"
       },
       {
+        "command": "salesforce-tests.rerunFailedTests",
+        "title": "Rerun Failed Tests",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(debug-rerun)"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -185,6 +192,11 @@
           "command": "salesforce-tests.refreshApexTests",
           "when": "view == apexTestsTreeView",
           "group": "navigation@2"
+        },
+        {
+          "command": "salesforce-tests.rerunFailedTests",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation@3"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",

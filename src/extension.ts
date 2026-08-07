@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { homedir } from 'node:os';
 import {
   rerunTestCommandHandler,
+  rerunFailedTestsCommandHandler,
   runSelectedTestsCommandHandler,
   runTestClassCommandHandler,
   runTestMethodCommandHandler,
@@ -79,6 +80,12 @@ function registerCommands(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'salesforce-tests.runSelectedTests',
       runSelectedTestsCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.rerunFailedTests',
+      rerunFailedTestsCommandHandler
     )
   );
 
