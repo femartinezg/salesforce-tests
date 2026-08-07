@@ -77,6 +77,13 @@
         "icon": "$(debug-rerun)"
       },
       {
+        "command": "salesforce-tests.runSelectedTests",
+        "title": "Run Selected Tests",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run-all)"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -160,6 +167,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "salesforce-tests.runSelectedTests",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation@1"
+        },
+        {
           "command": "salesforce-tests.rerunTest",
           "when": "view == statusTreeView",
           "group": "navigation@1"
@@ -172,7 +184,7 @@
         {
           "command": "salesforce-tests.refreshApexTests",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",

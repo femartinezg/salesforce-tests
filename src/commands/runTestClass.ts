@@ -94,6 +94,30 @@ export async function rerunTestCommandHandler(testRun?: TestRun): Promise<void> 
   await runTestTargetCommand(testTarget);
 }
 
+export async function runSelectedTestsCommandHandler(): Promise<void> {
+  const testData = getContextManager().apexTestsData;
+  const targets: ApexTestTarget[] = [
+    ...(testData.testSuites ?? []),
+    ...(testData.testClasses ?? []),
+    ...(testData.testClasses?.flatMap((testClass) => testClass.methods) ?? []),
+  ];
+  const selection = await vscode.window.showQuickPick(
+    targets.map((target) => ({
+      label: target.selector,
+      description: target.historyType,
+      target,
+    })),
+    {
+      canPickMany: true,
+      placeHolder: 'Select Apex tests to run',
+    }
+  );
+
+  for (const item of selection ?? []) {
+    await runTestTargetCommand(item.target);
+  }
+}
+
 function findTestTarget(testRun: TestRun): ApexTestTarget | undefined {
   const testData = getContextManager().apexTestsData;
   if (testRun.type === 'Test Suite') {
