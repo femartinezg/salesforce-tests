@@ -76,6 +76,8 @@ The extension contributes the following commands:
 - `Salesforce Tests: Run Test Class`: Execute a specific Apex test class
 - `Salesforce Tests: Run Test Method`: Execute one method from an Apex test class
 - `Salesforce Tests: Run Test Suite`: Execute an Apex test suite
+- `Salesforce Tests: Create Test Suite`: Create an org test suite from selected Apex test classes
+- `Salesforce Tests: Delete Test Suite`: Delete a test suite without deleting its test classes
 - `Salesforce Tests: Run Selected Tests`: Choose and execute multiple classes or methods
 - `Salesforce Tests: Rerun Last Test`: Repeat the most recent class, method, or suite
 - `Salesforce Tests: Rerun Failed Tests`: Execute the failed methods from the current results again
@@ -87,6 +89,8 @@ The extension contributes the following commands:
 - `Salesforce Tests: Refresh Code Coverage`: Reload class and org-wide coverage
 - `Salesforce Tests: Show Classes Below Coverage Threshold`: Filter the coverage view to actionable classes
 - `Salesforce Tests: Show All Coverage`: Clear the coverage filter
+
+Suite names must begin with a letter and contain only letters, numbers, spaces, underscores, or hyphens. Creating and deleting suites changes `ApexTestSuite` and `TestSuiteMembership` records in the selected Developer Org, sandbox, or scratch org.
 
 ## Settings
 

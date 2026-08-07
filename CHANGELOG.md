@@ -16,6 +16,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added a five-entry test history persisted locally and separated by Salesforce org.
 - Added a configurable minimum coverage threshold and a quick under-covered class filter.
 - Added failure details on test items and navigation from Apex stack traces to local source.
+- Added creation and deletion of Apex test suites from the sidebar.
 
 ### Changed
 

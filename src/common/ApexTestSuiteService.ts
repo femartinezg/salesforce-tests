@@ -16,12 +16,111 @@ export async function retrieveApexTestSuites(
   return parseApexTestSuiteQueryResponse(response);
 }
 
+export async function createApexTestSuite(
+  client: JsonSfCliClient,
+  name: string,
+  apexClassIds: readonly string[],
+  username: string
+): Promise<ApexTestSuiteItem> {
+  if (!isValidApexTestSuiteName(name)) {
+    throw new SfCliError(
+      'invalid-response',
+      'Apex test suite names must start with a letter and contain only letters, numbers, or underscores.'
+    );
+  }
+  const response = await client.runJson<unknown>(buildCreateApexTestSuiteArgs(name, username));
+  const suiteId = parseMutationId(response, 'create the Apex test suite');
+
+  try {
+    for (const apexClassId of apexClassIds) {
+      const membershipResponse = await client.runJson<unknown>(
+        buildCreateTestSuiteMembershipArgs(suiteId, apexClassId, username)
+      );
+      parseMutationId(membershipResponse, 'add a class to the Apex test suite');
+    }
+  } catch (error: unknown) {
+    try {
+      await client.runJson<unknown>(buildDeleteApexTestSuiteArgs(suiteId, username));
+    } catch {
+      // Preserve the membership error; a later refresh will expose any incomplete suite.
+    }
+    throw error;
+  }
+
+  return { id: suiteId, name };
+}
+
+export async function deleteApexTestSuite(
+  client: JsonSfCliClient,
+  suiteId: string,
+  username: string
+): Promise<void> {
+  const response = await client.runJson<unknown>(buildDeleteApexTestSuiteArgs(suiteId, username));
+  parseMutationId(response, 'delete the Apex test suite');
+}
+
+export function isValidApexTestSuiteName(name: string): boolean {
+  return /^[A-Za-z][A-Za-z0-9 _-]{0,254}$/.test(name);
+}
+
 export function buildApexTestSuiteQueryArgs(username: string): readonly string[] {
   return [
     'data',
     'query',
     '--query',
     APEX_TEST_SUITES_QUERY,
+    '--use-tooling-api',
+    '--target-org',
+    username,
+    '--json',
+  ];
+}
+
+export function buildCreateApexTestSuiteArgs(name: string, username: string): readonly string[] {
+  return [
+    'data',
+    'create',
+    'record',
+    '--sobject',
+    'ApexTestSuite',
+    '--values',
+    `TestSuiteName='${name}'`,
+    '--use-tooling-api',
+    '--target-org',
+    username,
+    '--json',
+  ];
+}
+
+export function buildCreateTestSuiteMembershipArgs(
+  suiteId: string,
+  apexClassId: string,
+  username: string
+): readonly string[] {
+  return [
+    'data',
+    'create',
+    'record',
+    '--sobject',
+    'TestSuiteMembership',
+    '--values',
+    `ApexTestSuiteId=${suiteId} ApexClassId=${apexClassId}`,
+    '--use-tooling-api',
+    '--target-org',
+    username,
+    '--json',
+  ];
+}
+
+export function buildDeleteApexTestSuiteArgs(suiteId: string, username: string): readonly string[] {
+  return [
+    'data',
+    'delete',
+    'record',
+    '--sobject',
+    'ApexTestSuite',
+    '--record-id',
+    suiteId,
     '--use-tooling-api',
     '--target-org',
     username,
@@ -51,6 +150,19 @@ export function parseApexTestSuiteQueryResponse(response: unknown): ApexTestSuit
     }
     return { id: record.Id, name: record.TestSuiteName };
   });
+}
+
+function parseMutationId(response: unknown, action: string): string {
+  const envelope = asRecord(response);
+  const result = asRecord(envelope?.result);
+  if (envelope?.status !== 0) {
+    const detail = typeof envelope?.message === 'string' ? `: ${envelope.message}` : '';
+    throw new SfCliError('execution', `Salesforce CLI failed to ${action}${detail}`);
+  }
+  if (!result || !isNonEmptyString(result.id)) {
+    throw invalidResponse();
+  }
+  return result.id;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

@@ -18,7 +18,11 @@ import {
 } from './ApexTestRunParser';
 import { executeApexTestRun } from './ApexTestRunService';
 import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
-import { retrieveApexTestSuites as retrieveApexTestSuiteItems } from './ApexTestSuiteService';
+import {
+  createApexTestSuite as createApexTestSuiteItem,
+  deleteApexTestSuite as deleteApexTestSuiteItem,
+  retrieveApexTestSuites as retrieveApexTestSuiteItems,
+} from './ApexTestSuiteService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
 import {
@@ -51,6 +55,19 @@ export async function retrieveApexTestSuites(targetOrg: string): Promise<ApexTes
   return (await retrieveApexTestSuiteItems(sfCliClient, targetOrg)).map(
     (item) => new ApexTestSuite(item.id, item.name)
   );
+}
+
+export async function createApexTestSuite(
+  name: string,
+  apexClassIds: readonly string[],
+  targetOrg: string
+): Promise<ApexTestSuite> {
+  const item = await createApexTestSuiteItem(sfCliClient, name, apexClassIds, targetOrg);
+  return new ApexTestSuite(item.id, item.name);
+}
+
+export function deleteApexTestSuite(suiteId: string, targetOrg: string): Promise<void> {
+  return deleteApexTestSuiteItem(sfCliClient, suiteId, targetOrg);
 }
 
 export async function retrieveCodeCoverage(targetOrg: string): Promise<void> {

@@ -84,6 +84,20 @@
         "icon": "$(run)"
       },
       {
+        "command": "salesforce-tests.createTestSuite",
+        "title": "Create Test Suite",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(add)"
+      },
+      {
+        "command": "salesforce-tests.deleteTestSuite",
+        "title": "Delete Test Suite",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(trash)"
+      },
+      {
         "command": "salesforce-tests.rerunTest",
         "title": "Rerun Last Test",
         "enablement": "!apexTestsLoading",
@@ -239,6 +253,11 @@
           "group": "navigation@4"
         },
         {
+          "command": "salesforce-tests.createTestSuite",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation@5"
+        },
+        {
           "command": "salesforce-tests.refreshCodeCoverage",
           "when": "view == codeCoverageTreeView",
           "group": "navigation@3"
@@ -284,6 +303,11 @@
           "command": "salesforce-tests.runTestSuite",
           "when": "view == apexTestsTreeView && viewItem =~ /^apexTestSuite/",
           "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.deleteTestSuite",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestSuite/",
+          "group": "inline@3"
         },
         {
           "command": "salesforce-tests.openTestFailure",

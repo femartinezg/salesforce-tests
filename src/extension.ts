@@ -19,6 +19,10 @@ import {
   showUnderCoveredClassesCommandHandler,
 } from './commands/filterCoverage';
 import { openTestFailureCommandHandler } from './commands/openTestFailure';
+import {
+  createTestSuiteCommandHandler,
+  deleteTestSuiteCommandHandler,
+} from './commands/manageTestSuites';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
@@ -90,6 +94,16 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runTestSuite', runTestSuiteCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.createTestSuite',
+      createTestSuiteCommandHandler
+    ),
+    vscode.commands.registerCommand(
+      'salesforce-tests.deleteTestSuite',
+      deleteTestSuiteCommandHandler
+    )
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.rerunTest', rerunTestCommandHandler)
