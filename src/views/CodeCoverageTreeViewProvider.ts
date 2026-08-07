@@ -40,7 +40,7 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
   }
 
   getRootChildren(): vscode.TreeItem[] {
-    let children: vscode.TreeItem[] = [];
+    const children: vscode.TreeItem[] = [];
 
     if (this.apexClasses === undefined) {
       return children;
