@@ -37,7 +37,6 @@ import {
 } from './sfCommandArgs';
 
 const sfCliClient = new SfCliClient();
-const sfTestCliClient = new SfCliClient({ timeoutMs: 10 * 60_000 });
 
 export function retrieveOrgInfo(): Promise<OrgInfo> {
   return retrieveDefaultOrgInfo(sfCliClient);
@@ -122,7 +121,7 @@ export async function runApexTest(
 
   try {
     const result = await executeApexTestRun(
-      sfTestCliClient,
+      createTestCliClient(),
       testTarget instanceof ApexTestLevel ? buildRunTestLevelArgs(testTarget.level, targetOrg)
       : testTarget.runKind === 'suite' ? buildRunTestSuiteArgs(testTarget.selector, targetOrg)
       : buildRunTestSelectorArgs(testTarget.selector, targetOrg),
@@ -320,4 +319,11 @@ export function retrieveImpactedApexTestsForComponents(
   targetOrg: string
 ): Promise<ImpactedApexTest[]> {
   return retrieveImpactedApexTestItemsForComponents(sfCliClient, apexComponentNames, targetOrg);
+}
+
+function createTestCliClient(): SfCliClient {
+  const timeoutMinutes = vscode.workspace
+    .getConfiguration('salesforceTests')
+    .get<number>('test.timeoutMinutes', 10);
+  return new SfCliClient({ timeoutMs: timeoutMinutes * 60_000 });
 }

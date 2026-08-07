@@ -100,6 +100,7 @@ The covering-tests and affected-tests commands use the org's latest `ApexCodeCov
 ## Settings
 
 - `salesforceTests.coverage.minimum` (default `75`): Minimum acceptable class coverage. It controls the failed color and the under-covered class filter.
+- `salesforceTests.test.timeoutMinutes` (default `10`): Maximum time allowed for each cancellable Salesforce CLI test command.
 
 ## Org and Privacy Model
 

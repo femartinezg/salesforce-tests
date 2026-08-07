@@ -27,6 +27,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Builds now clean compiled output before packaging, and the VSIX uses a reviewed file list.
 - Documentation now covers standalone setup, the default-org model, privacy, remote environments, and troubleshooting.
 - Classes with known low coverage are shown first, while unavailable coverage remains clearly separated.
+- Apex test command timeouts can be configured from one to sixty minutes.
 
 ### Fixed
 

@@ -364,6 +364,14 @@
           "maximum": 100,
           "scope": "window",
           "description": "Minimum acceptable Apex class code coverage percentage."
+        },
+        "salesforceTests.test.timeoutMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 60,
+          "scope": "window",
+          "description": "Maximum time in minutes for each Salesforce CLI test command."
         }
       }
     }
