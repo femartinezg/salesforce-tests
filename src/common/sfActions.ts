@@ -215,22 +215,33 @@ export async function runTestClass(
   contextManager: ContextManager,
   cancellationToken: vscode.CancellationToken
 ): Promise<string[] | undefined> {
-  let message: string[] = [];
-  let oldStatus = testClass.status;
+  const message: string[] = [];
+  const oldStatus = testClass.status;
   testClass.status = 'Running';
   contextManager.apexTestsData.refresh();
 
   const args = buildRunTestClassArgs(testClass.name, contextManager.statusData.username);
+  let cancellationSubscription: vscode.Disposable | undefined;
 
   try {
     const stdout: string = await new Promise((resolve, reject) => {
-      execFile('sf', args, { maxBuffer: 100 * 1024 * 1024 }, (error, stdout) => {
-        if (stdout) {
+      const child = execFile('sf', args, { maxBuffer: 100 * 1024 * 1024 }, (error, stdout) => {
+        if (cancellationToken.isCancellationRequested) {
+          reject(new Error('Apex test run cancelled'));
+        } else if (stdout) {
           resolve(stdout);
         } else {
           reject(error ?? new Error('Salesforce CLI returned no output'));
         }
       });
+
+      cancellationSubscription = cancellationToken.onCancellationRequested(() => {
+        child.kill();
+      });
+
+      if (cancellationToken.isCancellationRequested) {
+        child.kill();
+      }
     });
 
     const result = JSON.parse(stdout);
@@ -324,13 +335,18 @@ export async function runTestClass(
     contextManager.apexTestsData.refresh();
 
     return message;
-  } catch (error: any) {
-    vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
-    testClass.status = undefined;
+  } catch (error: unknown) {
+    if (!cancellationToken.isCancellationRequested) {
+      const detail = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Error running ${testClass.name}: ${detail}`);
+    }
+    testClass.status = cancellationToken.isCancellationRequested ? oldStatus : undefined;
     contextManager.apexTestsData.refresh();
     contextManager.statusData.refresh();
 
     return;
+  } finally {
+    cancellationSubscription?.dispose();
   }
 }
 
