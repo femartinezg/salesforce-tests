@@ -10,9 +10,9 @@ import { SfCliError } from '../../src/common/SfCliClient';
 void describe('OrgService', () => {
   void it('requests and parses the default org', async () => {
     const client: JsonSfCliClient = {
-      runJson: async <T>(args: readonly string[]): Promise<T> => {
+      runJson: <T>(args: readonly string[]): Promise<T> => {
         assert.deepEqual(args, ['org', 'display', '--json']);
-        return successfulResponse as T;
+        return Promise.resolve(successfulResponse as T);
       },
     };
 
