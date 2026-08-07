@@ -12,7 +12,7 @@ void describe('parseApexTestRunResponse', () => {
           summary: {
             outcome: 'Passed',
             testStartTime: '2026-08-07T19:00:00.000Z',
-            testExecutionTime: '42',
+            testExecutionTime: '42 ms',
           },
           tests: [{ Outcome: 'Pass' }],
           coverage: {

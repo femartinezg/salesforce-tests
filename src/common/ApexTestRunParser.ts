@@ -52,7 +52,7 @@ export function parseApexTestRunResponse(response: unknown): ParsedApexTestRun {
 
   const outcome = requiredString(summary.outcome);
   const testStartTime = requiredString(summary.testStartTime);
-  const testExecutionTimeMs = parseNumber(summary.testExecutionTime);
+  const testExecutionTimeMs = parseDurationMs(summary.testExecutionTime);
   if (!outcome || !testStartTime || testExecutionTimeMs === undefined) {
     throw invalidResponse();
   }
@@ -158,6 +158,18 @@ function parseNumber(value: unknown): number | undefined {
     : typeof value === 'string' ? Number(value)
     : NaN;
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function parseDurationMs(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return parseNumber(value);
+  }
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const match = /^([0-9]+(?:\.[0-9]+)?)\s*ms$/i.exec(value.trim());
+  return parseNumber(match?.[1] ?? value);
 }
 
 function parsePercentage(value: unknown): number | undefined {
