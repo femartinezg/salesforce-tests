@@ -26,6 +26,14 @@
   "engines": {
     "vscode": "^1.100.0"
   },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  },
   "main": "./out/src/extension.js",
   "icon": "images/icon128bg.png",
   "activationEvents": [],
