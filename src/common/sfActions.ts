@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import { execFile } from 'node:child_process';
 import { getContextManager } from '.';
 import { ApexClass, ApexTestClass } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
+import { buildRunTestClassArgs } from './sfCommandArgs';
 
 export async function retrieveOrgInfo(): Promise<{
   status: boolean;
@@ -218,16 +220,15 @@ export async function runTestClass(
   testClass.status = 'Running';
   contextManager.apexTestsData.refresh();
 
-  const { exec } = require('child_process');
-  const command = `sf apex test run --tests ${testClass.name} --synchronous --code-coverage --json`;
+  const args = buildRunTestClassArgs(testClass.name, contextManager.statusData.username);
 
   try {
     const stdout: string = await new Promise((resolve, reject) => {
-      exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
+      execFile('sf', args, { maxBuffer: 100 * 1024 * 1024 }, (error, stdout) => {
         if (stdout) {
           resolve(stdout);
         } else {
-          reject(error);
+          reject(error ?? new Error('Salesforce CLI returned no output'));
         }
       });
     });
