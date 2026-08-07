@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getCoverageLevel } from '../common/codeCoverage';
 import { formatDuration } from '../common/utils';
 
 abstract class Apex {
@@ -27,24 +28,30 @@ export class ApexClass extends Apex {
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
+    const coverage = this.codeCoverage;
+    const coverageLevel = getCoverageLevel(coverage);
 
-    if (this.codeCoverage === undefined) {
+    if (coverage === undefined) {
       item.iconPath = new vscode.ThemeIcon('file-code', undefined);
       item.description = 'Loading...';
       item.tooltip = `${item.label}`;
       return item;
-    } else if (this.codeCoverage < 0) {
-      item.description = '';
-      item.tooltip = `${item.label}`;
-    } else {
-      item.description = `${this.codeCoverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
-      item.tooltip = `${item.label}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
     }
 
-    let color = undefined;
-    if (this.codeCoverage < 75) {
+    if (coverageLevel === 'unavailable') {
+      item.iconPath = new vscode.ThemeIcon('file-code', undefined);
+      item.description = 'N/A';
+      item.tooltip = `${item.label}`;
+      return item;
+    }
+
+    item.description = `${coverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
+    item.tooltip = `${item.label}\nCode Coverage: ${coverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
+
+    let color: vscode.ThemeColor;
+    if (coverageLevel === 'belowMinimum') {
       color = new vscode.ThemeColor('testing.iconFailed');
-    } else if (this.codeCoverage < 85) {
+    } else if (coverageLevel === 'warning') {
       color = new vscode.ThemeColor('testing.iconQueued');
     } else {
       color = new vscode.ThemeColor('testing.iconPassed');
