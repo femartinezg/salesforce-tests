@@ -2,11 +2,17 @@ import * as vscode from 'vscode';
 import { getContextManager } from '../common';
 import { ApexTestClass } from '../classes/Apex';
 import { runTestClass } from '../common/sfActions';
+import { getTreeItemLabel } from '../common/treeItemLabel';
 
-export async function runTestClassCommandHandler(runTestInput?: ApexTestClass): Promise<void> {
+export async function runTestClassCommandHandler(
+  runTestInput?: ApexTestClass | vscode.TreeItem
+): Promise<void> {
   const contextManager = getContextManager();
   const testClasses = contextManager.apexTestsData.testClasses;
-  let testClassName = runTestInput?.name;
+  let testClassName =
+    runTestInput instanceof ApexTestClass ?
+      runTestInput.name
+    : getTreeItemLabel(runTestInput?.label);
 
   if (!runTestInput) {
     const options =
