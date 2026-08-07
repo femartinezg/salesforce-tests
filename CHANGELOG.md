@@ -13,6 +13,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added multi-selection, rerun-last, rerun-failed, and run-all-local test actions.
 - Added method-level outcomes and durations to the Apex Tests view.
 - Added navigation from code coverage entries to matching local Apex classes.
+- Added a five-entry test history persisted locally and separated by Salesforce org.
 
 ### Changed
 

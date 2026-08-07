@@ -90,6 +90,7 @@ The extension contributes the following commands:
 - At activation or refresh, the extension resolves the default org's username and pins every query and test command in that cycle to it.
 - Changing the default org configuration triggers a refresh.
 - Commands and data stay local between VS Code, Salesforce CLI, and the authenticated org. The extension does not add telemetry or send data to another service.
+- The five most recent test selectors, outcomes, timestamps, and durations are stored in VS Code extension storage, separated by org username.
 - The extension is disabled for untrusted workspaces because activation executes the local Salesforce CLI.
 
 ## Troubleshooting

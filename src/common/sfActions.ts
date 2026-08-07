@@ -147,7 +147,7 @@ export async function runApexTest(
       startTime,
       testTarget.runKind !== 'tests' || testTarget instanceof ApexTestClass
     );
-    contextManager.statusData.pushTestRun(
+    contextManager.recordTestRun(
       new TestRun(
         testTarget.selector,
         testTarget.historyType,

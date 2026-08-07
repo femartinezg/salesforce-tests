@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { StatusTreeViewProvider } from '../views/StatusTreeViewProvider';
 import { ApexTestsTreeViewProvider } from '../views/ApexTestsTreeViewProvider';
 import { CodeCoverageTreeViewProvider } from '../views/CodeCoverageTreeViewProvider';
+import { TestRun } from '../classes/TestRun';
 import {
   retrieveApexClasses,
   retrieveApexTestSuites,
@@ -9,6 +10,7 @@ import {
   retrieveOrgCoverage,
   retrieveOrgInfo,
 } from './sfActions';
+import { TestHistoryStore, type TestHistoryStorage } from './TestHistoryStore';
 
 export class ContextManager {
   private static instance: ContextManager;
@@ -20,6 +22,7 @@ export class ContextManager {
   public apexTestsData: ApexTestsTreeViewProvider;
   public codeCoverageData: CodeCoverageTreeViewProvider;
   public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
+  private testHistoryStore?: TestHistoryStore;
 
   public static getInstance(): ContextManager {
     if (!this.instance) {
@@ -34,6 +37,10 @@ export class ContextManager {
     this.codeCoverageData = new CodeCoverageTreeViewProvider();
   }
 
+  public configureStorage(storage: TestHistoryStorage): void {
+    this.testHistoryStore = new TestHistoryStore(storage);
+  }
+
   public async init() {
     if (!this.statusData || !this.apexTestsData || !this.codeCoverageData) {
       return;
@@ -43,6 +50,12 @@ export class ContextManager {
     this.statusData.isAuthenticated = status;
     this.statusData.alias = alias;
     this.statusData.username = username;
+    this.statusData.testRuns =
+      username ?
+        (this.testHistoryStore?.load(username) ?? []).map(
+          (run) => new TestRun(run.name, run.type, run.success, run.startTime, run.duration)
+        )
+      : [];
     this.statusData.refresh();
 
     if (!this.statusData.isAuthenticated || !username) {
@@ -119,6 +132,17 @@ export class ContextManager {
         ContextManager.outputChannel.append(`           ${line}\n`);
       }
     }
+  }
+
+  public recordTestRun(testRun: TestRun): void {
+    this.statusData.pushTestRun(testRun);
+    const targetOrg = this.statusData.username;
+    if (!targetOrg || !this.testHistoryStore) {
+      return;
+    }
+    void this.testHistoryStore.save(targetOrg, this.statusData.testRuns).catch((error: unknown) => {
+      this.printOutput(`Unable to persist test history: ${getErrorMessage(error)}`);
+    });
   }
 
   public displayOutput() {

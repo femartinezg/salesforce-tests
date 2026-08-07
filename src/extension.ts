@@ -17,6 +17,7 @@ import { openApexClassCommandHandler } from './commands/openApexClass';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
+  contextManager.configureStorage(context.globalState);
   registerTreeDataProviders(context, contextManager);
   registerFileSystemWatchers(context, contextManager);
   registerCommands(context);
