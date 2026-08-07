@@ -76,6 +76,8 @@ export abstract class ApexTestTarget extends Apex {
   public startTime?: Date;
   public duration?: number; // ms
   public executionBlocked: boolean;
+  public failureMessage?: string;
+  public failureStackTrace?: string;
 
   constructor(id: string, name: string, status?: string) {
     super(id, name);
@@ -130,6 +132,13 @@ export abstract class ApexTestTarget extends Apex {
       description = description ? `⚠ ${description}` : '⚠ Blocked';
     }
 
+    if (this.failureMessage && this.status === 'Failed') {
+      tooltip += `\n\n${this.failureMessage}`;
+      if (this.failureStackTrace) {
+        tooltip += `\n${this.failureStackTrace}`;
+      }
+    }
+
     item.tooltip = tooltip;
     item.description = description;
 
@@ -156,7 +165,7 @@ export class ApexTestMethod extends ApexTestTarget {
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
-    item.contextValue = 'apexTestMethod';
+    item.contextValue = this.failureStackTrace ? 'apexTestMethodFailure' : 'apexTestMethod';
     item.iconPath =
       this.status === undefined ? new vscode.ThemeIcon('symbol-method') : item.iconPath;
     return item;
@@ -177,7 +186,7 @@ export class ApexTestClass extends ApexTestTarget {
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
-    item.contextValue = 'apexTestClass';
+    item.contextValue = this.failureStackTrace ? 'apexTestClassFailure' : 'apexTestClass';
     item.collapsibleState =
       this.methods.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : undefined;
     return item;
@@ -190,7 +199,7 @@ export class ApexTestSuite extends ApexTestTarget {
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
-    item.contextValue = 'apexTestSuite';
+    item.contextValue = this.failureStackTrace ? 'apexTestSuiteFailure' : 'apexTestSuite';
     if (this.status === undefined) {
       item.iconPath = new vscode.ThemeIcon('beaker');
       item.description = 'Test Suite';

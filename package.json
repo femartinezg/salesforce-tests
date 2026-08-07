@@ -63,6 +63,13 @@
         "icon": "$(go-to-file)"
       },
       {
+        "command": "salesforce-tests.openTestFailure",
+        "title": "Open Test Failure",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(go-to-file)"
+      },
+      {
         "command": "salesforce-tests.runTestMethod",
         "title": "Run Test Method",
         "enablement": "!apexTestsLoading",
@@ -265,18 +272,23 @@
         },
         {
           "command": "salesforce-tests.runTestClass",
-          "when": "view == apexTestsTreeView && viewItem == apexTestClass",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestClass/",
           "group": "inline"
         },
         {
           "command": "salesforce-tests.runTestMethod",
-          "when": "view == apexTestsTreeView && viewItem == apexTestMethod",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestMethod/",
           "group": "inline"
         },
         {
           "command": "salesforce-tests.runTestSuite",
-          "when": "view == apexTestsTreeView && viewItem == apexTestSuite",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestSuite/",
           "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.openTestFailure",
+          "when": "view == apexTestsTreeView && viewItem =~ /Failure$/",
+          "group": "inline@2"
         },
         {
           "command": "salesforce-tests.openApexClass",

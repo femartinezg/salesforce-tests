@@ -11,7 +11,11 @@ import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
 import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
-import { type ApexTestCaseResult, type ApexTestCoverage } from './ApexTestRunParser';
+import {
+  type ApexTestCaseResult,
+  type ApexTestCoverage,
+  type ApexTestFailure,
+} from './ApexTestRunParser';
 import { executeApexTestRun } from './ApexTestRunService';
 import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
 import { retrieveApexTestSuites as retrieveApexTestSuiteItems } from './ApexTestSuiteService';
@@ -82,6 +86,8 @@ export async function runApexTest(
   const message: string[] = [];
   const oldStatus = testTarget.status;
   testTarget.status = 'Running';
+  testTarget.failureMessage = undefined;
+  testTarget.failureStackTrace = undefined;
   contextManager.apexTestsData.refresh();
 
   const targetOrg = contextManager.statusData.username;
@@ -127,6 +133,13 @@ export async function runApexTest(
 
     testTarget.executionBlocked = false;
     const success = result.passed;
+    testTarget.failureMessage =
+      result.failures.length > 0 ?
+        result.failures.map((failure) => `${failure.fullName}: ${failure.message}`).join('\n')
+      : undefined;
+    testTarget.failureStackTrace = result.failures.find(
+      (failure) => failure.stackTrace
+    )?.stackTrace;
 
     if (success) {
       showTestResultMessage(`${testTarget.selector} passed.`, MessageType.Info, contextManager);
@@ -143,6 +156,7 @@ export async function runApexTest(
     testTarget.duration = result.testExecutionTimeMs;
     applyTestCaseResults(
       result.tests,
+      result.failures,
       contextManager,
       startTime,
       testTarget.runKind !== 'tests' || testTarget instanceof ApexTestClass
@@ -192,6 +206,7 @@ export async function runApexTest(
 
 function applyTestCaseResults(
   tests: readonly ApexTestCaseResult[],
+  failures: readonly ApexTestFailure[],
   contextManager: ContextManager,
   startTime: Date,
   updateClassSummaries: boolean
@@ -210,6 +225,9 @@ function applyTestCaseResults(
       method.startTime = startTime;
       method.duration = result.runTimeMs;
       method.executionBlocked = false;
+      const failure = failures.find((item) => item.fullName === method.selector);
+      method.failureMessage = failure?.message;
+      method.failureStackTrace = failure?.stackTrace;
     }
 
     if (updateClassSummaries && classResults.length > 0) {
@@ -223,6 +241,14 @@ function applyTestCaseResults(
         0
       );
       testClass.executionBlocked = false;
+      const classFailures = failures.filter((failure) =>
+        failure.fullName.startsWith(`${testClass.name}.`)
+      );
+      testClass.failureMessage =
+        classFailures.length > 0 ?
+          classFailures.map((failure) => `${failure.fullName}: ${failure.message}`).join('\n')
+        : undefined;
+      testClass.failureStackTrace = classFailures.find((failure) => failure.stackTrace)?.stackTrace;
     }
   }
 }

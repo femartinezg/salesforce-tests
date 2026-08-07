@@ -18,15 +18,20 @@ export async function openApexClassCommandHandler(input?: ApexClass): Promise<vo
     return;
   }
 
+  const target = await findApexClassSource(apexClass.name);
+  if (target) {
+    await vscode.window.showTextDocument(target);
+  }
+}
+
+export async function findApexClassSource(className: string): Promise<vscode.Uri | undefined> {
   const matches = await vscode.workspace.findFiles(
-    `**/${apexClass.name}.cls`,
+    `**/${className}.cls`,
     '**/{node_modules,.git,.sf,.sfdx}/**',
     20
   );
   if (matches.length === 0) {
-    void vscode.window.showInformationMessage(
-      `${apexClass.name}.cls is not present in the current workspace.`
-    );
+    void vscode.window.showInformationMessage(`${className}.cls is not present in the workspace.`);
     return;
   }
 
@@ -37,11 +42,9 @@ export async function openApexClassCommandHandler(input?: ApexClass): Promise<vo
         label: vscode.workspace.asRelativePath(uri),
         uri,
       })),
-      { placeHolder: `Select ${apexClass.name}.cls` }
+      { placeHolder: `Select ${className}.cls` }
     );
     target = selection?.uri;
   }
-  if (target) {
-    await vscode.window.showTextDocument(target);
-  }
+  return target;
 }

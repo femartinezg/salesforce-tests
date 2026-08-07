@@ -81,6 +81,7 @@ The extension contributes the following commands:
 - `Salesforce Tests: Rerun Failed Tests`: Execute the failed methods from the current results again
 - `Salesforce Tests: Run All Local Tests`: Execute all local Apex tests in the org
 - `Salesforce Tests: Open Apex Class`: Open the matching class from a standard Salesforce DX source directory
+- `Salesforce Tests: Open Test Failure`: Open the first local Apex stack location for a failed test
 - `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
 - `Salesforce Tests: Refresh Apex Tests`: Reload available unmanaged Apex test classes
 - `Salesforce Tests: Refresh Code Coverage`: Reload class and org-wide coverage

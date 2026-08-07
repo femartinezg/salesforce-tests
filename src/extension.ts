@@ -18,6 +18,7 @@ import {
   showAllCoverageCommandHandler,
   showUnderCoveredClassesCommandHandler,
 } from './commands/filterCoverage';
+import { openTestFailureCommandHandler } from './commands/openTestFailure';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
@@ -77,6 +78,12 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.openApexClass', openApexClassCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.openTestFailure',
+      openTestFailureCommandHandler
+    )
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runTestMethod', runTestMethodCommandHandler)
