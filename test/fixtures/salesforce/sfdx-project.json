@@ -1,0 +1,11 @@
+{
+  "packageDirectories": [
+    {
+      "path": "force-app",
+      "default": true
+    }
+  ],
+  "name": "salesforce-tests-integration-fixtures",
+  "namespace": "",
+  "sourceApiVersion": "67.0"
+}

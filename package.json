@@ -177,6 +177,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src test",
     "package:check": "vsce ls",
+    "test:org": "npm run compile && node --test out/test/org/*.test.js",
     "test:unit": "npm run compile && node --test out/test/unit/*.test.js",
     "test": "vscode-test"
   },
