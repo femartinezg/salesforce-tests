@@ -16,9 +16,9 @@ void describe('TestInsightStore', () => {
       { selector: 'ExampleTest.flaky', success: false, durationMs: 50 },
     ]);
 
-    assert.deepEqual(store.load('org-a'), [
-      { selector: 'ExampleTest.passes', passCount: 1, failCount: 0, averageDurationMs: 10 },
+    assert.deepEqual(store.load('org-a').sort(bySelector), [
       { selector: 'ExampleTest.flaky', passCount: 1, failCount: 1, averageDurationMs: 20 },
+      { selector: 'ExampleTest.passes', passCount: 1, failCount: 0, averageDurationMs: 10 },
     ]);
     assert.deepEqual(store.load('org-b'), [
       { selector: 'ExampleTest.flaky', passCount: 0, failCount: 1, averageDurationMs: 50 },
@@ -58,7 +58,34 @@ void describe('TestInsightStore', () => {
       false
     );
   });
+
+  void it('bounds retained selectors while keeping newly updated tests', async () => {
+    const storage = new MemoryStorage();
+    const store = new TestInsightStore(storage);
+    await store.record(
+      'org-a',
+      Array.from({ length: 5_001 }, (_, index) => ({
+        selector: `ExampleTest.method${index}`,
+        success: true,
+      }))
+    );
+
+    const insights = store.load('org-a');
+    assert.equal(insights.length, 5_000);
+    assert.equal(
+      insights.some((item) => item.selector === 'ExampleTest.method0'),
+      false
+    );
+    assert.equal(
+      insights.some((item) => item.selector === 'ExampleTest.method5000'),
+      true
+    );
+  });
 });
+
+function bySelector(left: { selector: string }, right: { selector: string }): number {
+  return left.selector.localeCompare(right.selector);
+}
 
 class MemoryStorage implements TestInsightStorage {
   public constructor(private readonly values: Record<string, unknown> = {}) {}

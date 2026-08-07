@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'salesforceTests.testInsights';
 const MAX_SAMPLES_PER_TEST = 10;
+const MAX_TRACKED_TESTS_PER_ORG = 5_000;
 
 export interface TestInsightStorage {
   get<T>(key: string, defaultValue: T): T;
@@ -52,14 +53,21 @@ export class TestInsightStore {
       histories.push(org);
     }
 
+    const testsBySelector = new Map(org.tests.map((test) => [test.selector, test]));
+    const updatedTests: StoredTestInsight[] = [];
+    const updatedSelectors = new Set<string>();
     for (const sample of samples) {
       if (!sample.selector || !isDuration(sample.durationMs)) {
         continue;
       }
-      let test = org.tests.find((item) => item.selector === sample.selector);
+      let test = testsBySelector.get(sample.selector);
       if (!test) {
         test = { selector: sample.selector, samples: [] };
-        org.tests.push(test);
+        testsBySelector.set(sample.selector, test);
+      }
+      if (!updatedSelectors.has(sample.selector)) {
+        updatedSelectors.add(sample.selector);
+        updatedTests.push(test);
       }
       test.samples.unshift({
         success: sample.success,
@@ -67,6 +75,11 @@ export class TestInsightStore {
       });
       test.samples = test.samples.slice(0, MAX_SAMPLES_PER_TEST);
     }
+    const retainedUpdates = updatedTests.slice(-MAX_TRACKED_TESTS_PER_ORG);
+    org.tests = [
+      ...retainedUpdates,
+      ...org.tests.filter((test) => !updatedSelectors.has(test.selector)),
+    ].slice(0, MAX_TRACKED_TESTS_PER_ORG);
 
     await this.storage.update(STORAGE_KEY, histories);
   }
