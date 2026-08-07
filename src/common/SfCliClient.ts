@@ -5,14 +5,21 @@ const DEFAULT_MAX_BUFFER_BYTES = 100 * 1024 * 1024;
 
 export type SfCliErrorKind = 'cancelled' | 'timeout' | 'not-found' | 'execution' | 'invalid-json';
 
+export interface SfCliErrorOptions extends ErrorOptions {
+  stdout?: string;
+}
+
 export class SfCliError extends Error {
+  public readonly stdout?: string;
+
   constructor(
     public readonly kind: SfCliErrorKind,
     message: string,
-    options?: ErrorOptions
+    options?: SfCliErrorOptions
   ) {
     super(message, options);
     this.name = 'SfCliError';
+    this.stdout = options?.stdout;
   }
 }
 
@@ -94,7 +101,7 @@ export class SfCliClient {
           cancellation.subscription?.dispose();
 
           if (error) {
-            reject(normalizeProcessError(error, stderr));
+            reject(normalizeProcessError(error, stdout, stderr));
             return;
           }
 
@@ -127,13 +134,25 @@ export class SfCliClient {
     args: readonly string[],
     cancellationToken?: CancellationTokenLike
   ): Promise<T> {
-    const stdout = await this.run(args, cancellationToken);
+    let stdout: string;
+    let processError: SfCliError | undefined;
+
+    try {
+      stdout = await this.run(args, cancellationToken);
+    } catch (error: unknown) {
+      if (error instanceof SfCliError && error.kind === 'execution' && error.stdout) {
+        stdout = error.stdout;
+        processError = error;
+      } else {
+        throw error;
+      }
+    }
 
     try {
       return JSON.parse(stdout) as T;
     } catch (error: unknown) {
       throw new SfCliError('invalid-json', 'Salesforce CLI returned invalid JSON.', {
-        cause: error,
+        cause: processError ?? error,
       });
     }
   }
@@ -144,7 +163,11 @@ const executeSf: SfCliExecutor = (executable, args, options, callback) =>
     callback(error, stdout, stderr);
   });
 
-function normalizeProcessError(error: SfCliProcessError, stderr: string): SfCliError {
+function normalizeProcessError(
+  error: SfCliProcessError,
+  stdout: string,
+  stderr: string
+): SfCliError {
   if (error.code === 'ENOENT') {
     return new SfCliError('not-found', 'Salesforce CLI executable `sf` was not found.', {
       cause: error,
@@ -156,5 +179,8 @@ function normalizeProcessError(error: SfCliProcessError, stderr: string): SfCliE
   }
 
   const detail = stderr.trim() || error.message;
-  return new SfCliError('execution', `Salesforce CLI command failed: ${detail}`, { cause: error });
+  return new SfCliError('execution', `Salesforce CLI command failed: ${detail}`, {
+    cause: error,
+    stdout,
+  });
 }

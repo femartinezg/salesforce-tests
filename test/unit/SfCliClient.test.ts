@@ -55,6 +55,21 @@ void describe('SfCliClient', () => {
     await assert.rejects(client.runJson([]), hasKind('invalid-json'));
   });
 
+  void it('parses structured JSON from a failed Salesforce command', async () => {
+    const executor: SfCliExecutor = (_executable, _args, _options, callback) => {
+      queueMicrotask(() =>
+        callback(new Error('exit code 1'), '{"status":1,"message":"No default org"}', '')
+      );
+      return { kill: () => true };
+    };
+    const client = new SfCliClient({ executor });
+
+    assert.deepEqual(await client.runJson<{ status: number; message: string }>([]), {
+      status: 1,
+      message: 'No default org',
+    });
+  });
+
   void it('kills and rejects a cancelled command', async () => {
     let cancellationListener: (() => void) | undefined;
     let killed = false;
