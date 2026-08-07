@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getContextManager } from '.';
-import { ApexClass, ApexTestClass } from '../classes/Apex';
+import { ApexClass, ApexTestClass, ApexTestTarget } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
@@ -9,7 +9,7 @@ import { parseApexTestRunResponse, type ApexTestCoverage } from './ApexTestRunPa
 import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
-import { buildRunTestClassArgs } from './sfCommandArgs';
+import { buildRunTestSelectorArgs } from './sfCommandArgs';
 
 const sfCliClient = new SfCliClient();
 
@@ -55,19 +55,19 @@ export async function retrieveCodeCoverage(targetOrg: string): Promise<void> {
   });
 }
 
-export async function runTestClass(
-  testClass: ApexTestClass,
+export async function runApexTest(
+  testTarget: ApexTestTarget,
   contextManager: ContextManager,
   cancellationToken: vscode.CancellationToken
 ): Promise<string[] | undefined> {
   const message: string[] = [];
-  const oldStatus = testClass.status;
-  testClass.status = 'Running';
+  const oldStatus = testTarget.status;
+  testTarget.status = 'Running';
   contextManager.apexTestsData.refresh();
 
   const targetOrg = contextManager.statusData.username;
   if (!targetOrg) {
-    testClass.status = oldStatus;
+    testTarget.status = oldStatus;
     contextManager.apexTestsData.refresh();
     void vscode.window.showErrorMessage('No default Salesforce org is configured.');
     return;
@@ -75,7 +75,7 @@ export async function runTestClass(
 
   try {
     const response = await sfCliClient.runJson<unknown>(
-      buildRunTestClassArgs(testClass.name, targetOrg),
+      buildRunTestSelectorArgs(testTarget.selector, targetOrg),
       cancellationToken
     );
     const result = parseApexTestRunResponse(response);
@@ -84,43 +84,49 @@ export async function runTestClass(
       return;
     }
 
-    message.push(`${testClass.name} result`);
+    message.push(`${testTarget.selector} result`);
 
     if (result.kind === 'command-error') {
       message.push('✕ Error running test');
       const detail = result.message ?? result.name ?? 'Unexpected error';
       showTestResultMessage(
-        `Error running ${testClass.name}: ${detail}`,
+        `Error running ${testTarget.selector}: ${detail}`,
         MessageType.Error,
         contextManager
       );
       message.push(detail);
 
-      testClass.status = oldStatus;
-      testClass.executionBlocked = true;
+      testTarget.status = oldStatus;
+      testTarget.executionBlocked = true;
       contextManager.apexTestsData.refresh();
 
       return message;
     }
 
-    testClass.executionBlocked = false;
+    testTarget.executionBlocked = false;
     const success = result.passed;
 
     if (success) {
-      showTestResultMessage(`${testClass.name} passed.`, MessageType.Info, contextManager);
-      testClass.status = 'Passed';
+      showTestResultMessage(`${testTarget.selector} passed.`, MessageType.Info, contextManager);
+      testTarget.status = 'Passed';
       message.push(`✓ Passed`);
     } else {
-      showTestResultMessage(`${testClass.name} failed.`, MessageType.Error, contextManager);
-      testClass.status = 'Failed';
+      showTestResultMessage(`${testTarget.selector} failed.`, MessageType.Error, contextManager);
+      testTarget.status = 'Failed';
       message.push('✕ Failed');
     }
 
     const startTime = new Date(result.testStartTime);
-    testClass.startTime = startTime;
-    testClass.duration = result.testExecutionTimeMs;
+    testTarget.startTime = startTime;
+    testTarget.duration = result.testExecutionTimeMs;
     contextManager.statusData.pushTestRun(
-      new TestRun(testClass.name, 'Test Class', success, startTime, result.testExecutionTimeMs)
+      new TestRun(
+        testTarget.selector,
+        testTarget.historyType,
+        success,
+        startTime,
+        result.testExecutionTimeMs
+      )
     );
     message.push(
       `TestStartTime: ${result.testStartTime} | TestExecutionTime: ${result.testExecutionTimeMs}`
@@ -146,9 +152,9 @@ export async function runTestClass(
   } catch (error: unknown) {
     if (!cancellationToken.isCancellationRequested) {
       const detail = error instanceof Error ? error.message : String(error);
-      void vscode.window.showErrorMessage(`Error running ${testClass.name}: ${detail}`);
+      void vscode.window.showErrorMessage(`Error running ${testTarget.selector}: ${detail}`);
     }
-    testClass.status = cancellationToken.isCancellationRequested ? oldStatus : undefined;
+    testTarget.status = cancellationToken.isCancellationRequested ? oldStatus : undefined;
     contextManager.apexTestsData.refresh();
     contextManager.statusData.refresh();
 

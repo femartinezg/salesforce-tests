@@ -62,7 +62,7 @@ export class ApexClass extends Apex {
   }
 }
 
-abstract class ApexTestTarget extends Apex {
+export abstract class ApexTestTarget extends Apex {
   public status: string | undefined;
   public startTime?: Date;
   public duration?: number; // ms
@@ -73,6 +73,12 @@ abstract class ApexTestTarget extends Apex {
     this.status = status;
     this.executionBlocked = false;
   }
+
+  public get selector(): string {
+    return this.name;
+  }
+
+  public abstract get historyType(): 'Test Class' | 'Test Method';
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
@@ -122,6 +128,8 @@ abstract class ApexTestTarget extends Apex {
 }
 
 export class ApexTestMethod extends ApexTestTarget {
+  public readonly historyType = 'Test Method' as const;
+
   constructor(
     id: string,
     public readonly className: string,
@@ -145,6 +153,7 @@ export class ApexTestMethod extends ApexTestTarget {
 }
 
 export class ApexTestClass extends ApexTestTarget {
+  public readonly historyType = 'Test Class' as const;
   public readonly methods: ApexTestMethod[];
 
   constructor(id: string, name: string, status?: string, methodNames: readonly string[] = []) {

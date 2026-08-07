@@ -56,6 +56,13 @@
         "icon": "$(run)"
       },
       {
+        "command": "salesforce-tests.runTestMethod",
+        "title": "Run Test Method",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run)"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -172,7 +179,12 @@
         },
         {
           "command": "salesforce-tests.runTestClass",
-          "when": "view == apexTestsTreeView",
+          "when": "view == apexTestsTreeView && viewItem == apexTestClass",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.runTestMethod",
+          "when": "view == apexTestsTreeView && viewItem == apexTestMethod",
           "group": "inline"
         }
       ]

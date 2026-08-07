@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { homedir } from 'node:os';
-import { runTestClassCommandHandler } from './commands/runTestClass';
+import { runTestClassCommandHandler, runTestMethodCommandHandler } from './commands/runTestClass';
 import { getContextManager } from './common';
 import { ContextManager } from './common/ContextManager';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
@@ -59,6 +59,9 @@ function registerFileSystemWatchers(
 function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runTestClass', runTestClassCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runTestMethod', runTestMethodCommandHandler)
   );
 
   context.subscriptions.push(

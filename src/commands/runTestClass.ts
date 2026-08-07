@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { getContextManager } from '../common';
-import { ApexTestClass } from '../classes/Apex';
-import { runTestClass } from '../common/sfActions';
+import { ApexTestClass, ApexTestMethod, ApexTestTarget } from '../classes/Apex';
+import { runApexTest } from '../common/sfActions';
 import { getTreeItemLabel } from '../common/treeItemLabel';
 
 export async function runTestClassCommandHandler(
@@ -28,16 +28,46 @@ export async function runTestClassCommandHandler(
     (candidate: ApexTestClass) => candidate.name === testClassName
   );
 
-  if (!testClass || testClass.status === 'Running') {
+  if (!testClass) {
     return;
   }
 
-  contextManager.printOutput(`Running test: ${testClass.name}`);
+  await runTestTargetCommand(testClass);
+}
+
+export async function runTestMethodCommandHandler(runTestInput?: ApexTestMethod): Promise<void> {
+  const testClasses = getContextManager().apexTestsData.testClasses ?? [];
+  const methods = testClasses.flatMap((testClass) => testClass.methods);
+  let testMethod = runTestInput instanceof ApexTestMethod ? runTestInput : undefined;
+
+  if (!testMethod) {
+    const selection = await vscode.window.showQuickPick(
+      methods.map((method) => ({ label: method.selector, method })),
+      { placeHolder: 'Select the Apex test method to run' }
+    );
+    testMethod = selection?.method;
+  }
+
+  if (!testMethod) {
+    return;
+  }
+
+  await runTestTargetCommand(testMethod);
+}
+
+async function runTestTargetCommand(testTarget: ApexTestTarget): Promise<void> {
+  if (testTarget.status === 'Running') {
+    return;
+  }
+
+  const contextManager = getContextManager();
+
+  contextManager.printOutput(`Running test: ${testTarget.selector}`);
 
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `Running ${testClassName}...`,
+      title: `Running ${testTarget.selector}...`,
       cancellable: true,
     },
     async (_progress, progressCancellationToken) => {
@@ -50,7 +80,7 @@ export async function runTestClassCommandHandler(
       contextManager.runTestCancelTokens.push(cancellationSource);
 
       try {
-        const message = await runTestClass(testClass, contextManager, cancellationSource.token);
+        const message = await runApexTest(testTarget, contextManager, cancellationSource.token);
         if (message) {
           contextManager.printOutput(message);
         }
