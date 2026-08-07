@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getCoverageLevel } from '../common/codeCoverage';
+import { formatUncoveredLineSummary, getCoverageLevel } from '../common/codeCoverage';
 import { isSlowTest } from '../common/testPerformance';
 import { formatDuration } from '../common/utils';
 
@@ -59,7 +59,7 @@ export class ApexClass extends Apex {
     item.description = `${coverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
     item.tooltip = `${this.name}\nCode Coverage: ${coverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
     if (this.uncoveredLineNumbers && this.uncoveredLineNumbers.length > 0) {
-      item.tooltip += `\nUncovered Lines: ${this.uncoveredLineNumbers.join(', ')}`;
+      item.tooltip += `\nUncovered Lines: ${formatUncoveredLineSummary(this.uncoveredLineNumbers)}`;
     }
 
     let color: vscode.ThemeColor;

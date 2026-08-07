@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { getCoverageLevel } from '../../src/common/codeCoverage';
+import { formatUncoveredLineSummary, getCoverageLevel } from '../../src/common/codeCoverage';
 
 void describe('getCoverageLevel', () => {
   void it('distinguishes loading and unavailable coverage', () => {
@@ -21,5 +21,15 @@ void describe('getCoverageLevel', () => {
     assert.equal(getCoverageLevel(79, 80), 'belowMinimum');
     assert.equal(getCoverageLevel(80, 80), 'warning');
     assert.equal(getCoverageLevel(90, 80), 'good');
+  });
+});
+
+void describe('formatUncoveredLineSummary', () => {
+  void it('lists short coverage gaps without decoration', () => {
+    assert.equal(formatUncoveredLineSummary([3, 8, 13]), '3, 8, 13');
+  });
+
+  void it('summarizes coverage gaps that exceed the display limit', () => {
+    assert.equal(formatUncoveredLineSummary([1, 2, 3, 4], 2), '1, 2 … (+2 more)');
   });
 });
