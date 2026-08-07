@@ -64,20 +64,20 @@ void describe('TestInsightStore', () => {
     const store = new TestInsightStore(storage);
     await store.record(
       'org-a',
-      Array.from({ length: 5_001 }, (_, index) => ({
+      Array.from({ length: 2_001 }, (_, index) => ({
         selector: `ExampleTest.method${index}`,
         success: true,
       }))
     );
 
     const insights = store.load('org-a');
-    assert.equal(insights.length, 5_000);
+    assert.equal(insights.length, 2_000);
     assert.equal(
       insights.some((item) => item.selector === 'ExampleTest.method0'),
       false
     );
     assert.equal(
-      insights.some((item) => item.selector === 'ExampleTest.method5000'),
+      insights.some((item) => item.selector === 'ExampleTest.method2000'),
       true
     );
   });

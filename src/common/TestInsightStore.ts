@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'salesforceTests.testInsights';
 const MAX_SAMPLES_PER_TEST = 10;
-const MAX_TRACKED_TESTS_PER_ORG = 5_000;
+const MAX_TRACKED_TESTS_PER_ORG = 2_000;
 
 export interface TestInsightStorage {
   get<T>(key: string, defaultValue: T): T;
@@ -116,7 +116,12 @@ function parseStoredInsights(value: unknown): StoredOrgInsights[] {
         targetOrg: org.targetOrg,
         tests: org.tests.flatMap((testValue) => {
           const test = asRecord(testValue);
-          if (!test || typeof test.selector !== 'string' || !Array.isArray(test.samples)) {
+          if (
+            !test
+            || typeof test.selector !== 'string'
+            || test.selector.length === 0
+            || !Array.isArray(test.samples)
+          ) {
             return [];
           }
           const samples = test.samples.flatMap((sampleValue) => {
