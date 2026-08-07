@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ApexClass } from '../classes/Apex';
+import { sortByActionableCoverage } from '../common/coverageSort';
 
 type CodeCoverageTreeElement = ApexClass | vscode.TreeItem;
 
@@ -57,7 +58,7 @@ export class CodeCoverageTreeViewProvider
       return children;
     }
 
-    children.push(...this.apexClasses);
+    children.push(...sortByActionableCoverage(this.apexClasses));
 
     return children;
   }
