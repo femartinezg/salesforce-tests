@@ -1,14 +1,17 @@
 # Salesforce Tests
 
-A Visual Studio Code extension that provides an integrated environment for running and managing Salesforce Apex test classes directly from your editor.
+A lightweight, standalone Visual Studio Code extension for running Apex tests and inspecting org-wide and class-level code coverage through Salesforce CLI. It does not require the Salesforce Extension Pack.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Quick Start](#quick-start)
 - [Usage](#usage)
 - [Commands](#commands)
+- [Org and Privacy Model](#org-and-privacy-model)
+- [Troubleshooting](#troubleshooting)
 - [Recent Changes](#recent-changes)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
@@ -19,7 +22,7 @@ A Visual Studio Code extension that provides an integrated environment for runni
 
 This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar, allowing you to:
 
-- **View all Apex test classes**: Browse and discover all test classes available in your connected Salesforce org.
+- **View unmanaged Apex test classes**: Browse and discover test classes owned by your connected Salesforce org.
 - **Run tests with a single click**: Execute Apex test classes directly from the sidebar with real-time feedback on test status.
 - **Visual test results**: Tests display with clear visual indicators showing their status (running, passed, or failed).
 - **View Code Coverage**: Instantly see code coverage metrics for your Apex classes, including total and covered lines, directly in the sidebar.
@@ -30,13 +33,26 @@ This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar,
 To use this extension, you need:
 
 1. **Visual Studio Code**: Version 1.100.0 or higher
-2. **Salesforce CLI**: Must be installed and available in your PATH
-3. **Authenticated Salesforce org**: You must be authenticated to a Salesforce org using the Salesforce CLI
+2. **Salesforce CLI (`sf`)**: Must be installed and available in the environment's `PATH`
+3. **Authenticated Salesforce org**: The CLI must have an authenticated default org
+
+The extension runs where the VS Code workspace runs. For SSH, Dev Containers, and Codespaces, install and authenticate Salesforce CLI in that remote environment.
 
 ## Installation
 
 1. Install the extension from the VS Code Marketplace.
-2. Ensure you have the Salesforce CLI installed.
+2. Install [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) if it is not already available.
+
+## Quick Start
+
+Authenticate an org and set it as the default for your Salesforce project:
+
+```sh
+sf org login web --alias my-org
+sf config set target-org my-org
+```
+
+Open that project in VS Code and select the Salesforce Tests icon in the Activity Bar. The Status view shows which org the extension resolved.
 
 ## Usage
 
@@ -57,6 +73,24 @@ The extension contributes the following commands:
 
 - `Salesforce Tests: Run Test Class`: Execute a specific Apex test class
 - `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
+- `Salesforce Tests: Refresh Apex Tests`: Reload available unmanaged Apex test classes
+- `Salesforce Tests: Refresh Code Coverage`: Reload class and org-wide coverage
+
+## Org and Privacy Model
+
+- Salesforce CLI's default org is the sole source of truth; the extension does not maintain a separate org selector.
+- At activation or refresh, the extension resolves the default org's username and pins every query and test command in that cycle to it.
+- Changing the default org configuration triggers a refresh.
+- Commands and data stay local between VS Code, Salesforce CLI, and the authenticated org. The extension does not add telemetry or send data to another service.
+- The extension is disabled for untrusted workspaces because activation executes the local Salesforce CLI.
+
+## Troubleshooting
+
+- **`sf` is not found:** run `sf --version` from VS Code's integrated terminal. Install the CLI in the same local or remote environment if the command fails.
+- **No default org:** run `sf org list`, then `sf config set target-org <alias-or-username>` from the Salesforce project.
+- **Authentication expired:** authenticate the org again with `sf org login web` and refresh the Status view.
+- **Classes or coverage are missing:** verify the authenticated user can use the Tooling API and access Apex classes, test results, and code coverage. Managed-package classes are not currently listed.
+- **A test cannot run:** open the Salesforce Tests output channel for the structured CLI error, then verify org permissions and deployment/test activity in Salesforce.
 
 ## Recent Changes
 
@@ -70,7 +104,7 @@ For a complete history of changes, see the [CHANGELOG](CHANGELOG.md).
 
 ## Roadmap
 
-This extension is actively being developed. Here's what we're planning:
+Planned direction:
 
 ### Core Features
 
