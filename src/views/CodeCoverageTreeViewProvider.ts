@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
 import { ApexClass } from '../classes/Apex';
 
-export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> =
-    new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | void> =
+type CodeCoverageTreeElement = ApexClass | vscode.TreeItem;
+
+export class CodeCoverageTreeViewProvider
+  implements vscode.TreeDataProvider<CodeCoverageTreeElement>
+{
+  private _onDidChangeTreeData: vscode.EventEmitter<CodeCoverageTreeElement | undefined | void> =
+    new vscode.EventEmitter<CodeCoverageTreeElement | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<CodeCoverageTreeElement | undefined | void> =
     this._onDidChangeTreeData.event;
 
   private _apexClasses: ApexClass[] | undefined = undefined;
@@ -25,12 +29,12 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
     this.apexClasses = undefined;
   }
 
-  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
-    return element;
+  getTreeItem(element: CodeCoverageTreeElement): vscode.TreeItem {
+    return element instanceof ApexClass ? element.getTreeItem() : element;
   }
 
-  getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
-    let children: vscode.TreeItem[] = [];
+  getChildren(element?: CodeCoverageTreeElement): Thenable<CodeCoverageTreeElement[]> {
+    let children: CodeCoverageTreeElement[] = [];
 
     if (!element && this.apexClasses) {
       children = this.getRootChildren();
@@ -39,8 +43,8 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
     return Promise.resolve(children);
   }
 
-  getRootChildren(): vscode.TreeItem[] {
-    const children: vscode.TreeItem[] = [];
+  getRootChildren(): CodeCoverageTreeElement[] {
+    const children: CodeCoverageTreeElement[] = [];
 
     if (this.apexClasses === undefined) {
       return children;
@@ -53,9 +57,7 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
       return children;
     }
 
-    this.apexClasses.map((apexClass) => {
-      children.push(apexClass.getTreeItem());
-    });
+    children.push(...this.apexClasses);
 
     return children;
   }

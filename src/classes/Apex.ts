@@ -28,6 +28,12 @@ export class ApexClass extends Apex {
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
+    item.contextValue = 'apexCoverageClass';
+    item.command = {
+      command: 'salesforce-tests.openApexClass',
+      title: 'Open Apex Class',
+      arguments: [this],
+    };
     const coverage = this.codeCoverage;
     const coverageLevel = getCoverageLevel(coverage);
 

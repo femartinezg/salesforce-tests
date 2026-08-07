@@ -13,6 +13,7 @@ import { getContextManager } from './common';
 import { ContextManager } from './common/ContextManager';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
 import { findClass, findTest } from './commands/find';
+import { openApexClassCommandHandler } from './commands/openApexClass';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
@@ -67,6 +68,9 @@ function registerFileSystemWatchers(
 function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runTestClass', runTestClassCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.openApexClass', openApexClassCommandHandler)
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runTestMethod', runTestMethodCommandHandler)

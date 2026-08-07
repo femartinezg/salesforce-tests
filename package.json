@@ -56,6 +56,13 @@
         "icon": "$(run)"
       },
       {
+        "command": "salesforce-tests.openApexClass",
+        "title": "Open Apex Class",
+        "enablement": "!codeCoverageLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(go-to-file)"
+      },
+      {
         "command": "salesforce-tests.runTestMethod",
         "title": "Run Test Method",
         "enablement": "!apexTestsLoading",
@@ -245,6 +252,11 @@
         {
           "command": "salesforce-tests.runTestSuite",
           "when": "view == apexTestsTreeView && viewItem == apexTestSuite",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.openApexClass",
+          "when": "view == codeCoverageTreeView && viewItem == apexCoverageClass",
           "group": "inline"
         }
       ]
