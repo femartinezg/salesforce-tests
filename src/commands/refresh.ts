@@ -1,9 +1,5 @@
 import { getContextManager } from '../common';
-import {
-  retrieveApexClasses,
-  retrieveApexTestSuites,
-  retrieveCodeCoverage,
-} from '../common/sfActions';
+import { retrieveApexClasses, retrieveCodeCoverage } from '../common/sfActions';
 
 export async function refreshOrg() {
   const contextManager = getContextManager();
@@ -24,13 +20,7 @@ export async function refreshApexTests() {
     contextManager.apexTestsData.refresh();
     return;
   }
-  const [{ testClasses }, testSuites] = await Promise.all([
-    retrieveApexClasses(targetOrg),
-    retrieveApexTestSuites(targetOrg),
-  ]);
-  contextManager.apexTestsData.testClasses = testClasses;
-  contextManager.apexTestsData.testSuites = testSuites;
-  contextManager.apexTestsData.refresh();
+  await contextManager.loadApexInventory(targetOrg, false);
 }
 
 export async function refreshCodeCoverage() {
@@ -43,9 +33,16 @@ export async function refreshCodeCoverage() {
     contextManager.codeCoverageData.refresh();
     return;
   }
-  const { apexClasses } = await retrieveApexClasses(targetOrg);
-  contextManager.codeCoverageData.apexClasses = apexClasses;
-  contextManager.codeCoverageData.refresh();
-  await retrieveCodeCoverage(targetOrg);
-  contextManager.codeCoverageData.refresh();
+  try {
+    const { apexClasses } = await retrieveApexClasses(targetOrg);
+    contextManager.codeCoverageData.apexClasses = apexClasses;
+    contextManager.codeCoverageData.refresh();
+    await retrieveCodeCoverage(targetOrg);
+    contextManager.codeCoverageData.refresh();
+  } catch (error: unknown) {
+    contextManager.codeCoverageData.apexClasses = [];
+    contextManager.codeCoverageData.refresh();
+    const detail = error instanceof Error ? error.message : String(error);
+    contextManager.printOutput(`Unable to refresh code coverage: ${detail}`);
+  }
 }

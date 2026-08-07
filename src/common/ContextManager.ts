@@ -46,7 +46,14 @@ export class ContextManager {
       return;
     }
 
-    const { status, alias, username, orgName } = await retrieveOrgInfo();
+    let orgInfo;
+    try {
+      orgInfo = await retrieveOrgInfo();
+    } catch (error: unknown) {
+      this.setUnavailableState();
+      throw error;
+    }
+    const { status, alias, username, orgName } = orgInfo;
     this.statusData.isAuthenticated = status;
     this.statusData.alias = alias;
     this.statusData.username = username;
@@ -60,28 +67,15 @@ export class ContextManager {
 
     if (!this.statusData.isAuthenticated || !username) {
       this.printOutput('No default Salesforce org is configured.');
-      this.apexTestsData.testClasses = [];
-      this.apexTestsData.testSuites = [];
-      this.codeCoverageData.apexClasses = [];
-      this.apexTestsData.refresh();
-      this.codeCoverageData.refresh();
+      this.setEmptyData();
       return;
     }
 
     this.printOutput(`Connected to org: ${orgName ?? username}`);
 
-    const [{ testClasses, apexClasses }, testSuites] = await Promise.all([
-      retrieveApexClasses(username),
-      retrieveApexTestSuites(username),
-    ]);
-    this.apexTestsData.testClasses = testClasses;
-    this.apexTestsData.testSuites = testSuites;
-    this.codeCoverageData.apexClasses = apexClasses;
+    const classesLoaded = await this.loadApexInventory(username, true);
 
-    this.apexTestsData.refresh();
-    this.codeCoverageData.refresh();
-
-    await Promise.all([
+    const coverageTasks: Promise<void>[] = [
       retrieveOrgCoverage(username)
         .then((orgWideCoverage) => {
           this.statusData.orgWideCoverage = orgWideCoverage;
@@ -90,12 +84,55 @@ export class ContextManager {
         .catch((error: unknown) => {
           this.printOutput(`Unable to retrieve org coverage: ${getErrorMessage(error)}`);
         }),
-      retrieveCodeCoverage(username)
-        .then(() => this.codeCoverageData.refresh())
-        .catch((error: unknown) => {
-          this.printOutput(`Unable to retrieve class coverage: ${getErrorMessage(error)}`);
-        }),
+    ];
+    if (classesLoaded) {
+      coverageTasks.push(
+        retrieveCodeCoverage(username)
+          .then(() => this.codeCoverageData.refresh())
+          .catch((error: unknown) => {
+            this.printOutput(`Unable to retrieve class coverage: ${getErrorMessage(error)}`);
+          })
+      );
+    }
+    await Promise.all(coverageTasks);
+  }
+
+  public async loadApexInventory(
+    targetOrg: string,
+    updateCoverageClasses: boolean
+  ): Promise<boolean> {
+    const [classesResult, suitesResult] = await Promise.allSettled([
+      retrieveApexClasses(targetOrg),
+      retrieveApexTestSuites(targetOrg),
     ]);
+
+    if (classesResult.status === 'fulfilled') {
+      this.apexTestsData.testClasses = classesResult.value.testClasses;
+      if (updateCoverageClasses) {
+        this.codeCoverageData.apexClasses = classesResult.value.apexClasses;
+      }
+    } else {
+      this.apexTestsData.testClasses = [];
+      if (updateCoverageClasses) {
+        this.codeCoverageData.apexClasses = [];
+      }
+      this.printOutput(`Unable to retrieve Apex classes: ${getErrorMessage(classesResult.reason)}`);
+    }
+
+    if (suitesResult.status === 'fulfilled') {
+      this.apexTestsData.testSuites = suitesResult.value;
+    } else {
+      this.apexTestsData.testSuites = [];
+      this.printOutput(
+        `Unable to retrieve Apex test suites: ${getErrorMessage(suitesResult.reason)}`
+      );
+    }
+
+    this.apexTestsData.refresh();
+    if (updateCoverageClasses) {
+      this.codeCoverageData.refresh();
+    }
+    return classesResult.status === 'fulfilled';
   }
 
   public async reset() {
@@ -151,6 +188,24 @@ export class ContextManager {
     } else {
       vscode.window.showErrorMessage('Output channel is not initialized.');
     }
+  }
+
+  private setUnavailableState(): void {
+    this.statusData.isAuthenticated = false;
+    this.statusData.alias = undefined;
+    this.statusData.username = undefined;
+    this.statusData.orgWideCoverage = undefined;
+    this.statusData.testRuns = [];
+    this.statusData.refresh();
+    this.setEmptyData();
+  }
+
+  private setEmptyData(): void {
+    this.apexTestsData.testClasses = [];
+    this.apexTestsData.testSuites = [];
+    this.codeCoverageData.apexClasses = [];
+    this.apexTestsData.refresh();
+    this.codeCoverageData.refresh();
   }
 }
 
