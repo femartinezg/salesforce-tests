@@ -162,6 +162,9 @@ export abstract class ApexTestTarget extends Apex {
 export class ApexTestMethod extends ApexTestTarget {
   public readonly historyType = 'Test Method' as const;
   public readonly runKind = 'tests' as const;
+  public recentPassCount = 0;
+  public recentFailCount = 0;
+  public averageDurationMs?: number;
 
   constructor(
     id: string,
@@ -181,6 +184,25 @@ export class ApexTestMethod extends ApexTestTarget {
     item.contextValue = this.failureStackTrace ? 'apexTestMethodFailure' : 'apexTestMethod';
     item.iconPath =
       this.status === undefined ? new vscode.ThemeIcon('symbol-method') : item.iconPath;
+
+    const recentSampleCount = this.recentPassCount + this.recentFailCount;
+    if (recentSampleCount > 0) {
+      const averageDuration =
+        this.averageDurationMs === undefined ?
+          ''
+        : `; average ${formatDuration(this.averageDurationMs)}`;
+      const currentTooltip = typeof item.tooltip === 'string' ? item.tooltip : this.name;
+      item.tooltip = `${currentTooltip}\nRecent history: ${this.recentPassCount} passed, ${this.recentFailCount} failed${averageDuration}`;
+    }
+    if (this.recentPassCount > 0 && this.recentFailCount > 0) {
+      item.description = item.description ? `Flaky · ${item.description}` : 'Flaky';
+      if (this.status === undefined) {
+        item.iconPath = new vscode.ThemeIcon(
+          'warning',
+          new vscode.ThemeColor('testing.iconQueued')
+        );
+      }
+    }
     return item;
   }
 }

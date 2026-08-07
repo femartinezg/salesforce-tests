@@ -11,6 +11,8 @@ import {
   retrieveOrgInfo,
 } from './sfActions';
 import { TestHistoryStore, type TestHistoryStorage } from './TestHistoryStore';
+import { TestInsightStore } from './TestInsightStore';
+import type { ApexTestCaseResult } from './ApexTestRunParser';
 
 export class ContextManager {
   private static instance: ContextManager;
@@ -23,6 +25,7 @@ export class ContextManager {
   public codeCoverageData: CodeCoverageTreeViewProvider;
   public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
   private testHistoryStore?: TestHistoryStore;
+  private testInsightStore?: TestInsightStore;
 
   public static getInstance(): ContextManager {
     if (!this.instance) {
@@ -39,6 +42,7 @@ export class ContextManager {
 
   public configureStorage(storage: TestHistoryStorage): void {
     this.testHistoryStore = new TestHistoryStore(storage);
+    this.testInsightStore = new TestInsightStore(storage);
   }
 
   public async init() {
@@ -108,6 +112,7 @@ export class ContextManager {
 
     if (classesResult.status === 'fulfilled') {
       this.apexTestsData.testClasses = classesResult.value.testClasses;
+      this.applyTestInsights(targetOrg);
       if (updateCoverageClasses) {
         this.codeCoverageData.apexClasses = classesResult.value.apexClasses;
       }
@@ -182,6 +187,34 @@ export class ContextManager {
     });
   }
 
+  public async recordTestCaseResults(results: readonly ApexTestCaseResult[]): Promise<void> {
+    const targetOrg = this.statusData.username;
+    if (!targetOrg || !this.testInsightStore) {
+      return;
+    }
+    try {
+      await this.testInsightStore.record(
+        targetOrg,
+        results.flatMap((result) => {
+          if (result.outcome !== 'Pass' && result.outcome !== 'Fail') {
+            return [];
+          }
+          return [
+            {
+              selector: result.fullName,
+              success: result.outcome === 'Pass',
+              ...(result.runTimeMs === undefined ? {} : { durationMs: result.runTimeMs }),
+            },
+          ];
+        })
+      );
+      this.applyTestInsights(targetOrg);
+      this.apexTestsData.refresh();
+    } catch (error: unknown) {
+      this.printOutput(`Unable to persist test insights: ${getErrorMessage(error)}`);
+    }
+  }
+
   public displayOutput() {
     if (ContextManager.outputChannel) {
       ContextManager.outputChannel.show();
@@ -206,6 +239,19 @@ export class ContextManager {
     this.codeCoverageData.apexClasses = [];
     this.apexTestsData.refresh();
     this.codeCoverageData.refresh();
+  }
+
+  private applyTestInsights(targetOrg: string): void {
+    const insights = new Map(
+      (this.testInsightStore?.load(targetOrg) ?? []).map((insight) => [insight.selector, insight])
+    );
+    for (const method of this.apexTestsData.testClasses?.flatMap((testClass) => testClass.methods)
+      ?? []) {
+      const insight = insights.get(method.selector);
+      method.recentPassCount = insight?.passCount ?? 0;
+      method.recentFailCount = insight?.failCount ?? 0;
+      method.averageDurationMs = insight?.averageDurationMs;
+    }
   }
 }
 

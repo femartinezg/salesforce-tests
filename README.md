@@ -26,7 +26,7 @@ This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar,
 - **Discover Apex tests**: Browse unmanaged test classes, their individual test methods, and Apex test suites from the connected org.
 - **Choose the right scope**: Run a class, a method, a suite, a multi-selection, failed tests, all local tests, or every test in the org.
 - **Rerun quickly**: Rerun the most recent class, method, or suite directly from the status panel.
-- **Inspect results**: See running, passed, failed, and blocked states together with individual method outcomes and durations.
+- **Inspect results**: See running, passed, failed, blocked, slow, and recently flaky states together with individual method outcomes and durations.
 - **Act on code coverage**: Review org-wide and class-level coverage, with low-coverage classes shown first and navigation to matching local Apex source.
 - **Stay lightweight**: Use Salesforce CLI directly without installing the Salesforce Extension Pack.
 
@@ -110,7 +110,7 @@ The covering-tests and affected-tests commands use the org's latest `ApexCodeCov
 - At activation or refresh, the extension resolves the default org's username and pins every query and test command in that cycle to it.
 - Changing the default org configuration triggers a refresh.
 - Commands and data stay local between VS Code, Salesforce CLI, and the authenticated org. The extension does not add telemetry or send data to another service.
-- The five most recent test selectors, outcomes, timestamps, and durations are stored in VS Code extension storage, separated by org username.
+- The five most recent test selectors and the ten most recent pass/fail and duration samples per discovered method are stored in VS Code extension storage, separated by org username.
 - The extension is disabled for untrusted workspaces because activation executes the local Salesforce CLI.
 
 ## Troubleshooting
@@ -143,7 +143,7 @@ Planned direction:
 - ✅ Add test suite functionality (group test runs)
 - ✅ Add rerun, failed-test, selection, and local-test actions
 - ✅ Add persistent test history per org
-- ⏳ Add slow/flaky-test insights (slow-test warnings are available; longitudinal analysis is planned)
+- ⏳ Add slow/flaky-test insights (slow warnings and recent flaky-method detection are available; trends are planned)
 - ✅ Add tests affected by local source changes
 
 _Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_

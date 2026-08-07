@@ -23,6 +23,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added uncovered line details and navigation to the first coverage gap in local Apex source.
 - Added an explicit action to run every Apex test in the org, including managed-package tests.
 - Added a configurable slow-test warning for completed Apex tests.
+- Added per-org recent outcome history and flaky-method warnings.
 
 ### Changed
 
