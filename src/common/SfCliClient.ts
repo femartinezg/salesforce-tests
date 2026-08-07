@@ -3,7 +3,13 @@ import { execFile } from 'node:child_process';
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_BUFFER_BYTES = 100 * 1024 * 1024;
 
-export type SfCliErrorKind = 'cancelled' | 'timeout' | 'not-found' | 'execution' | 'invalid-json';
+export type SfCliErrorKind =
+  | 'cancelled'
+  | 'timeout'
+  | 'not-found'
+  | 'execution'
+  | 'invalid-json'
+  | 'invalid-response';
 
 export interface SfCliErrorOptions extends ErrorOptions {
   stdout?: string;

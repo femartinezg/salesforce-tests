@@ -6,33 +6,14 @@ import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
 import { detectApexClassKind } from './apexSource';
+import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
+import { SfCliClient } from './SfCliClient';
 import { buildRunTestClassArgs } from './sfCommandArgs';
 
-export async function retrieveOrgInfo(): Promise<{
-  status: boolean;
-  alias?: string;
-  username?: string;
-  orgName?: string;
-}> {
-  const { exec } = require('child_process');
+const sfCliClient = new SfCliClient();
 
-  return new Promise((resolve) => {
-    exec('sf org display --json', (error: any, stdout: string) => {
-      if (error) {
-        resolve({ status: false });
-        return;
-      }
-      try {
-        const result = JSON.parse(stdout);
-        const alias = result.result.alias || undefined;
-        const username = result.result.username || undefined;
-        const orgName = result.result.instanceUrl?.split('//')[1].split('.')[0] || undefined;
-        resolve({ status: true, alias: alias, username: username, orgName: orgName });
-      } catch (e) {
-        resolve({ status: false });
-      }
-    });
-  });
+export function retrieveOrgInfo(): Promise<OrgInfo> {
+  return retrieveDefaultOrgInfo(sfCliClient);
 }
 
 export async function retrieveApexClasses(): Promise<{
