@@ -5,11 +5,20 @@ import { test } from 'node:test';
 import { retrieveApexClasses } from '../../src/common/ApexClassService';
 import { parseApexTestRunResponse } from '../../src/common/ApexTestRunParser';
 import {
+  createApexTestSuite,
+  deleteApexTestSuite,
+  retrieveApexTestSuites,
+} from '../../src/common/ApexTestSuiteService';
+import {
   retrieveApexClassCoverage,
   retrieveOrgWideCoverage,
 } from '../../src/common/CoverageService';
 import { SfCliClient } from '../../src/common/SfCliClient';
-import { buildRunTestClassArgs, buildRunTestMethodArgs } from '../../src/common/sfCommandArgs';
+import {
+  buildRunTestClassArgs,
+  buildRunTestMethodArgs,
+  buildRunTestSuiteArgs,
+} from '../../src/common/sfCommandArgs';
 
 const FIXTURE_CLASS = 'SalesforceTestsFixtureCalculator';
 const FIXTURE_TEST_CLASS = 'SalesforceTestsFixtureCalculatorTest';
@@ -64,6 +73,26 @@ void test(
     const methodRun = parseApexTestRunResponse(rawMethodRun);
     assert.equal(methodRun.kind, 'test-result');
     assert.equal(methodRun.kind === 'test-result' && methodRun.passed, true);
+
+    const suiteName = `SalesforceTestsFixtureSuite_${Date.now()}`;
+    const suite = await createApexTestSuite(client, suiteName, [fixtureTestClass.id], targetOrg);
+    try {
+      assert.ok(
+        (await retrieveApexTestSuites(client, targetOrg)).some((item) => item.id === suite.id)
+      );
+      const rawSuiteRun = await client.runJson<unknown>(
+        buildRunTestSuiteArgs(suiteName, targetOrg)
+      );
+      const suiteRun = parseApexTestRunResponse(rawSuiteRun);
+      assert.equal(suiteRun.kind, 'test-result');
+      assert.equal(suiteRun.kind === 'test-result' && suiteRun.passed, true);
+    } finally {
+      await deleteApexTestSuite(client, suite.id, targetOrg);
+    }
+    assert.equal(
+      (await retrieveApexTestSuites(client, targetOrg)).some((item) => item.id === suite.id),
+      false
+    );
 
     const coverage = await retrieveApexClassCoverage(client, targetOrg);
     assert.ok(coverage.some((item) => item.classId.length > 0));
