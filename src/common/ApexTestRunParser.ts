@@ -6,6 +6,12 @@ export interface ApexTestFailure {
   stackTrace?: string;
 }
 
+export interface ApexTestCaseResult {
+  fullName: string;
+  outcome: string;
+  runTimeMs?: number;
+}
+
 export interface ApexTestCoverage {
   name: string;
   totalLines: number;
@@ -18,6 +24,7 @@ export interface ApexTestRunResult {
   testStartTime: string;
   testExecutionTimeMs: number;
   failures: ApexTestFailure[];
+  tests: ApexTestCaseResult[];
   coverage: ApexTestCoverage[];
   orgWideCoverage?: number;
 }
@@ -63,39 +70,50 @@ export function parseApexTestRunResponse(response: unknown): ParsedApexTestRun {
   }
 
   const coverageResult = parseCoverage(result.coverage);
+  const testResult = parseTests(result.tests);
 
   return {
     kind: 'test-result',
     passed: outcome === 'Passed',
     testStartTime,
     testExecutionTimeMs,
-    failures: parseFailures(result.tests),
+    failures: testResult.failures,
+    tests: testResult.tests,
     coverage: coverageResult.coverage,
     orgWideCoverage: coverageResult.orgWideCoverage,
   };
 }
 
-function parseFailures(value: unknown): ApexTestFailure[] {
+function parseTests(value: unknown): {
+  failures: ApexTestFailure[];
+  tests: ApexTestCaseResult[];
+} {
   if (value === undefined) {
-    return [];
+    return { failures: [], tests: [] };
   }
   if (!Array.isArray(value)) {
     throw invalidResponse();
   }
 
   const failures: ApexTestFailure[] = [];
+  const tests: ApexTestCaseResult[] = [];
   for (const itemValue of value) {
     const item = asRecord(itemValue);
-    if (!item || typeof item.Outcome !== 'string') {
+    const fullName = requiredString(item?.FullName);
+    if (!item || typeof item.Outcome !== 'string' || !fullName) {
       throw invalidResponse();
     }
+    tests.push({
+      fullName,
+      outcome: item.Outcome,
+      runTimeMs: item.RunTime === undefined ? undefined : parseNumber(item.RunTime),
+    });
     if (item.Outcome !== 'Fail') {
       continue;
     }
 
-    const fullName = requiredString(item.FullName);
     const message = requiredString(item.Message);
-    if (!fullName || !message) {
+    if (!message) {
       throw invalidResponse();
     }
     failures.push({
@@ -104,7 +122,7 @@ function parseFailures(value: unknown): ApexTestFailure[] {
       stackTrace: optionalString(item.StackTrace),
     });
   }
-  return failures;
+  return { failures, tests };
 }
 
 function parseCoverage(value: unknown): {

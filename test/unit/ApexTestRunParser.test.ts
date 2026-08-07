@@ -14,7 +14,7 @@ void describe('parseApexTestRunResponse', () => {
             testStartTime: '2026-08-07T19:00:00.000Z',
             testExecutionTime: '42 ms',
           },
-          tests: [{ Outcome: 'Pass' }],
+          tests: [{ Outcome: 'Pass', FullName: 'ExampleTest.passes', RunTime: 5 }],
           coverage: {
             coverage: [{ name: 'Example', totalLines: 10, totalCovered: 8 }],
             summary: { orgWideCoverage: '75%' },
@@ -27,6 +27,7 @@ void describe('parseApexTestRunResponse', () => {
         testStartTime: '2026-08-07T19:00:00.000Z',
         testExecutionTimeMs: 42,
         failures: [],
+        tests: [{ fullName: 'ExampleTest.passes', outcome: 'Pass', runTimeMs: 5 }],
         coverage: [{ name: 'Example', totalLines: 10, coveredLines: 8 }],
         orgWideCoverage: 75,
       }
@@ -65,6 +66,7 @@ void describe('parseApexTestRunResponse', () => {
           stackTrace: undefined,
         },
       ],
+      tests: [{ fullName: 'ExampleTest.fails', outcome: 'Fail', runTimeMs: undefined }],
       coverage: [],
       orgWideCoverage: undefined,
     });

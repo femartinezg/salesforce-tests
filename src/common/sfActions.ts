@@ -11,7 +11,11 @@ import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
 import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
-import { parseApexTestRunResponse, type ApexTestCoverage } from './ApexTestRunParser';
+import {
+  parseApexTestRunResponse,
+  type ApexTestCaseResult,
+  type ApexTestCoverage,
+} from './ApexTestRunParser';
 import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
 import { retrieveApexTestSuites as retrieveApexTestSuiteItems } from './ApexTestSuiteService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
@@ -138,6 +142,12 @@ export async function runApexTest(
     const startTime = new Date(result.testStartTime);
     testTarget.startTime = startTime;
     testTarget.duration = result.testExecutionTimeMs;
+    applyTestCaseResults(
+      result.tests,
+      contextManager,
+      startTime,
+      testTarget.runKind !== 'tests' || testTarget instanceof ApexTestClass
+    );
     contextManager.statusData.pushTestRun(
       new TestRun(
         testTarget.selector,
@@ -178,6 +188,43 @@ export async function runApexTest(
     contextManager.statusData.refresh();
 
     return;
+  }
+}
+
+function applyTestCaseResults(
+  tests: readonly ApexTestCaseResult[],
+  contextManager: ContextManager,
+  startTime: Date,
+  updateClassSummaries: boolean
+): void {
+  for (const testClass of contextManager.apexTestsData.testClasses ?? []) {
+    const classResults = tests.filter((test) => test.fullName.startsWith(`${testClass.name}.`));
+    for (const method of testClass.methods) {
+      const result = classResults.find((test) => test.fullName === method.selector);
+      if (!result) {
+        continue;
+      }
+      method.status =
+        result.outcome === 'Pass' ? 'Passed'
+        : result.outcome === 'Fail' ? 'Failed'
+        : undefined;
+      method.startTime = startTime;
+      method.duration = result.runTimeMs;
+      method.executionBlocked = false;
+    }
+
+    if (updateClassSummaries && classResults.length > 0) {
+      testClass.status =
+        classResults.some((test) => test.outcome === 'Fail') ? 'Failed'
+        : classResults.every((test) => test.outcome === 'Pass') ? 'Passed'
+        : undefined;
+      testClass.startTime = startTime;
+      testClass.duration = classResults.reduce(
+        (duration, test) => duration + (test.runTimeMs ?? 0),
+        0
+      );
+      testClass.executionBlocked = false;
+    }
   }
 }
 
