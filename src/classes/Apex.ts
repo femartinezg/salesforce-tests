@@ -78,8 +78,8 @@ export abstract class ApexTestTarget extends Apex {
     return this.name;
   }
 
-  public abstract readonly historyType: 'Test Class' | 'Test Method' | 'Test Suite';
-  public abstract readonly runKind: 'tests' | 'suite';
+  public abstract readonly historyType: 'Test Class' | 'Test Method' | 'Test Suite' | 'Test Level';
+  public abstract readonly runKind: 'tests' | 'suite' | 'level';
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
@@ -187,5 +187,16 @@ export class ApexTestSuite extends ApexTestTarget {
       item.description = 'Test Suite';
     }
     return item;
+  }
+}
+
+export type ApexTestLevelName = 'RunLocalTests' | 'RunAllTestsInOrg';
+
+export class ApexTestLevel extends ApexTestTarget {
+  public readonly historyType = 'Test Level' as const;
+  public readonly runKind = 'level' as const;
+
+  constructor(public readonly level: ApexTestLevelName) {
+    super(level, level === 'RunLocalTests' ? 'All Local Tests' : 'All Tests in Org');
   }
 }

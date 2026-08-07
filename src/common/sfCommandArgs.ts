@@ -17,7 +17,27 @@ export function buildRunTestSuiteArgs(testSuiteName: string, targetOrg: string):
     'test',
     '--suite-names',
     testSuiteName,
-    '--synchronous',
+    '--wait',
+    '1',
+    '--code-coverage',
+    '--json',
+    '--target-org',
+    targetOrg,
+  ];
+}
+
+export function buildRunTestLevelArgs(
+  testLevel: 'RunLocalTests' | 'RunAllTestsInOrg',
+  targetOrg: string
+): string[] {
+  return [
+    'apex',
+    'run',
+    'test',
+    '--test-level',
+    testLevel,
+    '--wait',
+    '1',
     '--code-coverage',
     '--json',
     '--target-org',

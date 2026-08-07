@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   buildRunTestClassArgs,
   buildRunTestMethodArgs,
+  buildRunTestLevelArgs,
   buildRunTestSuiteArgs,
 } from '../../src/common/sfCommandArgs';
 
@@ -45,5 +46,16 @@ void describe('buildRunTestSuiteArgs', () => {
     assert.equal(args[args.indexOf('--suite-names') + 1], 'Regression Suite');
     assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
     assert.equal(args.includes('--tests'), false);
+    assert.equal(args[args.indexOf('--wait') + 1], '1');
+  });
+});
+
+void describe('buildRunTestLevelArgs', () => {
+  void it('runs local tests at an explicit level and org', () => {
+    const args = buildRunTestLevelArgs('RunLocalTests', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--test-level') + 1], 'RunLocalTests');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+    assert.equal(args[args.indexOf('--wait') + 1], '1');
   });
 });
