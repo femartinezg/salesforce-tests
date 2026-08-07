@@ -168,6 +168,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src test",
+    "package:check": "vsce ls",
     "test:unit": "npm run compile && node --test out/test/unit/*.test.js",
     "test": "vscode-test"
   },
@@ -179,6 +180,7 @@
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "3.9.2",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.5",
     "prettier": "3.5.3",

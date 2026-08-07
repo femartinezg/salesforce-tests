@@ -31,5 +31,8 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev
 
+      - name: Inspect extension package contents
+        run: npm run package:check
+
       - name: Run extension-host tests
         run: xvfb-run -a npm test
