@@ -70,6 +70,13 @@
         "icon": "$(run)"
       },
       {
+        "command": "salesforce-tests.rerunTest",
+        "title": "Rerun Last Test",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(debug-rerun)"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -153,9 +160,14 @@
     "menus": {
       "view/title": [
         {
+          "command": "salesforce-tests.rerunTest",
+          "when": "view == statusTreeView",
+          "group": "navigation@1"
+        },
+        {
           "command": "salesforce-tests.refreshOrg",
           "when": "view == statusTreeView",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "salesforce-tests.refreshApexTests",

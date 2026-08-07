@@ -29,6 +29,12 @@ export class TestRun {
     treeItem.description = `${descriptionTimeString} (${formatDuration(this.duration)})`;
     const successString = this.success ? '✓' : '✕';
     treeItem.tooltip = `${successString} ${this.name}\nStart Time: ${startDateString} ${startTimeString}\nExecution Time: ${this.duration}ms`;
+    treeItem.contextValue = 'apexTestRun';
+    treeItem.command = {
+      command: 'salesforce-tests.rerunTest',
+      title: 'Rerun Test',
+      arguments: [this],
+    };
 
     return treeItem;
   }

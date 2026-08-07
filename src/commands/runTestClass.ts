@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getContextManager } from '../common';
 import { ApexTestClass, ApexTestMethod, ApexTestSuite, ApexTestTarget } from '../classes/Apex';
+import { TestRun } from '../classes/TestRun';
 import { runApexTest } from '../common/sfActions';
 import { getTreeItemLabel } from '../common/treeItemLabel';
 
@@ -72,6 +73,38 @@ export async function runTestSuiteCommandHandler(runTestInput?: ApexTestSuite): 
   }
 
   await runTestTargetCommand(testSuite);
+}
+
+export async function rerunTestCommandHandler(testRun?: TestRun): Promise<void> {
+  const contextManager = getContextManager();
+  const selectedRun = testRun ?? contextManager.statusData.testRuns[0];
+  if (!selectedRun) {
+    void vscode.window.showInformationMessage('No Apex test run is available to rerun.');
+    return;
+  }
+
+  const testTarget = findTestTarget(selectedRun);
+  if (!testTarget) {
+    void vscode.window.showWarningMessage(
+      `${selectedRun.name} is no longer available in the current Salesforce org.`
+    );
+    return;
+  }
+
+  await runTestTargetCommand(testTarget);
+}
+
+function findTestTarget(testRun: TestRun): ApexTestTarget | undefined {
+  const testData = getContextManager().apexTestsData;
+  if (testRun.type === 'Test Suite') {
+    return testData.testSuites?.find((suite) => suite.name === testRun.name);
+  }
+  if (testRun.type === 'Test Method') {
+    return testData.testClasses
+      ?.flatMap((testClass) => testClass.methods)
+      .find((method) => method.selector === testRun.name);
+  }
+  return testData.testClasses?.find((testClass) => testClass.name === testRun.name);
 }
 
 async function runTestTargetCommand(testTarget: ApexTestTarget): Promise<void> {
