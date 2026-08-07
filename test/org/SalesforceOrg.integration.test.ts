@@ -9,7 +9,7 @@ import {
   retrieveOrgWideCoverage,
 } from '../../src/common/CoverageService';
 import { SfCliClient } from '../../src/common/SfCliClient';
-import { buildRunTestClassArgs } from '../../src/common/sfCommandArgs';
+import { buildRunTestClassArgs, buildRunTestMethodArgs } from '../../src/common/sfCommandArgs';
 
 const FIXTURE_CLASS = 'SalesforceTestsFixtureCalculator';
 const FIXTURE_TEST_CLASS = 'SalesforceTestsFixtureCalculatorTest';
@@ -42,7 +42,9 @@ void test(
     const client = new SfCliClient({ timeoutMs: 180_000 });
     const classes = await retrieveApexClasses(client, targetOrg);
     assert.ok(classes.apexClasses.some((item) => item.name === FIXTURE_CLASS));
-    assert.ok(classes.testClasses.some((item) => item.name === FIXTURE_TEST_CLASS));
+    const fixtureTestClass = classes.testClasses.find((item) => item.name === FIXTURE_TEST_CLASS);
+    assert.ok(fixtureTestClass);
+    assert.deepEqual(fixtureTestClass.methods, ['addsNumbers', 'subtractsNumbers']);
 
     const rawTestRun = await client.runJson<unknown>(
       buildRunTestClassArgs(FIXTURE_TEST_CLASS, targetOrg)
@@ -55,6 +57,13 @@ void test(
     assert.equal(testRun.passed, true);
     assert.equal(testRun.failures.length, 0);
     assert.ok(testRun.coverage.some((item) => item.name === FIXTURE_CLASS));
+
+    const rawMethodRun = await client.runJson<unknown>(
+      buildRunTestMethodArgs(FIXTURE_TEST_CLASS, 'addsNumbers', targetOrg)
+    );
+    const methodRun = parseApexTestRunResponse(rawMethodRun);
+    assert.equal(methodRun.kind, 'test-result');
+    assert.equal(methodRun.kind === 'test-result' && methodRun.passed, true);
 
     const coverage = await retrieveApexClassCoverage(client, targetOrg);
     assert.ok(coverage.some((item) => item.classId.length > 0));
