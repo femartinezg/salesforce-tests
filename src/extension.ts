@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { homedir } from 'node:os';
 import { runTestClassCommandHandler } from './commands/runTestClass';
 import { getContextManager } from './common';
 import { ContextManager } from './common/ContextManager';
@@ -40,12 +41,19 @@ function registerFileSystemWatchers(
   context: vscode.ExtensionContext,
   contextManager: ContextManager
 ): void {
-  // Handle change org
-  const sfConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.sf/config.json');
-  const configChangeSubscription = sfConfigWatcher.onDidChange(() => {
-    void resetForOrgChange(contextManager);
-  });
-  context.subscriptions.push(sfConfigWatcher, configChangeSubscription);
+  const workspaceConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.sf/config.json');
+  const globalConfigWatcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(vscode.Uri.file(homedir()), '.sf/config.json')
+  );
+
+  for (const watcher of [workspaceConfigWatcher, globalConfigWatcher]) {
+    context.subscriptions.push(
+      watcher,
+      watcher.onDidCreate(() => void resetForOrgChange(contextManager)),
+      watcher.onDidChange(() => void resetForOrgChange(contextManager)),
+      watcher.onDidDelete(() => void resetForOrgChange(contextManager))
+    );
+  }
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
