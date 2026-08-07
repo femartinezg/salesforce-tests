@@ -1,14 +1,10 @@
-import { SfCliError } from './SfCliClient';
+import { SfCliError, type JsonSfCliClient } from './SfCliClient';
 
 export interface OrgInfo {
   status: boolean;
   alias?: string;
   username?: string;
   orgName?: string;
-}
-
-export interface JsonSfCliClient {
-  runJson<T>(args: readonly string[]): Promise<T>;
 }
 
 export async function retrieveDefaultOrgInfo(client: JsonSfCliClient): Promise<OrgInfo> {

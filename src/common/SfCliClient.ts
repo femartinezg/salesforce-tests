@@ -66,6 +66,10 @@ export interface SfCliClientOptions {
   maxBufferBytes?: number;
 }
 
+export interface JsonSfCliClient {
+  runJson<T>(args: readonly string[]): Promise<T>;
+}
+
 export class SfCliClient {
   private readonly executor: SfCliExecutor;
   private readonly timeoutMs: number;

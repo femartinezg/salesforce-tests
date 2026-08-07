@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import {
-  parseOrgDisplayResponse,
-  retrieveDefaultOrgInfo,
-  type JsonSfCliClient,
-} from '../../src/common/OrgService';
-import { SfCliError } from '../../src/common/SfCliClient';
+import { parseOrgDisplayResponse, retrieveDefaultOrgInfo } from '../../src/common/OrgService';
+import { SfCliError, type JsonSfCliClient } from '../../src/common/SfCliClient';
 
 void describe('OrgService', () => {
   void it('requests and parses the default org', async () => {
