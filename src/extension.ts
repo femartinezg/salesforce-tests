@@ -23,7 +23,10 @@ import {
   createTestSuiteCommandHandler,
   deleteTestSuiteCommandHandler,
 } from './commands/manageTestSuites';
-import { runTestsCoveringCurrentClassCommandHandler } from './commands/runImpactedTests';
+import {
+  runTestsAffectedByChangesCommandHandler,
+  runTestsCoveringCurrentClassCommandHandler,
+} from './commands/runImpactedTests';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
@@ -128,6 +131,10 @@ function registerCommands(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'salesforce-tests.runTestsCoveringCurrentClass',
       runTestsCoveringCurrentClassCommandHandler
+    ),
+    vscode.commands.registerCommand(
+      'salesforce-tests.runTestsAffectedByChanges',
+      runTestsAffectedByChangesCommandHandler
     )
   );
   context.subscriptions.push(

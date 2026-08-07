@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   parseImpactedApexTestsResponse,
   retrieveImpactedApexTests,
+  retrieveImpactedApexTestsForComponents,
 } from '../../src/common/ImpactedTestService';
 import { SfCliError, type JsonSfCliClient } from '../../src/common/SfCliClient';
 
@@ -12,7 +13,7 @@ void describe('ImpactedTestService', () => {
       runJson: <T>(args: readonly string[]): Promise<T> => {
         assert.equal(
           args[args.indexOf('--query') + 1],
-          "SELECT ApexTestClass.Name, TestMethodName FROM ApexCodeCoverage WHERE ApexClassOrTrigger.Name = 'Calculator' ORDER BY ApexTestClass.Name, TestMethodName"
+          "SELECT ApexTestClass.Name, TestMethodName FROM ApexCodeCoverage WHERE ApexClassOrTrigger.Name IN ('Calculator') ORDER BY ApexTestClass.Name, TestMethodName"
         );
         assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
         return Promise.resolve({ status: 0, result: { records: [] } } as T);
@@ -21,6 +22,27 @@ void describe('ImpactedTestService', () => {
 
     assert.deepEqual(
       await retrieveImpactedApexTests(client, 'Calculator', 'developer@example.com'),
+      []
+    );
+  });
+
+  void it('queries multiple changed components together', async () => {
+    const client: JsonSfCliClient = {
+      runJson: <T>(args: readonly string[]): Promise<T> => {
+        assert.match(
+          String(args[args.indexOf('--query') + 1]),
+          /IN \('Calculator', 'AccountTrigger'\)/
+        );
+        return Promise.resolve({ status: 0, result: { records: [] } } as T);
+      },
+    };
+
+    assert.deepEqual(
+      await retrieveImpactedApexTestsForComponents(
+        client,
+        ['Calculator', 'AccountTrigger', 'Calculator'],
+        'developer@example.com'
+      ),
       []
     );
   });

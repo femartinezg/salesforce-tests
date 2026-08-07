@@ -11,22 +11,36 @@ export async function retrieveImpactedApexTests(
   apexClassName: string,
   targetOrg: string
 ): Promise<ImpactedApexTest[]> {
-  if (!isApexIdentifier(apexClassName)) {
-    throw new SfCliError('invalid-response', `${apexClassName} is not a valid Apex class name.`);
+  return retrieveImpactedApexTestsForComponents(client, [apexClassName], targetOrg);
+}
+
+export async function retrieveImpactedApexTestsForComponents(
+  client: JsonSfCliClient,
+  apexComponentNames: readonly string[],
+  targetOrg: string
+): Promise<ImpactedApexTest[]> {
+  const componentNames = [...new Set(apexComponentNames)];
+  const invalidName = componentNames.find((name) => !isApexIdentifier(name));
+  if (invalidName) {
+    throw new SfCliError('invalid-response', `${invalidName} is not a valid Apex component name.`);
+  }
+  if (componentNames.length === 0) {
+    return [];
   }
   const response = await client.runJson<unknown>(
-    buildImpactedApexTestsQueryArgs(apexClassName, targetOrg)
+    buildImpactedApexTestsQueryArgs(componentNames, targetOrg)
   );
   return parseImpactedApexTestsResponse(response);
 }
 
 export function buildImpactedApexTestsQueryArgs(
-  apexClassName: string,
+  apexComponentNames: readonly string[],
   targetOrg: string
 ): readonly string[] {
+  const names = apexComponentNames.map((name) => `'${name}'`).join(', ');
   const query =
     'SELECT ApexTestClass.Name, TestMethodName FROM ApexCodeCoverage '
-    + `WHERE ApexClassOrTrigger.Name = '${apexClassName}' `
+    + `WHERE ApexClassOrTrigger.Name IN (${names}) `
     + 'ORDER BY ApexTestClass.Name, TestMethodName';
   return [
     'data',

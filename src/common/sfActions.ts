@@ -27,6 +27,7 @@ import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
 import {
   retrieveImpactedApexTests as retrieveImpactedApexTestItems,
+  retrieveImpactedApexTestsForComponents as retrieveImpactedApexTestItemsForComponents,
   type ImpactedApexTest,
 } from './ImpactedTestService';
 import {
@@ -312,4 +313,11 @@ export function retrieveImpactedApexTests(
   targetOrg: string
 ): Promise<ImpactedApexTest[]> {
   return retrieveImpactedApexTestItems(sfCliClient, apexClassName, targetOrg);
+}
+
+export function retrieveImpactedApexTestsForComponents(
+  apexComponentNames: readonly string[],
+  targetOrg: string
+): Promise<ImpactedApexTest[]> {
+  return retrieveImpactedApexTestItemsForComponents(sfCliClient, apexComponentNames, targetOrg);
 }

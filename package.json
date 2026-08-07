@@ -133,6 +133,13 @@
         "icon": "$(run-all)"
       },
       {
+        "command": "salesforce-tests.runTestsAffectedByChanges",
+        "title": "Run Tests Affected by My Changes",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(git-compare)"
+      },
+      {
         "command": "salesforce-tests.showUnderCoveredClasses",
         "title": "Show Classes Below Coverage Threshold",
         "enablement": "!codeCoverageLoading",
@@ -263,6 +270,11 @@
           "command": "salesforce-tests.createTestSuite",
           "when": "view == apexTestsTreeView",
           "group": "navigation@5"
+        },
+        {
+          "command": "salesforce-tests.runTestsAffectedByChanges",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation@6"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",
