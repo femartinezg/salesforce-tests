@@ -105,6 +105,20 @@
         "icon": "$(run-all)"
       },
       {
+        "command": "salesforce-tests.showUnderCoveredClasses",
+        "title": "Show Classes Below Coverage Threshold",
+        "enablement": "!codeCoverageLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "salesforce-tests.showAllCoverage",
+        "title": "Show All Coverage",
+        "enablement": "!codeCoverageLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -220,7 +234,17 @@
         {
           "command": "salesforce-tests.refreshCodeCoverage",
           "when": "view == codeCoverageTreeView",
-          "group": "navigation"
+          "group": "navigation@3"
+        },
+        {
+          "command": "salesforce-tests.showUnderCoveredClasses",
+          "when": "view == codeCoverageTreeView && !codeCoverageFiltered",
+          "group": "navigation@1"
+        },
+        {
+          "command": "salesforce-tests.showAllCoverage",
+          "when": "view == codeCoverageTreeView && codeCoverageFiltered",
+          "group": "navigation@1"
         },
         {
           "command": "salesforce-tests.findTest",
@@ -260,6 +284,19 @@
           "group": "inline"
         }
       ]
+    },
+    "configuration": {
+      "title": "Salesforce Tests",
+      "properties": {
+        "salesforceTests.coverage.minimum": {
+          "type": "number",
+          "default": 75,
+          "minimum": 0,
+          "maximum": 100,
+          "scope": "window",
+          "description": "Minimum acceptable Apex class code coverage percentage."
+        }
+      }
     }
   },
   "scripts": {

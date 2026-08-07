@@ -17,6 +17,16 @@ export function sortByActionableCoverage<T extends CoverageSortable>(items: read
   });
 }
 
+export function filterByCoverageThreshold<T extends CoverageSortable>(
+  items: readonly T[],
+  threshold: number
+): T[] {
+  return items.filter(
+    (item) =>
+      item.codeCoverage !== undefined && item.codeCoverage >= 0 && item.codeCoverage < threshold
+  );
+}
+
 function coverageRank(coverage: number | undefined): number {
   if (coverage === undefined) {
     return 2;

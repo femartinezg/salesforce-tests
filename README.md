@@ -10,6 +10,7 @@ A lightweight, standalone Visual Studio Code extension for running Apex tests an
 - [Quick Start](#quick-start)
 - [Usage](#usage)
 - [Commands](#commands)
+- [Settings](#settings)
 - [Org and Privacy Model](#org-and-privacy-model)
 - [Troubleshooting](#troubleshooting)
 - [Recent Changes](#recent-changes)
@@ -83,6 +84,12 @@ The extension contributes the following commands:
 - `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
 - `Salesforce Tests: Refresh Apex Tests`: Reload available unmanaged Apex test classes
 - `Salesforce Tests: Refresh Code Coverage`: Reload class and org-wide coverage
+- `Salesforce Tests: Show Classes Below Coverage Threshold`: Filter the coverage view to actionable classes
+- `Salesforce Tests: Show All Coverage`: Clear the coverage filter
+
+## Settings
+
+- `salesforceTests.coverage.minimum` (default `75`): Minimum acceptable class coverage. It controls the failed color and the under-covered class filter.
 
 ## Org and Privacy Model
 

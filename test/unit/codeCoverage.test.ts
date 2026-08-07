@@ -16,4 +16,10 @@ void describe('getCoverageLevel', () => {
     assert.equal(getCoverageLevel(85), 'good');
     assert.equal(getCoverageLevel(100), 'good');
   });
+
+  void it('supports a custom minimum coverage threshold', () => {
+    assert.equal(getCoverageLevel(79, 80), 'belowMinimum');
+    assert.equal(getCoverageLevel(80, 80), 'warning');
+    assert.equal(getCoverageLevel(90, 80), 'good');
+  });
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { sortByActionableCoverage } from '../../src/common/coverageSort';
+import { filterByCoverageThreshold, sortByActionableCoverage } from '../../src/common/coverageSort';
 
 void describe('sortByActionableCoverage', () => {
   void it('puts the lowest known coverage first and unavailable data last', () => {
@@ -26,5 +26,18 @@ void describe('sortByActionableCoverage', () => {
       ]).map((item) => item.name),
       ['Alpha', 'Zulu']
     );
+  });
+});
+
+void describe('filterByCoverageThreshold', () => {
+  void it('returns only known coverage below the selected threshold', () => {
+    const items = [
+      { name: 'Below', codeCoverage: 74 },
+      { name: 'Equal', codeCoverage: 75 },
+      { name: 'Unavailable', codeCoverage: -1 },
+      { name: 'Loading' },
+    ];
+
+    assert.deepEqual(filterByCoverageThreshold(items, 75), [items[0]]);
   });
 });

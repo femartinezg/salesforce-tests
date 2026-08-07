@@ -1,6 +1,9 @@
 export type CoverageLevel = 'loading' | 'unavailable' | 'belowMinimum' | 'warning' | 'good';
 
-export function getCoverageLevel(coverage: number | undefined): CoverageLevel {
+export function getCoverageLevel(
+  coverage: number | undefined,
+  minimumCoverage = 75
+): CoverageLevel {
   if (coverage === undefined) {
     return 'loading';
   }
@@ -9,11 +12,11 @@ export function getCoverageLevel(coverage: number | undefined): CoverageLevel {
     return 'unavailable';
   }
 
-  if (coverage < 75) {
+  if (coverage < minimumCoverage) {
     return 'belowMinimum';
   }
 
-  if (coverage < 85) {
+  if (coverage < Math.min(100, minimumCoverage + 10)) {
     return 'warning';
   }
 

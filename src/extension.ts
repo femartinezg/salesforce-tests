@@ -14,12 +14,17 @@ import { ContextManager } from './common/ContextManager';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
 import { findClass, findTest } from './commands/find';
 import { openApexClassCommandHandler } from './commands/openApexClass';
+import {
+  showAllCoverageCommandHandler,
+  showUnderCoveredClassesCommandHandler,
+} from './commands/filterCoverage';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
   contextManager.configureStorage(context.globalState);
   registerTreeDataProviders(context, contextManager);
   registerFileSystemWatchers(context, contextManager);
+  registerConfigurationListener(context, contextManager);
   registerCommands(context);
   context.subscriptions.push(ContextManager.outputChannel);
 
@@ -97,6 +102,16 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runLocalTests', runLocalTestsCommandHandler)
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.showUnderCoveredClasses',
+      showUnderCoveredClassesCommandHandler
+    ),
+    vscode.commands.registerCommand(
+      'salesforce-tests.showAllCoverage',
+      showAllCoverageCommandHandler
+    )
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.refreshOrg', () => refreshOrg())
@@ -115,6 +130,19 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.findClass', () => findClass())
+  );
+}
+
+function registerConfigurationListener(
+  context: vscode.ExtensionContext,
+  contextManager: ContextManager
+): void {
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('salesforceTests.coverage.minimum')) {
+        contextManager.codeCoverageData.refresh();
+      }
+    })
   );
 }
 

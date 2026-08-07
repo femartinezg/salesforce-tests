@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ApexClass } from '../classes/Apex';
-import { sortByActionableCoverage } from '../common/coverageSort';
+import { filterByCoverageThreshold, sortByActionableCoverage } from '../common/coverageSort';
 
 type CodeCoverageTreeElement = ApexClass | vscode.TreeItem;
 
@@ -13,6 +13,7 @@ export class CodeCoverageTreeViewProvider
     this._onDidChangeTreeData.event;
 
   private _apexClasses: ApexClass[] | undefined = undefined;
+  private underCoveredOnly = false;
 
   get apexClasses(): ApexClass[] | undefined {
     return this._apexClasses;
@@ -58,7 +59,24 @@ export class CodeCoverageTreeViewProvider
       return children;
     }
 
-    children.push(...sortByActionableCoverage(this.apexClasses));
+    const minimumCoverage = vscode.workspace
+      .getConfiguration('salesforceTests')
+      .get<number>('coverage.minimum', 75);
+    const visibleClasses =
+      this.underCoveredOnly ?
+        filterByCoverageThreshold(this.apexClasses, minimumCoverage)
+      : this.apexClasses;
+    if (visibleClasses.length === 0) {
+      const noUnderCoveredItem = new vscode.TreeItem(`No Apex Classes Below ${minimumCoverage}%`);
+      noUnderCoveredItem.iconPath = new vscode.ThemeIcon(
+        'pass',
+        new vscode.ThemeColor('testing.iconPassed')
+      );
+      children.push(noUnderCoveredItem);
+      return children;
+    }
+
+    children.push(...sortByActionableCoverage(visibleClasses));
 
     return children;
   }
@@ -69,5 +87,11 @@ export class CodeCoverageTreeViewProvider
 
   reset(): void {
     this.apexClasses = undefined;
+  }
+
+  setUnderCoveredOnly(enabled: boolean): void {
+    this.underCoveredOnly = enabled;
+    void vscode.commands.executeCommand('setContext', 'codeCoverageFiltered', enabled);
+    this.refresh();
   }
 }

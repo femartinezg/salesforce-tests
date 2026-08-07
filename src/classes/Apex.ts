@@ -35,7 +35,10 @@ export class ApexClass extends Apex {
       arguments: [this],
     };
     const coverage = this.codeCoverage;
-    const coverageLevel = getCoverageLevel(coverage);
+    const minimumCoverage = vscode.workspace
+      .getConfiguration('salesforceTests')
+      .get<number>('coverage.minimum', 75);
+    const coverageLevel = getCoverageLevel(coverage, minimumCoverage);
 
     if (coverage === undefined) {
       item.iconPath = new vscode.ThemeIcon('file-code', undefined);
