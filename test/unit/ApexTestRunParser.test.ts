@@ -87,4 +87,21 @@ void describe('parseApexTestRunResponse', () => {
       (error: unknown) => error instanceof SfCliError && error.kind === 'invalid-response'
     );
   });
+
+  void it('rejects invalid test start times', () => {
+    assert.throws(
+      () =>
+        parseApexTestRunResponse({
+          status: 0,
+          result: {
+            summary: {
+              outcome: 'Passed',
+              testStartTime: 'not-a-date',
+              testExecutionTime: '1 ms',
+            },
+          },
+        }),
+      (error: unknown) => error instanceof SfCliError && error.kind === 'invalid-response'
+    );
+  });
 });

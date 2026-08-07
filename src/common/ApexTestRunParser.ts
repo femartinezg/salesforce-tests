@@ -53,7 +53,12 @@ export function parseApexTestRunResponse(response: unknown): ParsedApexTestRun {
   const outcome = requiredString(summary.outcome);
   const testStartTime = requiredString(summary.testStartTime);
   const testExecutionTimeMs = parseDurationMs(summary.testExecutionTime);
-  if (!outcome || !testStartTime || testExecutionTimeMs === undefined) {
+  if (
+    !outcome
+    || !testStartTime
+    || Number.isNaN(Date.parse(testStartTime))
+    || testExecutionTimeMs === undefined
+  ) {
     throw invalidResponse();
   }
 
