@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { getCoverageLevel } from '../common/codeCoverage';
+import { isSlowTest } from '../common/testPerformance';
 import { formatDuration } from '../common/utils';
 
 abstract class Apex {
@@ -129,6 +130,14 @@ export abstract class ApexTestTarget extends Apex {
       const tooltipTimeString = `${startDateString} ${startTimeString}`;
       tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
       description = `${startTimeString} (${formatDuration(this.duration)})`;
+
+      const slowThresholdMs = vscode.workspace
+        .getConfiguration('salesforceTests')
+        .get<number>('test.slowThresholdMilliseconds', 5_000);
+      if (isSlowTest(this.duration, slowThresholdMs)) {
+        tooltip += `\nSlow test: exceeds the configured ${slowThresholdMs} ms threshold.`;
+        description = `Slow · ${description}`;
+      }
     }
 
     if (this.executionBlocked && this.status !== 'Running') {

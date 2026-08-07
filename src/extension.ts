@@ -188,6 +188,9 @@ function registerConfigurationListener(
       if (event.affectsConfiguration('salesforceTests.coverage.minimum')) {
         contextManager.codeCoverageData.refresh();
       }
+      if (event.affectsConfiguration('salesforceTests.test.slowThresholdMilliseconds')) {
+        contextManager.apexTestsData.refresh();
+      }
     })
   );
 }

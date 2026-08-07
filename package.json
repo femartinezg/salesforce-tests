@@ -384,6 +384,13 @@
           "maximum": 60,
           "scope": "window",
           "description": "Maximum time in minutes for each Salesforce CLI test command."
+        },
+        "salesforceTests.test.slowThresholdMilliseconds": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 0,
+          "scope": "window",
+          "description": "Duration in milliseconds at which an Apex test is marked as slow. Set to 0 to disable slow-test warnings."
         }
       }
     }

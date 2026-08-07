@@ -102,6 +102,7 @@ The covering-tests and affected-tests commands use the org's latest `ApexCodeCov
 
 - `salesforceTests.coverage.minimum` (default `75`): Minimum acceptable class coverage. It controls the failed color and the under-covered class filter.
 - `salesforceTests.test.timeoutMinutes` (default `10`): Maximum time allowed for each cancellable Salesforce CLI test command.
+- `salesforceTests.test.slowThresholdMilliseconds` (default `5000`): Duration at which a completed test is marked as slow. Set it to `0` to disable the warning.
 
 ## Org and Privacy Model
 
@@ -142,7 +143,7 @@ Planned direction:
 - ✅ Add test suite functionality (group test runs)
 - ✅ Add rerun, failed-test, selection, and local-test actions
 - ✅ Add persistent test history per org
-- ⬜ Add slow/flaky-test insights
+- ⏳ Add slow/flaky-test insights (slow-test warnings are available; longitudinal analysis is planned)
 - ✅ Add tests affected by local source changes
 
 _Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
