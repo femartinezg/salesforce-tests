@@ -27,18 +27,10 @@ export class ContextManager {
     return this.instance;
   }
 
-  public static resetInstance() {
-    this.instance = new ContextManager();
-    return this.instance;
-  }
-
   private constructor() {
     this.statusData = new StatusTreeViewProvider();
-    vscode.window.registerTreeDataProvider('statusTreeView', this.statusData);
     this.apexTestsData = new ApexTestsTreeViewProvider();
-    vscode.window.registerTreeDataProvider('apexTestsTreeView', this.apexTestsData);
     this.codeCoverageData = new CodeCoverageTreeViewProvider();
-    vscode.window.registerTreeDataProvider('codeCoverageTreeView', this.codeCoverageData);
   }
 
   public async init() {
@@ -56,20 +48,33 @@ export class ContextManager {
     if (!this.statusData.isAuthenticated) {
       this.apexTestsData.testClasses = [];
       this.codeCoverageData.apexClasses = [];
-    } else {
-      const { testClasses, apexClasses } = await retrieveApexClasses();
-      this.apexTestsData.testClasses = testClasses;
-      this.codeCoverageData.apexClasses = apexClasses;
+      this.apexTestsData.refresh();
+      this.codeCoverageData.refresh();
+      return;
     }
+
+    const { testClasses, apexClasses } = await retrieveApexClasses();
+    this.apexTestsData.testClasses = testClasses;
+    this.codeCoverageData.apexClasses = apexClasses;
 
     this.apexTestsData.refresh();
     this.codeCoverageData.refresh();
 
-    retrieveOrgCoverage().then((orgWideCoverage) => {
-      this.statusData.orgWideCoverage = orgWideCoverage;
-      this.statusData.refresh();
-    });
-    retrieveCodeCoverage().then(() => this.codeCoverageData.refresh());
+    await Promise.all([
+      retrieveOrgCoverage()
+        .then((orgWideCoverage) => {
+          this.statusData.orgWideCoverage = orgWideCoverage;
+          this.statusData.refresh();
+        })
+        .catch((error: unknown) => {
+          this.printOutput(`Unable to retrieve org coverage: ${getErrorMessage(error)}`);
+        }),
+      retrieveCodeCoverage()
+        .then(() => this.codeCoverageData.refresh())
+        .catch((error: unknown) => {
+          this.printOutput(`Unable to retrieve class coverage: ${getErrorMessage(error)}`);
+        }),
+    ]);
   }
 
   public async reset() {
@@ -98,7 +103,7 @@ export class ContextManager {
     const timeString = now.toLocaleTimeString('en-US', { hour12: false });
     ContextManager.outputChannel.append(`[${timeString}] `);
     let isFirst = true;
-    for (let line of messageList) {
+    for (const line of messageList) {
       if (isFirst) {
         ContextManager.outputChannel.append(`${line}\n`);
         isFirst = false;
@@ -115,4 +120,8 @@ export class ContextManager {
       vscode.window.showErrorMessage('Output channel is not initialized.');
     }
   }
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
