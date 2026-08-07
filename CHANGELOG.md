@@ -2,6 +2,29 @@
 
 All notable changes to the "Salesforce Tests" extension will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Added typed, cancellable Salesforce CLI services for org discovery, Apex classes, test results, and coverage.
+- Added unit tests, opt-in Developer Org integration fixtures, continuous integration, and package-content verification.
+- Added explicit trusted-workspace and remote workspace execution behavior.
+
+### Changed
+
+- All Apex operations now use the username resolved for the current default-org refresh cycle.
+- Builds now clean compiled output before packaging, and the VSIX uses a reviewed file list.
+- Documentation now covers standalone setup, the default-org model, privacy, remote environments, and troubleshooting.
+
+### Fixed
+
+- Corrected the Salesforce CLI command to `sf apex run test` and removed shell-based execution.
+- Test cancellation now terminates the Salesforce CLI process and restores the prior UI state.
+- Providers and watchers remain stable across org refreshes and are disposed with the extension lifecycle.
+- Missing coverage is displayed as unavailable rather than failed.
+- Test timestamps, zero-duration results, blocked executions, structured CLI errors, and incomplete JSON responses are handled safely.
+- Removed the unused `@salesforce/core` production dependency and its vulnerable transitive packages.
+
 ## [0.2.1] - 2025-06-15
 
 ### Added
