@@ -43,15 +43,17 @@ export class ContextManager {
     this.statusData.alias = alias;
     this.statusData.username = username;
     this.statusData.refresh();
-    this.printOutput(`Connected to org: ${orgName}`);
 
-    if (!this.statusData.isAuthenticated) {
+    if (!this.statusData.isAuthenticated || !username) {
+      this.printOutput('No default Salesforce org is configured.');
       this.apexTestsData.testClasses = [];
       this.codeCoverageData.apexClasses = [];
       this.apexTestsData.refresh();
       this.codeCoverageData.refresh();
       return;
     }
+
+    this.printOutput(`Connected to org: ${orgName ?? username}`);
 
     const { testClasses, apexClasses } = await retrieveApexClasses();
     this.apexTestsData.testClasses = testClasses;
