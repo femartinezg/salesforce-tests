@@ -55,7 +55,7 @@ export class ContextManager {
 
     this.printOutput(`Connected to org: ${orgName ?? username}`);
 
-    const { testClasses, apexClasses } = await retrieveApexClasses();
+    const { testClasses, apexClasses } = await retrieveApexClasses(username);
     this.apexTestsData.testClasses = testClasses;
     this.codeCoverageData.apexClasses = apexClasses;
 

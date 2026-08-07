@@ -13,7 +13,13 @@ export async function refreshApexTests() {
   const contextManager = getContextManager();
   contextManager.apexTestsData.reset();
   contextManager.apexTestsData.refresh();
-  const { testClasses } = await retrieveApexClasses();
+  const targetOrg = contextManager.statusData.username;
+  if (!targetOrg) {
+    contextManager.apexTestsData.testClasses = [];
+    contextManager.apexTestsData.refresh();
+    return;
+  }
+  const { testClasses } = await retrieveApexClasses(targetOrg);
   contextManager.apexTestsData.testClasses = testClasses;
   contextManager.apexTestsData.refresh();
 }
@@ -22,7 +28,13 @@ export async function refreshCodeCoverage() {
   const contextManager = getContextManager();
   contextManager.codeCoverageData.reset();
   contextManager.codeCoverageData.refresh();
-  const { apexClasses } = await retrieveApexClasses();
+  const targetOrg = contextManager.statusData.username;
+  if (!targetOrg) {
+    contextManager.codeCoverageData.apexClasses = [];
+    contextManager.codeCoverageData.refresh();
+    return;
+  }
+  const { apexClasses } = await retrieveApexClasses(targetOrg);
   contextManager.codeCoverageData.apexClasses = apexClasses;
   contextManager.codeCoverageData.refresh();
   await retrieveCodeCoverage();

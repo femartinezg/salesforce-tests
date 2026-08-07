@@ -5,7 +5,7 @@ import { ApexClass, ApexTestClass } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
-import { detectApexClassKind } from './apexSource';
+import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
 import { buildRunTestClassArgs } from './sfCommandArgs';
@@ -16,51 +16,15 @@ export function retrieveOrgInfo(): Promise<OrgInfo> {
   return retrieveDefaultOrgInfo(sfCliClient);
 }
 
-export async function retrieveApexClasses(): Promise<{
+export async function retrieveApexClasses(targetOrg: string): Promise<{
   testClasses: ApexTestClass[];
   apexClasses: ApexClass[];
 }> {
-  const { exec } = require('child_process');
-
-  return new Promise((resolve, reject) => {
-    const query = `SELECT Id, Name, Body FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC`;
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
-
-    exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
-
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-        const testClasses = [];
-        const apexClasses = [];
-
-        for (let apex of records) {
-          const isTest = detectApexClassKind(apex.Body);
-          if (isTest) {
-            testClasses.push(new ApexTestClass(apex.Id, apex.Name));
-          } else if (isTest === false) {
-            apexClasses.push(new ApexClass(apex.Id, apex.Name));
-          }
-        }
-
-        const response = {
-          testClasses: testClasses,
-          apexClasses: apexClasses,
-        };
-        resolve(response);
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
-  });
+  const result = await retrieveApexClassItems(sfCliClient, targetOrg);
+  return {
+    testClasses: result.testClasses.map((item) => new ApexTestClass(item.id, item.name)),
+    apexClasses: result.apexClasses.map((item) => new ApexClass(item.id, item.name)),
+  };
 }
 
 export async function retrieveCodeCoverage() {
