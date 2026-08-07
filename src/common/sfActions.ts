@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { execFile } from 'node:child_process';
 import { getContextManager } from '.';
 import { ApexClass, ApexTestClass } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
 import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
+import { parseApexTestRunResponse, type ApexTestCoverage } from './ApexTestRunParser';
 import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
 import { SfCliClient } from './SfCliClient';
@@ -63,31 +63,20 @@ export async function runTestClass(
   testClass.status = 'Running';
   contextManager.apexTestsData.refresh();
 
-  const args = buildRunTestClassArgs(testClass.name, contextManager.statusData.username);
-  let cancellationSubscription: vscode.Disposable | undefined;
+  const targetOrg = contextManager.statusData.username;
+  if (!targetOrg) {
+    testClass.status = oldStatus;
+    contextManager.apexTestsData.refresh();
+    void vscode.window.showErrorMessage('No default Salesforce org is configured.');
+    return;
+  }
 
   try {
-    const stdout: string = await new Promise((resolve, reject) => {
-      const child = execFile('sf', args, { maxBuffer: 100 * 1024 * 1024 }, (error, stdout) => {
-        if (cancellationToken.isCancellationRequested) {
-          reject(new Error('Apex test run cancelled'));
-        } else if (stdout) {
-          resolve(stdout);
-        } else {
-          reject(error ?? new Error('Salesforce CLI returned no output'));
-        }
-      });
-
-      cancellationSubscription = cancellationToken.onCancellationRequested(() => {
-        child.kill();
-      });
-
-      if (cancellationToken.isCancellationRequested) {
-        child.kill();
-      }
-    });
-
-    const result = JSON.parse(stdout);
+    const response = await sfCliClient.runJson<unknown>(
+      buildRunTestClassArgs(testClass.name, targetOrg),
+      cancellationToken
+    );
+    const result = parseApexTestRunResponse(response);
 
     if (cancellationToken.isCancellationRequested) {
       return;
@@ -95,23 +84,15 @@ export async function runTestClass(
 
     message.push(`${testClass.name} result`);
 
-    if (result.status != 0 && result.status != 100) {
+    if (result.kind === 'command-error') {
       message.push('✕ Error running test');
-      if (result.name && result.message) {
-        showTestResultMessage(
-          `Error running ${testClass.name}: ${result.name} - ${result.message}`,
-          MessageType.Error,
-          contextManager
-        );
-        message.push(`${result.name}: ${result.message}`);
-      } else {
-        showTestResultMessage(
-          `Error running ${testClass.name}: Unexpected error`,
-          MessageType.Error,
-          contextManager
-        );
-        message.push(`Unexpected error`);
-      }
+      const detail = result.message ?? result.name ?? 'Unexpected error';
+      showTestResultMessage(
+        `Error running ${testClass.name}: ${detail}`,
+        MessageType.Error,
+        contextManager
+      );
+      message.push(detail);
 
       testClass.status = oldStatus;
       testClass.executionBlocked = true;
@@ -121,10 +102,7 @@ export async function runTestClass(
     }
 
     testClass.executionBlocked = false;
-    const success = result.result.summary.outcome === 'Passed';
-    const coverageResult = result.result.coverage;
-    const summary = result.result.summary;
-    const tests = result.result.tests;
+    const success = result.passed;
 
     if (success) {
       showTestResultMessage(`${testClass.name} passed.`, MessageType.Info, contextManager);
@@ -136,42 +114,27 @@ export async function runTestClass(
       message.push('✕ Failed');
     }
 
-    if (summary) {
-      testClass.startTime = new Date(summary.testStartTime);
-      testClass.duration = parseInt(summary.testExecutionTime);
+    const startTime = new Date(result.testStartTime);
+    testClass.startTime = startTime;
+    testClass.duration = result.testExecutionTimeMs;
+    contextManager.statusData.pushTestRun(
+      new TestRun(testClass.name, 'Test Class', success, startTime, result.testExecutionTimeMs)
+    );
+    message.push(
+      `TestStartTime: ${result.testStartTime} | TestExecutionTime: ${result.testExecutionTimeMs}`
+    );
 
-      const testRun = new TestRun(
-        testClass.name,
-        'Test Class',
-        success,
-        new Date(summary.testStartTime),
-        parseInt(summary.testExecutionTime)
-      );
-
-      contextManager.statusData.pushTestRun(testRun);
+    for (const failure of result.failures) {
+      const stackTrace = failure.stackTrace?.replace(/\r?\n/g, '\\n');
       message.push(
-        `TestStartTime: ${summary.testStartTime} | TestExecutionTime: ${summary.testExecutionTime}`
+        `• ${failure.fullName}: ${failure.message}${stackTrace ? ` - ${stackTrace}` : ''}`
       );
     }
 
-    if (!success && tests) {
-      for (let test of tests) {
-        if (test.Outcome === 'Fail') {
-          message.push(
-            `• ${test.FullName}: ${test.Message} - ${test.StackTrace.replace('\n', '\\n')}`
-          );
-        }
-      }
-    }
+    applyTestRunCoverage(result.coverage, contextManager);
 
-    if (coverageResult.coverage) {
-      getCodeCoverage(coverageResult.coverage);
-    }
-
-    if (coverageResult.summary) {
-      contextManager.statusData.orgWideCoverage = parseInt(
-        coverageResult.summary.orgWideCoverage.split('%')[0]
-      );
+    if (result.orgWideCoverage !== undefined) {
+      contextManager.statusData.orgWideCoverage = result.orgWideCoverage;
     }
 
     contextManager.statusData.refresh();
@@ -188,35 +151,35 @@ export async function runTestClass(
     contextManager.statusData.refresh();
 
     return;
-  } finally {
-    cancellationSubscription?.dispose();
   }
 }
 
-async function getCodeCoverage(coverage: any[]) {
-  const contextManager = getContextManager();
-  for (let coverageItem of coverage) {
-    let apexClass = contextManager.codeCoverageData.apexClasses?.find(
-      (apexClass: ApexClass) => coverageItem.name === apexClass.name
+function applyTestRunCoverage(
+  coverage: readonly ApexTestCoverage[],
+  contextManager: ContextManager
+): void {
+  for (const coverageItem of coverage) {
+    const apexClass = contextManager.codeCoverageData.apexClasses?.find(
+      (candidate) => coverageItem.name === candidate.name
     );
     if (apexClass) {
       apexClass.totalLines = coverageItem.totalLines;
-      apexClass.coveredLines = coverageItem.totalCovered;
+      apexClass.coveredLines = coverageItem.coveredLines;
       if (coverageItem.totalLines === 0) {
         apexClass.codeCoverage = 100;
       } else {
-        apexClass.codeCoverage = (coverageItem.totalCovered / coverageItem.totalLines) * 100;
+        apexClass.codeCoverage = (coverageItem.coveredLines / coverageItem.totalLines) * 100;
       }
     }
-
-    contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
-      if (apexClass.codeCoverage === undefined) {
-        apexClass.codeCoverage = -1;
-        apexClass.totalLines = -1;
-        apexClass.coveredLines = -1;
-      }
-    });
   }
+
+  contextManager.codeCoverageData.apexClasses?.forEach((apexClass) => {
+    if (apexClass.codeCoverage === undefined) {
+      apexClass.codeCoverage = -1;
+      apexClass.totalLines = -1;
+      apexClass.coveredLines = -1;
+    }
+  });
   contextManager.codeCoverageData.refresh();
 }
 
