@@ -126,11 +126,18 @@ export async function runSelectedTestsCommandHandler(): Promise<void> {
 
 export async function rerunFailedTestsCommandHandler(): Promise<void> {
   const testData = getContextManager().apexTestsData;
-  const failedTargets: ApexTestTarget[] = [
-    ...(testData.testSuites ?? []),
-    ...(testData.testClasses ?? []),
-    ...(testData.testClasses?.flatMap((testClass) => testClass.methods) ?? []),
-  ].filter((target) => target.status === 'Failed');
+  const failedMethods = (testData.testClasses ?? [])
+    .flatMap((testClass) => testClass.methods)
+    .filter((method) => method.status === 'Failed');
+  const failedMethodClasses = new Set(failedMethods.map((method) => method.className));
+  const failedClasses = (testData.testClasses ?? []).filter(
+    (testClass) => testClass.status === 'Failed' && !failedMethodClasses.has(testClass.name)
+  );
+  const failedSuites =
+    failedMethods.length === 0 && failedClasses.length === 0 ?
+      (testData.testSuites ?? []).filter((suite) => suite.status === 'Failed')
+    : [];
+  const failedTargets: ApexTestTarget[] = [...failedMethods, ...failedClasses, ...failedSuites];
 
   if (failedTargets.length === 0) {
     void vscode.window.showInformationMessage('There are no failed Apex tests to rerun.');
