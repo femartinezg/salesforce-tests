@@ -24,7 +24,7 @@ A lightweight, standalone Visual Studio Code extension for running Apex tests an
 This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar, allowing you to:
 
 - **Discover Apex tests**: Browse unmanaged test classes, their individual test methods, and Apex test suites from the connected org.
-- **Choose the right scope**: Run a class, a method, a suite, a multi-selection, failed tests, or all local tests.
+- **Choose the right scope**: Run a class, a method, a suite, a multi-selection, failed tests, all local tests, or every test in the org.
 - **Rerun quickly**: Rerun the most recent class, method, or suite directly from the status panel.
 - **Inspect results**: See running, passed, failed, and blocked states together with individual method outcomes and durations.
 - **Act on code coverage**: Review org-wide and class-level coverage, with low-coverage classes shown first and navigation to matching local Apex source.
@@ -82,6 +82,7 @@ The extension contributes the following commands:
 - `Salesforce Tests: Rerun Last Test`: Repeat the most recent class, method, or suite
 - `Salesforce Tests: Rerun Failed Tests`: Execute the failed methods from the current results again
 - `Salesforce Tests: Run All Local Tests`: Execute all local Apex tests in the org
+- `Salesforce Tests: Run All Tests in Org`: Execute every Apex test, including managed-package tests
 - `Salesforce Tests: Run Tests Covering Current Class`: Use org coverage data to run methods that cover the open Apex class
 - `Salesforce Tests: Run Tests Affected by My Changes`: Combine Git changes with org coverage to run relevant methods, including changed test classes
 - `Salesforce Tests: Open Apex Class`: Open the matching local class at its first uncovered line when coverage details are available

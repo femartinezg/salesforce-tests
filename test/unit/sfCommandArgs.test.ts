@@ -70,4 +70,11 @@ void describe('buildRunTestLevelArgs', () => {
     assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
     assert.equal(args[args.indexOf('--wait') + 1], '1');
   });
+
+  void it('runs every org test at the explicit all-tests level', () => {
+    const args = buildRunTestLevelArgs('RunAllTestsInOrg', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--test-level') + 1], 'RunAllTestsInOrg');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+  });
 });

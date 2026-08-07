@@ -153,13 +153,22 @@ export async function runLocalTestsCommandHandler(): Promise<void> {
   await runTestTargetCommand(new ApexTestLevel('RunLocalTests'));
 }
 
+export async function runAllOrgTestsCommandHandler(): Promise<void> {
+  await runTestTargetCommand(new ApexTestLevel('RunAllTestsInOrg'));
+}
+
 function findTestTarget(testRun: TestRun): ApexTestTarget | undefined {
   const testData = getContextManager().apexTestsData;
   if (testRun.type === 'Test Suite') {
     return testData.testSuites?.find((suite) => suite.name === testRun.name);
   }
-  if (testRun.type === 'Test Level' && testRun.name === 'All Local Tests') {
-    return new ApexTestLevel('RunLocalTests');
+  if (testRun.type === 'Test Level') {
+    if (testRun.name === 'All Local Tests') {
+      return new ApexTestLevel('RunLocalTests');
+    }
+    if (testRun.name === 'All Tests in Org') {
+      return new ApexTestLevel('RunAllTestsInOrg');
+    }
   }
   if (testRun.type === 'Test Method') {
     return testData.testClasses

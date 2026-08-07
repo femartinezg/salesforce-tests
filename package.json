@@ -126,6 +126,13 @@
         "icon": "$(run-all)"
       },
       {
+        "command": "salesforce-tests.runAllOrgTests",
+        "title": "Run All Tests in Org",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run-all)"
+      },
+      {
         "command": "salesforce-tests.runTestsCoveringCurrentClass",
         "title": "Run Tests Covering Current Class",
         "enablement": "!apexTestsLoading",
@@ -282,6 +289,11 @@
           "command": "salesforce-tests.runTestsAffectedByChanges",
           "when": "view == apexTestsTreeView",
           "group": "testActions@3"
+        },
+        {
+          "command": "salesforce-tests.runAllOrgTests",
+          "when": "view == apexTestsTreeView",
+          "group": "testActions@4"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",
