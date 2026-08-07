@@ -68,18 +68,18 @@ void test(
     assert.equal(testRun.failures.length, 0);
     assert.ok(testRun.coverage.some((item) => item.name === FIXTURE_CLASS));
 
+    const impactedTests = await retrieveImpactedApexTests(client, FIXTURE_CLASS, targetOrg);
+    assert.deepEqual(
+      impactedTests.map((item) => item.selector),
+      [`${FIXTURE_TEST_CLASS}.addsNumbers`, `${FIXTURE_TEST_CLASS}.subtractsNumbers`]
+    );
+
     const rawMethodRun = await client.runJson<unknown>(
       buildRunTestMethodArgs(FIXTURE_TEST_CLASS, 'addsNumbers', targetOrg)
     );
     const methodRun = parseApexTestRunResponse(rawMethodRun);
     assert.equal(methodRun.kind, 'test-result');
     assert.equal(methodRun.kind === 'test-result' && methodRun.passed, true);
-
-    const impactedTests = await retrieveImpactedApexTests(client, FIXTURE_CLASS, targetOrg);
-    assert.deepEqual(
-      impactedTests.map((item) => item.selector),
-      [`${FIXTURE_TEST_CLASS}.addsNumbers`, `${FIXTURE_TEST_CLASS}.subtractsNumbers`]
-    );
 
     const suiteName = `SalesforceTestsFixtureSuite_${Date.now()}`;
     const suite = await createApexTestSuite(client, suiteName, [fixtureTestClass.id], targetOrg);
