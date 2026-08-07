@@ -23,7 +23,9 @@ export async function retrieveApexClasses(targetOrg: string): Promise<{
 }> {
   const result = await retrieveApexClassItems(sfCliClient, targetOrg);
   return {
-    testClasses: result.testClasses.map((item) => new ApexTestClass(item.id, item.name)),
+    testClasses: result.testClasses.map(
+      (item) => new ApexTestClass(item.id, item.name, undefined, item.methods)
+    ),
     apexClasses: result.apexClasses.map((item) => new ApexClass(item.id, item.name)),
   };
 }

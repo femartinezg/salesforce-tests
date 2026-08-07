@@ -62,7 +62,7 @@ export class ApexClass extends Apex {
   }
 }
 
-export class ApexTestClass extends Apex {
+abstract class ApexTestTarget extends Apex {
   public status: string | undefined;
   public startTime?: Date;
   public duration?: number; // ms
@@ -117,6 +117,48 @@ export class ApexTestClass extends Apex {
     item.tooltip = tooltip;
     item.description = description;
 
+    return item;
+  }
+}
+
+export class ApexTestMethod extends ApexTestTarget {
+  constructor(
+    id: string,
+    public readonly className: string,
+    name: string,
+    status?: string
+  ) {
+    super(id, name, status);
+  }
+
+  public get selector(): string {
+    return `${this.className}.${this.name}`;
+  }
+
+  getTreeItem(): vscode.TreeItem {
+    const item = super.getTreeItem();
+    item.contextValue = 'apexTestMethod';
+    item.iconPath =
+      this.status === undefined ? new vscode.ThemeIcon('symbol-method') : item.iconPath;
+    return item;
+  }
+}
+
+export class ApexTestClass extends ApexTestTarget {
+  public readonly methods: ApexTestMethod[];
+
+  constructor(id: string, name: string, status?: string, methodNames: readonly string[] = []) {
+    super(id, name, status);
+    this.methods = methodNames.map(
+      (methodName) => new ApexTestMethod(`${id}.${methodName}`, name, methodName)
+    );
+  }
+
+  getTreeItem(): vscode.TreeItem {
+    const item = super.getTreeItem();
+    item.contextValue = 'apexTestClass';
+    item.collapsibleState =
+      this.methods.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : undefined;
     return item;
   }
 }

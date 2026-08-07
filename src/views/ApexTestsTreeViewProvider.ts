@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
-import { ApexTestClass } from '../classes/Apex';
+import { ApexTestClass, ApexTestMethod } from '../classes/Apex';
 
-export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> =
-    new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | void> =
+type ApexTestTreeElement = ApexTestClass | ApexTestMethod | vscode.TreeItem;
+
+export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<ApexTestTreeElement> {
+  private _onDidChangeTreeData: vscode.EventEmitter<ApexTestTreeElement | undefined | void> =
+    new vscode.EventEmitter<ApexTestTreeElement | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<ApexTestTreeElement | undefined | void> =
     this._onDidChangeTreeData.event;
 
   private _testClasses: ApexTestClass[] | undefined = undefined;
@@ -25,22 +27,26 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
     this.testClasses = undefined;
   }
 
-  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
-    return element;
+  getTreeItem(element: ApexTestTreeElement): vscode.TreeItem {
+    return element instanceof ApexTestClass || element instanceof ApexTestMethod ?
+        element.getTreeItem()
+      : element;
   }
 
-  getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
-    let children: vscode.TreeItem[] = [];
+  getChildren(element?: ApexTestTreeElement): Thenable<ApexTestTreeElement[]> {
+    let children: ApexTestTreeElement[] = [];
 
     if (!element) {
       children = this.getRootChildren();
+    } else if (element instanceof ApexTestClass) {
+      children = element.methods;
     }
 
     return Promise.resolve(children);
   }
 
-  getRootChildren(): vscode.TreeItem[] {
-    const children: vscode.TreeItem[] = [];
+  getRootChildren(): ApexTestTreeElement[] {
+    const children: ApexTestTreeElement[] = [];
 
     if (this.testClasses === undefined) {
       return children;
@@ -53,9 +59,7 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
       return children;
     }
 
-    this.testClasses.map((testClass) => {
-      children.push(testClass.getTreeItem());
-    });
+    children.push(...this.testClasses);
 
     return children;
   }
