@@ -141,7 +141,8 @@ Planned direction:
 - ✅ Add support to run individual Apex test methods
 - ✅ Add test suite functionality (group test runs)
 - ✅ Add rerun, failed-test, selection, and local-test actions
-- ⬜ Add persistent test history and slow/flaky-test insights
+- ✅ Add persistent test history per org
+- ⬜ Add slow/flaky-test insights
 - ✅ Add tests affected by local source changes
 
 _Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
