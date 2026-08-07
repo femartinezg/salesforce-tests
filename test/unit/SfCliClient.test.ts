@@ -93,6 +93,25 @@ void describe('SfCliClient', () => {
     await assert.rejects(run, hasKind('cancelled'));
     assert.equal(killed, true);
   });
+
+  void it('disposes listeners when cancellation fires during registration', async () => {
+    let disposed = false;
+    const token: CancellationTokenLike = {
+      isCancellationRequested: true,
+      onCancellationRequested: (listener) => {
+        listener();
+        return {
+          dispose: () => {
+            disposed = true;
+          },
+        };
+      },
+    };
+    const executor: SfCliExecutor = () => ({ kill: () => true });
+
+    await assert.rejects(new SfCliClient({ executor }).run([], token), hasKind('cancelled'));
+    assert.equal(disposed, true);
+  });
 });
 
 function successfulExecutor(stdout: string): SfCliExecutor {

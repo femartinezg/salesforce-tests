@@ -129,6 +129,11 @@ export class SfCliClient {
         rejectOnce(new SfCliError('cancelled', 'Salesforce CLI command was cancelled.'));
       });
 
+      if (settled) {
+        cancellation.subscription?.dispose();
+        return;
+      }
+
       if (cancellationToken?.isCancellationRequested) {
         process.kill();
         rejectOnce(new SfCliError('cancelled', 'Salesforce CLI command was cancelled.'));
