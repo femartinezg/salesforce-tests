@@ -61,12 +61,6 @@ function registerTreeDataProviders(
     vscode.window.registerTreeDataProvider('apexTestsTreeView', contextManager.apexTestsData),
     vscode.window.registerTreeDataProvider('codeCoverageTreeView', contextManager.codeCoverageData)
   );
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      'salesforce-tests.exportTestResults',
-      exportTestResultsCommandHandler
-    )
-  );
 }
 
 function registerFileSystemWatchers(
@@ -146,6 +140,12 @@ function registerCommands(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'salesforce-tests.runTestsAffectedByChanges',
       runTestsAffectedByChangesCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.exportTestResults',
+      exportTestResultsCommandHandler
     )
   );
   context.subscriptions.push(
