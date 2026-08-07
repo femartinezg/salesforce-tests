@@ -1,11 +1,23 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildGetTestResultArgs,
   buildRunTestClassArgs,
   buildRunTestMethodArgs,
   buildRunTestLevelArgs,
   buildRunTestSuiteArgs,
 } from '../../src/common/sfCommandArgs';
+
+void describe('buildGetTestResultArgs', () => {
+  void it('polls one test run in the resolved org', () => {
+    const args = buildGetTestResultArgs('707xx0000001234', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--test-run-id') + 1], '707xx0000001234');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+    assert.equal(args.includes('--wait'), false);
+    assert.equal(args.includes('--code-coverage'), true);
+  });
+});
 
 void describe('buildRunTestClassArgs', () => {
   void it('uses the Salesforce CLI apex run test command order', () => {

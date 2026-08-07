@@ -45,6 +45,20 @@ export function buildRunTestLevelArgs(
   ];
 }
 
+export function buildGetTestResultArgs(testRunId: string, targetOrg: string): string[] {
+  return [
+    'apex',
+    'get',
+    'test',
+    '--test-run-id',
+    testRunId,
+    '--code-coverage',
+    '--json',
+    '--target-org',
+    targetOrg,
+  ];
+}
+
 export function buildRunTestSelectorArgs(testSelector: string, targetOrg: string): string[] {
   return [
     'apex',

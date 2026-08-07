@@ -67,7 +67,7 @@ export interface SfCliClientOptions {
 }
 
 export interface JsonSfCliClient {
-  runJson<T>(args: readonly string[]): Promise<T>;
+  runJson<T>(args: readonly string[], cancellationToken?: CancellationTokenLike): Promise<T>;
 }
 
 export class SfCliClient {

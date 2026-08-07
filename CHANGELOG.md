@@ -28,6 +28,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Providers and watchers remain stable across org refreshes and are disposed with the extension lifecycle.
 - Missing coverage is displayed as unavailable rather than failed.
 - Test timestamps, zero-duration results, blocked executions, structured CLI errors, and incomplete JSON responses are handled safely.
+- Long-running suite and test-level executions continue from their asynchronous test-run ID.
 - Removed the unused `@salesforce/core` production dependency and its vulnerable transitive packages.
 
 ## [0.2.1] - 2025-06-15

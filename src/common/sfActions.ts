@@ -11,11 +11,8 @@ import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
 import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
-import {
-  parseApexTestRunResponse,
-  type ApexTestCaseResult,
-  type ApexTestCoverage,
-} from './ApexTestRunParser';
+import { type ApexTestCaseResult, type ApexTestCoverage } from './ApexTestRunParser';
+import { executeApexTestRun } from './ApexTestRunService';
 import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
 import { retrieveApexTestSuites as retrieveApexTestSuiteItems } from './ApexTestSuiteService';
 import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
@@ -27,6 +24,7 @@ import {
 } from './sfCommandArgs';
 
 const sfCliClient = new SfCliClient();
+const sfTestCliClient = new SfCliClient({ timeoutMs: 10 * 60_000 });
 
 export function retrieveOrgInfo(): Promise<OrgInfo> {
   return retrieveDefaultOrgInfo(sfCliClient);
@@ -95,13 +93,14 @@ export async function runApexTest(
   }
 
   try {
-    const response = await sfCliClient.runJson<unknown>(
+    const result = await executeApexTestRun(
+      sfTestCliClient,
       testTarget instanceof ApexTestLevel ? buildRunTestLevelArgs(testTarget.level, targetOrg)
       : testTarget.runKind === 'suite' ? buildRunTestSuiteArgs(testTarget.selector, targetOrg)
       : buildRunTestSelectorArgs(testTarget.selector, targetOrg),
+      targetOrg,
       cancellationToken
     );
-    const result = parseApexTestRunResponse(response);
 
     if (cancellationToken.isCancellationRequested) {
       return;
