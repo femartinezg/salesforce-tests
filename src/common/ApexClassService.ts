@@ -2,15 +2,19 @@ import { detectApexClassKind } from './apexSource';
 import { SfCliError, type JsonSfCliClient } from './SfCliClient';
 
 const APEX_CLASSES_QUERY =
-  "SELECT Id, Name, Body FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC";
+  "SELECT Id, Name, Body, SymbolTable FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC";
 
 export interface ApexClassItem {
   id: string;
   name: string;
 }
 
+export interface ApexTestClassItem extends ApexClassItem {
+  methods: string[];
+}
+
 export interface ApexClasses {
-  testClasses: ApexClassItem[];
+  testClasses: ApexTestClassItem[];
   apexClasses: ApexClassItem[];
 }
 
@@ -52,7 +56,7 @@ export function parseApexClassQueryResponse(response: unknown): ApexClasses {
   }
 
   const apexClasses: ApexClassItem[] = [];
-  const testClasses: ApexClassItem[] = [];
+  const testClasses: ApexTestClassItem[] = [];
 
   for (const recordValue of result.records) {
     const record = asRecord(recordValue);
@@ -65,15 +69,72 @@ export function parseApexClassQueryResponse(response: unknown): ApexClasses {
 
     const item = { id: record.Id, name: record.Name };
     const classKind = detectApexClassKind(record.Body);
+    const testMethods = parseTestMethods(record.SymbolTable);
 
-    if (classKind === true) {
-      testClasses.push(item);
+    if (classKind === true || testMethods.length > 0) {
+      testClasses.push({ ...item, methods: testMethods });
     } else if (classKind === false) {
       apexClasses.push(item);
     }
   }
 
   return { testClasses, apexClasses };
+}
+
+function parseTestMethods(value: unknown): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const symbolTable = asRecord(value);
+  if (!symbolTable || (symbolTable.methods !== undefined && !Array.isArray(symbolTable.methods))) {
+    throw invalidResponse();
+  }
+
+  const methodNames = new Set<string>();
+  for (const methodValue of symbolTable.methods ?? []) {
+    const method = asRecord(methodValue);
+    if (!method || !isNonEmptyString(method.name)) {
+      throw invalidResponse();
+    }
+
+    const annotationNames = parseSymbolNames(method.annotations);
+    const modifiers = parseStringList(method.modifiers);
+    if (
+      annotationNames.some((name) => name.toLowerCase() === 'istest')
+      || modifiers.some((modifier) => modifier.toLowerCase() === 'testmethod')
+    ) {
+      methodNames.add(method.name);
+    }
+  }
+
+  return [...methodNames];
+}
+
+function parseSymbolNames(value: unknown): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw invalidResponse();
+  }
+  return value.map((item) => {
+    const record = asRecord(item);
+    if (!record || !isNonEmptyString(record.name)) {
+      throw invalidResponse();
+    }
+    return record.name;
+  });
+}
+
+function parseStringList(value: unknown): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    throw invalidResponse();
+  }
+  return value;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

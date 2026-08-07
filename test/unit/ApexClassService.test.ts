@@ -7,7 +7,7 @@ import {
 import { SfCliError, type JsonSfCliClient } from '../../src/common/SfCliClient';
 
 const query =
-  "SELECT Id, Name, Body FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC";
+  "SELECT Id, Name, Body, SymbolTable FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC";
 
 void describe('ApexClassService', () => {
   void it('queries the Tooling API with isolated arguments pinned to the resolved org', async () => {
@@ -35,14 +35,42 @@ void describe('ApexClassService', () => {
 
   void it('classifies test and ordinary classes while omitting interfaces', () => {
     const response = successfulResponse([
-      { Id: '01p-test', Name: 'ExampleTest', Body: '@IsTest private class ExampleTest {}' },
+      {
+        Id: '01p-test',
+        Name: 'ExampleTest',
+        Body: '@IsTest private class ExampleTest {}',
+        SymbolTable: {
+          methods: [
+            { name: 'passes', annotations: [{ name: 'IsTest' }], modifiers: ['static'] },
+            { name: 'setup', annotations: [{ name: 'TestSetup' }], modifiers: ['static'] },
+          ],
+        },
+      },
       { Id: '01p-class', Name: 'Example', Body: 'public class Example {}' },
       { Id: '01p-interface', Name: 'Exampleable', Body: 'public interface Exampleable {}' },
     ]);
 
     assert.deepEqual(parseApexClassQueryResponse(response), {
-      testClasses: [{ id: '01p-test', name: 'ExampleTest' }],
+      testClasses: [{ id: '01p-test', name: 'ExampleTest', methods: ['passes'] }],
       apexClasses: [{ id: '01p-class', name: 'Example' }],
+    });
+  });
+
+  void it('detects legacy testMethod declarations from the symbol table', () => {
+    const response = successfulResponse([
+      {
+        Id: '01p-legacy',
+        Name: 'LegacyTest',
+        Body: 'private class LegacyTest { static testMethod void passes() {} }',
+        SymbolTable: {
+          methods: [{ name: 'passes', annotations: [], modifiers: ['private', 'testMethod'] }],
+        },
+      },
+    ]);
+
+    assert.deepEqual(parseApexClassQueryResponse(response), {
+      testClasses: [{ id: '01p-legacy', name: 'LegacyTest', methods: ['passes'] }],
+      apexClasses: [],
     });
   });
 
