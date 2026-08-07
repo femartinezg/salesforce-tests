@@ -9,8 +9,12 @@
   ],
   "keywords": [
     "salesforce",
+    "sfdx",
+    "sf cli",
     "apex",
     "testing",
+    "test explorer",
+    "code coverage",
     "development",
     "debugging"
   ],
@@ -23,6 +27,11 @@
     "type": "git",
     "url": "https://github.com/femartinezg/salesforce-tests"
   },
+  "homepage": "https://github.com/femartinezg/salesforce-tests#readme",
+  "bugs": {
+    "url": "https://github.com/femartinezg/salesforce-tests/issues"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.100.0"
   },
