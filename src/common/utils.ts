@@ -11,6 +11,14 @@ export function formatDuration(duration: number): string {
   }
 }
 
+export function isSameLocalDate(first: Date, second: Date): boolean {
+  return (
+    first.getFullYear() === second.getFullYear()
+    && first.getMonth() === second.getMonth()
+    && first.getDate() === second.getDate()
+  );
+}
+
 export function sleep(time: number): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => {
