@@ -5,6 +5,7 @@ import { ApexClass, ApexTestClass } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
+import { detectApexClassKind } from './apexSource';
 import { buildRunTestClassArgs } from './sfCommandArgs';
 
 export async function retrieveOrgInfo(): Promise<{
@@ -57,7 +58,7 @@ export async function retrieveApexClasses(): Promise<{
         const apexClasses = [];
 
         for (let apex of records) {
-          const isTest = parseBody(apex.Body);
+          const isTest = detectApexClassKind(apex.Body);
           if (isTest) {
             testClasses.push(new ApexTestClass(apex.Id, apex.Name));
           } else if (isTest === false) {
@@ -79,78 +80,6 @@ export async function retrieveApexClasses(): Promise<{
       }
     });
   });
-}
-
-function parseBody(body: string): boolean | undefined {
-  const length = body.length;
-  let i = 0;
-  let inSingleLineComment = false;
-  let inMultiLineComment = false;
-  let tokenChars: string[] = [];
-
-  const isWordChar = (ch: string) => {
-    const code = ch.charCodeAt(0);
-    return (
-      (code >= 65 && code <= 90) // A-Z
-      || (code >= 97 && code <= 122) // a-z
-      || (code >= 48 && code <= 57) // 0-9
-      || ch === '@'
-      || ch === '_'
-    );
-  };
-
-  while (i < length) {
-    const ch = body[i];
-    const next = body[i + 1];
-
-    // --- Handle comment entry ---
-    if (!inMultiLineComment && !inSingleLineComment && ch === '/' && next === '/') {
-      inSingleLineComment = true;
-      i += 2;
-      continue;
-    }
-    if (!inMultiLineComment && !inSingleLineComment && ch === '/' && next === '*') {
-      inMultiLineComment = true;
-      i += 2;
-      continue;
-    }
-
-    // --- Handle comment exit ---
-    if (inSingleLineComment && (ch === '\n' || ch === '\r')) {
-      inSingleLineComment = false;
-      i++;
-      continue;
-    }
-    if (inMultiLineComment && ch === '*' && next === '/') {
-      inMultiLineComment = false;
-      i += 2;
-      continue;
-    }
-
-    // --- Tokenization ---
-    if (!inSingleLineComment && !inMultiLineComment) {
-      if (isWordChar(ch)) {
-        tokenChars.push(ch);
-      } else if (tokenChars.length > 0) {
-        const lower = tokenChars.join('').toLowerCase();
-        if (lower === '@istest') return true;
-        if (lower === 'class') return false;
-        if (lower === 'interface') return undefined;
-        tokenChars = [];
-      }
-    }
-
-    i++;
-  }
-
-  if (tokenChars.length > 0) {
-    const lower = tokenChars.join('').toLowerCase();
-    if (lower === '@istest') return true;
-    if (lower === 'class') return false;
-    if (lower === 'interface') return undefined;
-  }
-
-  return false;
 }
 
 export async function retrieveCodeCoverage() {
