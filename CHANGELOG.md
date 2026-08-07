@@ -22,6 +22,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added local export of current method results as JUnit XML or JSON.
 - Added uncovered line details and navigation to the first coverage gap in local Apex source.
 - Added an explicit action to run every Apex test in the org, including managed-package tests.
+- Added a confirmation before starting the potentially expensive all-org test run.
 - Added a configurable slow-test warning for completed Apex tests.
 - Added per-org recent outcome history and flaky-method warnings.
 

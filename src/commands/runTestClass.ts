@@ -154,6 +154,16 @@ export async function runLocalTestsCommandHandler(): Promise<void> {
 }
 
 export async function runAllOrgTestsCommandHandler(): Promise<void> {
+  const status = getContextManager().statusData;
+  const orgLabel = status.alias ?? status.username ?? 'the current org';
+  const confirmation = await vscode.window.showWarningMessage(
+    `Run every Apex test in ${orgLabel}? This can take a long time and includes managed-package tests.`,
+    { modal: true },
+    'Run All Tests'
+  );
+  if (confirmation !== 'Run All Tests') {
+    return;
+  }
   await runTestTargetCommand(new ApexTestLevel('RunAllTestsInOrg'));
 }
 
