@@ -26,6 +26,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 - Added a configurable slow-test warning for completed Apex tests.
 - Added per-org recent outcome history and flaky-method warnings.
 - Added CodeLens actions for running discovered Apex test classes and methods from local source.
+- Added a bounded per-org history of distinct coverage snapshots with change indicators.
 
 ### Changed
 

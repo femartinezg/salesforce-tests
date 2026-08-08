@@ -28,6 +28,7 @@ This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar,
 - **Rerun quickly**: Rerun the most recent class, method, or suite directly from the status panel.
 - **Inspect results**: See running, passed, failed, blocked, slow, and recently flaky states together with individual method outcomes and durations.
 - **Act on code coverage**: Review org-wide and class-level coverage, with low-coverage classes shown first and navigation to matching local Apex source.
+- **Track coverage changes**: Compare the current org-wide value with the previous observation and inspect recent distinct snapshots per org.
 - **Run from Apex source**: Use CodeLens actions above discovered test classes and methods without leaving the editor.
 - **Stay lightweight**: Use Salesforce CLI directly without installing the Salesforce Extension Pack.
 
@@ -112,7 +113,7 @@ The covering-tests and affected-tests commands use the org's latest `ApexCodeCov
 - At activation or refresh, the extension resolves the default org's username and pins every query and test command in that cycle to it.
 - Changing the default org configuration triggers a refresh.
 - Commands and data stay local between VS Code, Salesforce CLI, and the authenticated org. The extension does not add telemetry or send data to another service.
-- The five most recent test selectors and the ten most recent pass/fail and duration samples per discovered method are stored in VS Code extension storage, separated by org username.
+- The five most recent test selectors, ten recent pass/fail and duration samples per discovered method, and up to thirty distinct org-coverage snapshots are stored in VS Code extension storage, separated by org username.
 - The extension is disabled for untrusted workspaces because activation executes the local Salesforce CLI.
 
 ## Troubleshooting
@@ -148,6 +149,7 @@ Planned direction:
 - ⏳ Add slow/flaky-test insights (slow warnings and recent flaky-method detection are available; trends are planned)
 - ✅ Add tests affected by local source changes
 - ✅ Add CodeLens actions for local Apex test classes and methods
+- ✅ Add bounded per-org coverage snapshots and before/after comparison
 
 _Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
 
