@@ -29,11 +29,13 @@ import {
   runTestsCoveringCurrentClassCommandHandler,
 } from './commands/runImpactedTests';
 import { exportTestResultsCommandHandler } from './commands/exportTestResults';
+import { ApexTestCodeLensProvider } from './providers/ApexTestCodeLensProvider';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
   contextManager.configureStorage(context.globalState);
   registerTreeDataProviders(context, contextManager);
+  registerCodeLensProvider(context, contextManager);
   registerFileSystemWatchers(context, contextManager);
   registerConfigurationListener(context, contextManager);
   registerCommands(context);
@@ -60,6 +62,18 @@ function registerTreeDataProviders(
     vscode.window.registerTreeDataProvider('statusTreeView', contextManager.statusData),
     vscode.window.registerTreeDataProvider('apexTestsTreeView', contextManager.apexTestsData),
     vscode.window.registerTreeDataProvider('codeCoverageTreeView', contextManager.codeCoverageData)
+  );
+}
+
+function registerCodeLensProvider(
+  context: vscode.ExtensionContext,
+  contextManager: ContextManager
+): void {
+  const provider = new ApexTestCodeLensProvider(contextManager.apexTestsData);
+  context.subscriptions.push(
+    provider,
+    vscode.languages.registerCodeLensProvider({ pattern: '**/*.cls' }, provider),
+    contextManager.apexTestsData.onDidChangeTreeData(() => provider.refresh())
   );
 }
 
