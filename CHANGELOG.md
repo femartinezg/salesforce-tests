@@ -29,6 +29,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 ### Changed
 
 - Replaced the vulnerable Mocha-based extension-host wrapper with a direct `@vscode/test-electron` runner.
+- CI now rejects dependency vulnerabilities in development tooling as well as production code.
 
 - All Apex operations now use the username resolved for the current default-org refresh cycle.
 - Builds now clean compiled output before packaging, and the VSIX uses a reviewed file list.
