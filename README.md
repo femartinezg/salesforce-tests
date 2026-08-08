@@ -28,6 +28,7 @@ This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar,
 - **Rerun quickly**: Rerun the most recent class, method, or suite directly from the status panel.
 - **Inspect results**: See running, passed, failed, blocked, slow, and recently flaky states together with individual method outcomes and durations.
 - **Act on code coverage**: Review org-wide and class-level coverage, with low-coverage classes shown first and navigation to matching local Apex source.
+- **Run from Apex source**: Use CodeLens actions above discovered test classes and methods without leaving the editor.
 - **Stay lightweight**: Use Salesforce CLI directly without installing the Salesforce Extension Pack.
 
 ## Requirements
@@ -62,6 +63,7 @@ Open that project in VS Code and select the Salesforce Tests icon in the Activit
 2. View your authenticated org information in the Status section, including org-wide code coverage and last test runs.
 3. Browse available classes, methods, and suites in the Apex Tests section.
 4. Use the inline run button for one test, or the view actions to select several tests, rerun failures, or run all local tests.
+   Matching local test classes also show CodeLens actions above the class and each discovered test method.
 5. View test results with visual indicators:
    - ⏳ Running: Test is currently executing
    - ✅ Passed: Test completed successfully
@@ -145,6 +147,7 @@ Planned direction:
 - ✅ Add persistent test history per org
 - ⏳ Add slow/flaky-test insights (slow warnings and recent flaky-method detection are available; trends are planned)
 - ✅ Add tests affected by local source changes
+- ✅ Add CodeLens actions for local Apex test classes and methods
 
 _Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
 
