@@ -5,6 +5,7 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 import { ApexTestClass } from '../../src/classes/Apex';
 import { ApexTestCodeLensProvider } from '../../src/providers/ApexTestCodeLensProvider';
+import { StatusTreeViewProvider } from '../../src/views/StatusTreeViewProvider';
 
 export async function run(): Promise<void> {
   const extension = vscode.extensions.getExtension('femartinezg.salesforce-tests');
@@ -33,4 +34,25 @@ export async function run(): Promise<void> {
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
+
+  const statusProvider = new StatusTreeViewProvider();
+  statusProvider.isAuthenticated = true;
+  statusProvider.username = 'developer@example.com';
+  statusProvider.orgWideCoverage = 76.5;
+  statusProvider.coverageDelta = 1.5;
+  statusProvider.coverageHistory = [
+    { coverage: 76.5, recordedAt: new Date('2026-08-08T01:00:00.000Z') },
+    { coverage: 75, recordedAt: new Date('2026-08-08T00:00:00.000Z') },
+  ];
+
+  const orgItem = statusProvider.getRootChildren()[0];
+  const orgChildren = statusProvider.getOrgChildren();
+  assert.equal(typeof orgItem.tooltip, 'string');
+  assert.match(orgItem.tooltip, /Change since previous sample: \+1\.5/);
+  assert.equal(orgChildren[0].description, '76.5% (+1.5 pp)');
+  assert.equal(orgChildren[1].label, 'Coverage History');
+  assert.deepEqual(
+    statusProvider.getCoverageHistoryChildren().map((item) => item.description),
+    ['76.5%', '75%']
+  );
 }
