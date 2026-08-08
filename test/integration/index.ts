@@ -47,7 +47,9 @@ export async function run(): Promise<void> {
 
   const orgItem = statusProvider.getRootChildren()[0];
   const orgChildren = statusProvider.getOrgChildren();
-  assert.equal(typeof orgItem.tooltip, 'string');
+  if (typeof orgItem.tooltip !== 'string') {
+    assert.fail('The authenticated org tooltip should be plain text.');
+  }
   assert.match(orgItem.tooltip, /Change since previous sample: \+1\.5/);
   assert.equal(orgChildren[0].description, '76.5% (+1.5 pp)');
   assert.equal(orgChildren[1].label, 'Coverage History');
