@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { TestRun } from '../classes/TestRun';
+import type { CoverageSnapshot } from '../common/CoverageHistoryStore';
 
 export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> =
@@ -11,6 +12,8 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
   public alias?: string;
   public username?: string;
   public orgWideCoverage?: number;
+  public coverageDelta?: number;
+  public coverageHistory: CoverageSnapshot[] = [];
 
   public testRuns: TestRun[] = [];
 
@@ -43,6 +46,8 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
       children = this.getOrgChildren();
     } else if (element.contextValue === 'statusLastTestRuns') {
       children = this.getLastTestRunsChildren();
+    } else if (element.contextValue === 'statusCoverageHistory') {
+      children = this.getCoverageHistoryChildren();
     }
 
     return Promise.resolve(children);
@@ -66,8 +71,10 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
       orgItem = new vscode.TreeItem(this.alias ?? this.username ?? 'Authenticated');
       orgItem.description = this.username;
       let tooltip = this.alias ? `${this.alias} (${this.username})` : this.username;
-      if (this.orgWideCoverage !== undefined)
+      if (this.orgWideCoverage !== undefined) {
         tooltip += `\nOrg Wide Coverage: ${this.orgWideCoverage}%`;
+        tooltip += formatCoverageChangeTooltip(this.coverageDelta);
+      }
       orgItem.tooltip = tooltip;
       orgItem.iconPath = new vscode.ThemeIcon('cloud');
       orgItem.contextValue = 'statusOrg';
@@ -90,10 +97,30 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
     coverageItem.description = 'Loading...';
     coverageItem.iconPath = new vscode.ThemeIcon('arrow-small-right');
     if (this.orgWideCoverage !== undefined) {
-      coverageItem.tooltip = `Org Wide Coverage: ${this.orgWideCoverage}%`;
-      coverageItem.description = `${this.orgWideCoverage}%`;
+      coverageItem.tooltip = `Org Wide Coverage: ${this.orgWideCoverage}%${formatCoverageChangeTooltip(this.coverageDelta)}`;
+      coverageItem.description = `${this.orgWideCoverage}%${formatCoverageChangeDescription(this.coverageDelta)}`;
     }
-    return [coverageItem];
+
+    const children = [coverageItem];
+    if (this.coverageHistory.length > 0) {
+      const historyItem = new vscode.TreeItem('Coverage History');
+      historyItem.description = `${this.coverageHistory.length} snapshot${this.coverageHistory.length === 1 ? '' : 's'}`;
+      historyItem.iconPath = new vscode.ThemeIcon('graph-line');
+      historyItem.contextValue = 'statusCoverageHistory';
+      historyItem.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+      children.push(historyItem);
+    }
+    return children;
+  }
+
+  getCoverageHistoryChildren(): vscode.TreeItem[] {
+    return this.coverageHistory.slice(0, 10).map((snapshot) => {
+      const item = new vscode.TreeItem(snapshot.recordedAt.toLocaleString());
+      item.description = `${snapshot.coverage}%`;
+      item.tooltip = `${snapshot.coverage}% on ${snapshot.recordedAt.toLocaleString()}`;
+      item.iconPath = new vscode.ThemeIcon('history');
+      return item;
+    });
   }
 
   getLastTestRunsChildren(): vscode.TreeItem[] {
@@ -127,6 +154,27 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
     this.alias = undefined;
     this.username = undefined;
     this.orgWideCoverage = undefined;
+    this.coverageDelta = undefined;
+    this.coverageHistory = [];
     this.testRuns = [];
   }
+}
+
+function formatCoverageChangeDescription(delta: number | undefined): string {
+  if (delta === undefined) {
+    return '';
+  }
+  return ` (${formatCoverageDelta(delta)} pp)`;
+}
+
+function formatCoverageChangeTooltip(delta: number | undefined): string {
+  if (delta === undefined) {
+    return '';
+  }
+  return `\nChange since previous sample: ${formatCoverageDelta(delta)} percentage points`;
+}
+
+function formatCoverageDelta(delta: number): string {
+  const rounded = Math.round(delta * 100) / 100;
+  return rounded > 0 ? `+${rounded}` : String(rounded);
 }

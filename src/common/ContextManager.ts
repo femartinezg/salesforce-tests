@@ -12,6 +12,7 @@ import {
 } from './sfActions';
 import { TestHistoryStore, type TestHistoryStorage } from './TestHistoryStore';
 import { TestInsightStore } from './TestInsightStore';
+import { CoverageHistoryStore } from './CoverageHistoryStore';
 import type { ApexTestCaseResult } from './ApexTestRunParser';
 
 export class ContextManager {
@@ -26,6 +27,7 @@ export class ContextManager {
   public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
   private testHistoryStore?: TestHistoryStore;
   private testInsightStore?: TestInsightStore;
+  private coverageHistoryStore?: CoverageHistoryStore;
 
   public static getInstance(): ContextManager {
     if (!this.instance) {
@@ -43,6 +45,7 @@ export class ContextManager {
   public configureStorage(storage: TestHistoryStorage): void {
     this.testHistoryStore = new TestHistoryStore(storage);
     this.testInsightStore = new TestInsightStore(storage);
+    this.coverageHistoryStore = new CoverageHistoryStore(storage);
   }
 
   public async init() {
@@ -81,10 +84,7 @@ export class ContextManager {
 
     const coverageTasks: Promise<void>[] = [
       retrieveOrgCoverage(username)
-        .then((orgWideCoverage) => {
-          this.statusData.orgWideCoverage = orgWideCoverage;
-          this.statusData.refresh();
-        })
+        .then((orgWideCoverage) => this.updateOrgCoverage(username, orgWideCoverage))
         .catch((error: unknown) => {
           this.printOutput(`Unable to retrieve org coverage: ${getErrorMessage(error)}`);
         }),
@@ -215,6 +215,23 @@ export class ContextManager {
     }
   }
 
+  public async updateOrgCoverage(targetOrg: string, coverage: number): Promise<void> {
+    const previousSnapshot = this.coverageHistoryStore?.load(targetOrg)[0];
+    this.statusData.orgWideCoverage = coverage;
+    this.statusData.coverageDelta =
+      previousSnapshot ? coverage - previousSnapshot.coverage : undefined;
+
+    if (this.coverageHistoryStore) {
+      try {
+        await this.coverageHistoryStore.record(targetOrg, coverage);
+        this.statusData.coverageHistory = this.coverageHistoryStore.load(targetOrg);
+      } catch (error: unknown) {
+        this.printOutput(`Unable to persist coverage history: ${getErrorMessage(error)}`);
+      }
+    }
+    this.statusData.refresh();
+  }
+
   public displayOutput() {
     if (ContextManager.outputChannel) {
       ContextManager.outputChannel.show();
@@ -228,6 +245,8 @@ export class ContextManager {
     this.statusData.alias = undefined;
     this.statusData.username = undefined;
     this.statusData.orgWideCoverage = undefined;
+    this.statusData.coverageDelta = undefined;
+    this.statusData.coverageHistory = [];
     this.statusData.testRuns = [];
     this.statusData.refresh();
     this.setEmptyData();

@@ -208,7 +208,7 @@ export async function runApexTest(
     applyTestRunCoverage(result.coverage, contextManager);
 
     if (result.orgWideCoverage !== undefined) {
-      contextManager.statusData.orgWideCoverage = result.orgWideCoverage;
+      await contextManager.updateOrgCoverage(targetOrg, result.orgWideCoverage);
     }
 
     contextManager.statusData.refresh();
