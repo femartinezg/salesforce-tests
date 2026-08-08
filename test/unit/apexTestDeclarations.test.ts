@@ -87,6 +87,22 @@ private class CalculatorTest {
     );
   });
 
+  void it('preserves UTF-16 offsets after non-BMP characters', () => {
+    const source = `/* 🧪 */ @IsTest private class UnicodeTest {
+  static void worksAfterEmoji() {}
+}`;
+
+    const declarations = findApexTestDeclarations(source, 'UnicodeTest', ['worksAfterEmoji']);
+
+    assert.deepEqual(
+      declarations.map(({ name, start }) => ({ name, start })),
+      [
+        { name: 'UnicodeTest', start: source.indexOf('UnicodeTest') },
+        { name: 'worksAfterEmoji', start: source.indexOf('worksAfterEmoji') },
+      ]
+    );
+  });
+
   void it('returns no locations when the local file does not match the org inventory', () => {
     assert.deepEqual(findApexTestDeclarations('class Other {}', 'ExpectedTest', ['testOne']), []);
   });

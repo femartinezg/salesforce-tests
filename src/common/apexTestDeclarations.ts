@@ -55,7 +55,9 @@ function findDeclaration(source: string, pattern: RegExp, name: string): number 
 }
 
 function maskCommentsAndStrings(source: string): string {
-  const result = [...source];
+  // VS Code positions use UTF-16 offsets. Keep one array entry per code unit so
+  // non-BMP characters in comments or strings cannot shift later CodeLens ranges.
+  const result = source.split('');
   let position = 0;
 
   while (position < result.length) {
