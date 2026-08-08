@@ -158,6 +158,17 @@ Contributions are welcome and appreciated! Here's how you can contribute:
 
 Please follow the existing code style and include appropriate tests for your changes.
 
+### Development checks
+
+```sh
+npm ci
+npm run test:unit
+npm run lint
+npm run package:check
+```
+
+`npm test` launches the compiled smoke suite in a VS Code extension host and needs a graphical display (or Xvfb). The opt-in `npm run test:org` suite also requires `SALESFORCE_TEST_ORG` to name an authenticated non-production org; it deploys the fixtures under `test/fixtures/salesforce` and creates a temporary Apex test suite that it removes before finishing.
+
 ---
 
 ## Author
