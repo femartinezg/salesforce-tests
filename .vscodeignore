@@ -1,5 +1,7 @@
 .vscode/**
 .vscode-test/**
+.github/**
+.prettierignore
 src/**
 .gitignore
 .yarnrc
@@ -12,6 +14,7 @@ vsc-extension-quickstart.md
 node_modules/
 .env
 test/
+out/test/**
 **/*.test.*
 images/icon.svg
 images/icon128.png

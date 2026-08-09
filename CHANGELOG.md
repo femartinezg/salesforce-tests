@@ -2,6 +2,54 @@
 
 All notable changes to the "Salesforce Tests" extension will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Added typed, cancellable Salesforce CLI services for org discovery, Apex classes, test results, and coverage.
+- Added unit tests, opt-in Developer Org integration fixtures, continuous integration, and package-content verification.
+- Added explicit trusted-workspace and remote workspace execution behavior.
+- Added discovery and execution of individual Apex test methods and Apex test suites.
+- Added multi-selection, rerun-last, rerun-failed, and run-all-local test actions.
+- Added method-level outcomes and durations to the Apex Tests view.
+- Added navigation from code coverage entries to matching local Apex classes.
+- Added a five-entry test history persisted locally and separated by Salesforce org.
+- Added a configurable minimum coverage threshold and a quick under-covered class filter.
+- Added failure details on test items and navigation from Apex stack traces to local source.
+- Added creation and deletion of Apex test suites from the sidebar.
+- Added an editor action that runs the discovered test methods covering the current Apex class.
+- Added affected-test discovery for tracked and untracked local Apex changes in Git workspaces.
+- Added local export of current method results as JUnit XML or JSON.
+- Added uncovered line details and navigation to the first coverage gap in local Apex source.
+- Added an explicit action to run every Apex test in the org, including managed-package tests.
+- Added a confirmation before starting the potentially expensive all-org test run.
+- Added a configurable slow-test warning for completed Apex tests.
+- Added per-org recent outcome history and flaky-method warnings.
+- Added CodeLens actions for running discovered Apex test classes and methods from local source.
+- Added a bounded per-org history of distinct coverage snapshots with change indicators.
+
+### Changed
+
+- Replaced the vulnerable Mocha-based extension-host wrapper with a direct `@vscode/test-electron` runner.
+- CI now rejects dependency vulnerabilities in development tooling as well as production code.
+
+- All Apex operations now use the username resolved for the current default-org refresh cycle.
+- Builds now clean compiled output before packaging, and the VSIX uses a reviewed file list.
+- Documentation now covers standalone setup, the default-org model, privacy, remote environments, and troubleshooting.
+- Classes with known low coverage are shown first, while unavailable coverage remains clearly separated.
+- Apex test command timeouts can be configured from one to sixty minutes.
+
+### Fixed
+
+- Corrected the Salesforce CLI command to `sf apex run test` and removed shell-based execution.
+- Test cancellation now terminates the Salesforce CLI process and restores the prior UI state.
+- Providers and watchers remain stable across org refreshes and are disposed with the extension lifecycle.
+- Missing coverage is displayed as unavailable rather than failed.
+- Test timestamps, zero-duration results, blocked executions, structured CLI errors, and incomplete JSON responses are handled safely.
+- Long-running suite and test-level executions continue from their asynchronous test-run ID.
+- Failed inventory and coverage refreshes now leave every view in a recoverable non-loading state.
+- Removed the unused `@salesforce/core` production dependency and its vulnerable transitive packages.
+
 ## [0.2.1] - 2025-06-15
 
 ### Added

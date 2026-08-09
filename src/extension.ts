@@ -1,15 +1,52 @@
 import * as vscode from 'vscode';
-import { runTestClassCommandHandler } from './commands/runTestClass';
-import { getContextManager, getNewContextManager } from './common';
+import { homedir } from 'node:os';
+import {
+  rerunTestCommandHandler,
+  runAllOrgTestsCommandHandler,
+  runLocalTestsCommandHandler,
+  rerunFailedTestsCommandHandler,
+  runSelectedTestsCommandHandler,
+  runTestClassCommandHandler,
+  runTestMethodCommandHandler,
+  runTestSuiteCommandHandler,
+} from './commands/runTestClass';
+import { getContextManager } from './common';
+import { ContextManager } from './common/ContextManager';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
 import { findClass, findTest } from './commands/find';
+import { openApexClassCommandHandler } from './commands/openApexClass';
+import {
+  showAllCoverageCommandHandler,
+  showUnderCoveredClassesCommandHandler,
+} from './commands/filterCoverage';
+import { openTestFailureCommandHandler } from './commands/openTestFailure';
+import {
+  createTestSuiteCommandHandler,
+  deleteTestSuiteCommandHandler,
+} from './commands/manageTestSuites';
+import {
+  runTestsAffectedByChangesCommandHandler,
+  runTestsCoveringCurrentClassCommandHandler,
+} from './commands/runImpactedTests';
+import { exportTestResultsCommandHandler } from './commands/exportTestResults';
+import { ApexTestCodeLensProvider } from './providers/ApexTestCodeLensProvider';
 
-export async function activate(context: vscode.ExtensionContext) {
-  registerFileSystemWatchers();
-  registerCommands(context);
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const contextManager = getContextManager();
-  contextManager.init();
-  contextManager.printOutput('Salesforce Tests extension activated');
+  contextManager.configureStorage(context.globalState);
+  registerTreeDataProviders(context, contextManager);
+  registerCodeLensProvider(context, contextManager);
+  registerFileSystemWatchers(context, contextManager);
+  registerConfigurationListener(context, contextManager);
+  registerCommands(context);
+  context.subscriptions.push(ContextManager.outputChannel);
+
+  try {
+    await contextManager.init();
+    contextManager.printOutput('Salesforce Tests extension activated');
+  } catch (error: unknown) {
+    reportInitializationError(contextManager, error);
+  }
 }
 
 export function deactivate() {
@@ -17,23 +54,122 @@ export function deactivate() {
   contextManager.printOutput('Salesforce Tests extension deactivated');
 }
 
-function registerFileSystemWatchers() {
-  // Handle change org
-  const sfConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.sf/config.json');
-  sfConfigWatcher.onDidChange(async () => {
-    let contextManager = getContextManager();
-    contextManager.runTestCancelTokens.forEach((token) => {
-      token.cancel();
-    });
-    contextManager = getNewContextManager();
-    await contextManager.init();
-  });
+function registerTreeDataProviders(
+  context: vscode.ExtensionContext,
+  contextManager: ContextManager
+): void {
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('statusTreeView', contextManager.statusData),
+    vscode.window.registerTreeDataProvider('apexTestsTreeView', contextManager.apexTestsData),
+    vscode.window.registerTreeDataProvider('codeCoverageTreeView', contextManager.codeCoverageData)
+  );
+}
+
+function registerCodeLensProvider(
+  context: vscode.ExtensionContext,
+  contextManager: ContextManager
+): void {
+  const provider = new ApexTestCodeLensProvider(contextManager.apexTestsData);
+  context.subscriptions.push(
+    provider,
+    vscode.languages.registerCodeLensProvider({ pattern: '**/*.cls' }, provider),
+    contextManager.apexTestsData.onDidChangeTreeData(() => provider.refresh())
+  );
+}
+
+function registerFileSystemWatchers(
+  context: vscode.ExtensionContext,
+  contextManager: ContextManager
+): void {
+  const workspaceConfigWatcher = vscode.workspace.createFileSystemWatcher('**/.sf/config.json');
+  const globalConfigWatcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(vscode.Uri.file(homedir()), '.sf/config.json')
+  );
+
+  for (const watcher of [workspaceConfigWatcher, globalConfigWatcher]) {
+    context.subscriptions.push(
+      watcher,
+      watcher.onDidCreate(() => void resetForOrgChange(contextManager)),
+      watcher.onDidChange(() => void resetForOrgChange(contextManager)),
+      watcher.onDidDelete(() => void resetForOrgChange(contextManager))
+    );
+  }
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
-    vscode.commands.registerCommand('salesforce-tests.runTestClass', (testClass) =>
-      runTestClassCommandHandler(testClass)
+    vscode.commands.registerCommand('salesforce-tests.runTestClass', runTestClassCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.openApexClass', openApexClassCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.openTestFailure',
+      openTestFailureCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runTestMethod', runTestMethodCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runTestSuite', runTestSuiteCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.createTestSuite',
+      createTestSuiteCommandHandler
+    ),
+    vscode.commands.registerCommand(
+      'salesforce-tests.deleteTestSuite',
+      deleteTestSuiteCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.rerunTest', rerunTestCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.runSelectedTests',
+      runSelectedTestsCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.rerunFailedTests',
+      rerunFailedTestsCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runLocalTests', runLocalTestsCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runAllOrgTests', runAllOrgTestsCommandHandler)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.runTestsCoveringCurrentClass',
+      runTestsCoveringCurrentClassCommandHandler
+    ),
+    vscode.commands.registerCommand(
+      'salesforce-tests.runTestsAffectedByChanges',
+      runTestsAffectedByChangesCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.exportTestResults',
+      exportTestResultsCommandHandler
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'salesforce-tests.showUnderCoveredClasses',
+      showUnderCoveredClassesCommandHandler
+    ),
+    vscode.commands.registerCommand(
+      'salesforce-tests.showAllCoverage',
+      showAllCoverageCommandHandler
     )
   );
 
@@ -55,4 +191,39 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.findClass', () => findClass())
   );
+}
+
+function registerConfigurationListener(
+  context: vscode.ExtensionContext,
+  contextManager: ContextManager
+): void {
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('salesforceTests.coverage.minimum')) {
+        contextManager.codeCoverageData.refresh();
+      }
+      if (event.affectsConfiguration('salesforceTests.test.slowThresholdMilliseconds')) {
+        contextManager.apexTestsData.refresh();
+      }
+    })
+  );
+}
+
+async function resetForOrgChange(contextManager: ContextManager): Promise<void> {
+  contextManager.runTestCancelTokens.forEach((token) => {
+    token.cancel();
+  });
+
+  try {
+    await contextManager.reset();
+  } catch (error: unknown) {
+    reportInitializationError(contextManager, error);
+  }
+}
+
+function reportInitializationError(contextManager: ContextManager, error: unknown): void {
+  const detail = error instanceof Error ? error.message : String(error);
+  const message = `Unable to initialize Salesforce Tests: ${detail}`;
+  contextManager.printOutput(message);
+  void vscode.window.showErrorMessage(message);
 }

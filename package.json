@@ -9,8 +9,12 @@
   ],
   "keywords": [
     "salesforce",
+    "sfdx",
+    "sf cli",
     "apex",
     "testing",
+    "test explorer",
+    "code coverage",
     "development",
     "debugging"
   ],
@@ -23,8 +27,21 @@
     "type": "git",
     "url": "https://github.com/femartinezg/salesforce-tests"
   },
+  "homepage": "https://github.com/femartinezg/salesforce-tests#readme",
+  "bugs": {
+    "url": "https://github.com/femartinezg/salesforce-tests/issues"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.100.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    }
   },
   "main": "./out/src/extension.js",
   "icon": "images/icon128bg.png",
@@ -37,6 +54,118 @@
         "enablement": "!apexTestsLoading",
         "category": "Salesforce Tests",
         "icon": "$(run)"
+      },
+      {
+        "command": "salesforce-tests.openApexClass",
+        "title": "Open Apex Class",
+        "enablement": "!codeCoverageLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "salesforce-tests.openTestFailure",
+        "title": "Open Test Failure",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "salesforce-tests.runTestMethod",
+        "title": "Run Test Method",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run)"
+      },
+      {
+        "command": "salesforce-tests.runTestSuite",
+        "title": "Run Test Suite",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run)"
+      },
+      {
+        "command": "salesforce-tests.createTestSuite",
+        "title": "Create Test Suite",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(add)"
+      },
+      {
+        "command": "salesforce-tests.deleteTestSuite",
+        "title": "Delete Test Suite",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "salesforce-tests.rerunTest",
+        "title": "Rerun Last Test",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "salesforce-tests.runSelectedTests",
+        "title": "Run Selected Tests",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "salesforce-tests.rerunFailedTests",
+        "title": "Rerun Failed Tests",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "salesforce-tests.runLocalTests",
+        "title": "Run All Local Tests",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "salesforce-tests.runAllOrgTests",
+        "title": "Run All Tests in Org",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "salesforce-tests.runTestsCoveringCurrentClass",
+        "title": "Run Tests Covering Current Class",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "salesforce-tests.runTestsAffectedByChanges",
+        "title": "Run Tests Affected by My Changes",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "salesforce-tests.exportTestResults",
+        "title": "Export Test Results",
+        "enablement": "!apexTestsLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(export)"
+      },
+      {
+        "command": "salesforce-tests.showUnderCoveredClasses",
+        "title": "Show Classes Below Coverage Threshold",
+        "enablement": "!codeCoverageLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "salesforce-tests.showAllCoverage",
+        "title": "Show All Coverage",
+        "enablement": "!codeCoverageLoading",
+        "category": "Salesforce Tests",
+        "icon": "$(clear-all)"
       },
       {
         "command": "salesforce-tests.refreshOrg",
@@ -122,28 +251,80 @@
     "menus": {
       "view/title": [
         {
+          "command": "salesforce-tests.runSelectedTests",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "salesforce-tests.rerunTest",
+          "when": "view == statusTreeView",
+          "group": "navigation@1"
+        },
+        {
           "command": "salesforce-tests.refreshOrg",
           "when": "view == statusTreeView",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "salesforce-tests.refreshApexTests",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "salesforce-tests.rerunFailedTests",
+          "when": "view == apexTestsTreeView",
+          "group": "testActions@1"
+        },
+        {
+          "command": "salesforce-tests.runLocalTests",
+          "when": "view == apexTestsTreeView",
+          "group": "testActions@2"
+        },
+        {
+          "command": "salesforce-tests.createTestSuite",
+          "when": "view == apexTestsTreeView",
+          "group": "suiteActions@1"
+        },
+        {
+          "command": "salesforce-tests.runTestsAffectedByChanges",
+          "when": "view == apexTestsTreeView",
+          "group": "testActions@3"
+        },
+        {
+          "command": "salesforce-tests.runAllOrgTests",
+          "when": "view == apexTestsTreeView",
+          "group": "testActions@4"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",
           "when": "view == codeCoverageTreeView",
-          "group": "navigation"
+          "group": "navigation@3"
+        },
+        {
+          "command": "salesforce-tests.showUnderCoveredClasses",
+          "when": "view == codeCoverageTreeView && !codeCoverageFiltered",
+          "group": "navigation@1"
+        },
+        {
+          "command": "salesforce-tests.showAllCoverage",
+          "when": "view == codeCoverageTreeView && codeCoverageFiltered",
+          "group": "navigation@1"
         },
         {
           "command": "salesforce-tests.findTest",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "salesforce-tests.findClass",
           "when": "view == codeCoverageTreeView",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "salesforce-tests.runTestsCoveringCurrentClass",
+          "when": "resourceExtname == .cls && !apexTestsLoading",
           "group": "navigation"
         }
       ],
@@ -155,34 +336,87 @@
         },
         {
           "command": "salesforce-tests.runTestClass",
-          "when": "view == apexTestsTreeView",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestClass/",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.runTestMethod",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestMethod/",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.runTestSuite",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestSuite/",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.deleteTestSuite",
+          "when": "view == apexTestsTreeView && viewItem =~ /^apexTestSuite/",
+          "group": "inline@3"
+        },
+        {
+          "command": "salesforce-tests.openTestFailure",
+          "when": "view == apexTestsTreeView && viewItem =~ /Failure$/",
+          "group": "inline@2"
+        },
+        {
+          "command": "salesforce-tests.openApexClass",
+          "when": "view == codeCoverageTreeView && viewItem == apexCoverageClass",
           "group": "inline"
         }
       ]
+    },
+    "configuration": {
+      "title": "Salesforce Tests",
+      "properties": {
+        "salesforceTests.coverage.minimum": {
+          "type": "number",
+          "default": 75,
+          "minimum": 0,
+          "maximum": 100,
+          "scope": "window",
+          "description": "Minimum acceptable Apex class code coverage percentage."
+        },
+        "salesforceTests.test.timeoutMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 60,
+          "scope": "window",
+          "description": "Maximum time in minutes for each Salesforce CLI test command."
+        },
+        "salesforceTests.test.slowThresholdMilliseconds": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 0,
+          "scope": "window",
+          "description": "Duration in milliseconds at which an Apex test is marked as slow. Set to 0 to disable slow-test warnings."
+        }
+      }
     }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\"",
+    "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "lint": "eslint src test",
+    "package:check": "vsce ls",
+    "test:org": "npm run compile && node --test out/test/org/*.test.js",
+    "test:unit": "npm run compile && node --test out/test/unit/*.test.js",
+    "test": "node out/test/runExtensionTests.js"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.31.1",
-    "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "3.9.2",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.5",
     "prettier": "3.5.3",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "@salesforce/core": "^8.11.0"
   }
 }

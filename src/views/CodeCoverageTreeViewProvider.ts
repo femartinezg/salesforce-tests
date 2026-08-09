@@ -1,13 +1,19 @@
 import * as vscode from 'vscode';
 import { ApexClass } from '../classes/Apex';
+import { filterByCoverageThreshold, sortByActionableCoverage } from '../common/coverageSort';
 
-export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> =
-    new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | void> =
+type CodeCoverageTreeElement = ApexClass | vscode.TreeItem;
+
+export class CodeCoverageTreeViewProvider
+  implements vscode.TreeDataProvider<CodeCoverageTreeElement>
+{
+  private _onDidChangeTreeData: vscode.EventEmitter<CodeCoverageTreeElement | undefined | void> =
+    new vscode.EventEmitter<CodeCoverageTreeElement | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<CodeCoverageTreeElement | undefined | void> =
     this._onDidChangeTreeData.event;
 
   private _apexClasses: ApexClass[] | undefined = undefined;
+  private underCoveredOnly = false;
 
   get apexClasses(): ApexClass[] | undefined {
     return this._apexClasses;
@@ -25,12 +31,12 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
     this.apexClasses = undefined;
   }
 
-  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
-    return element;
+  getTreeItem(element: CodeCoverageTreeElement): vscode.TreeItem {
+    return element instanceof ApexClass ? element.getTreeItem() : element;
   }
 
-  getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
-    let children: vscode.TreeItem[] = [];
+  getChildren(element?: CodeCoverageTreeElement): Thenable<CodeCoverageTreeElement[]> {
+    let children: CodeCoverageTreeElement[] = [];
 
     if (!element && this.apexClasses) {
       children = this.getRootChildren();
@@ -39,8 +45,8 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
     return Promise.resolve(children);
   }
 
-  getRootChildren(): vscode.TreeItem[] {
-    let children: vscode.TreeItem[] = [];
+  getRootChildren(): CodeCoverageTreeElement[] {
+    const children: CodeCoverageTreeElement[] = [];
 
     if (this.apexClasses === undefined) {
       return children;
@@ -53,9 +59,24 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
       return children;
     }
 
-    this.apexClasses.map((apexClass) => {
-      children.push(apexClass.getTreeItem());
-    });
+    const minimumCoverage = vscode.workspace
+      .getConfiguration('salesforceTests')
+      .get<number>('coverage.minimum', 75);
+    const visibleClasses =
+      this.underCoveredOnly ?
+        filterByCoverageThreshold(this.apexClasses, minimumCoverage)
+      : this.apexClasses;
+    if (visibleClasses.length === 0) {
+      const noUnderCoveredItem = new vscode.TreeItem(`No Apex Classes Below ${minimumCoverage}%`);
+      noUnderCoveredItem.iconPath = new vscode.ThemeIcon(
+        'pass',
+        new vscode.ThemeColor('testing.iconPassed')
+      );
+      children.push(noUnderCoveredItem);
+      return children;
+    }
+
+    children.push(...sortByActionableCoverage(visibleClasses));
 
     return children;
   }
@@ -66,5 +87,11 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
 
   reset(): void {
     this.apexClasses = undefined;
+  }
+
+  setUnderCoveredOnly(enabled: boolean): void {
+    this.underCoveredOnly = enabled;
+    void vscode.commands.executeCommand('setContext', 'codeCoverageFiltered', enabled);
+    this.refresh();
   }
 }

@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { formatUncoveredLineSummary, getCoverageLevel } from '../common/codeCoverage';
+import { isSlowTest } from '../common/testPerformance';
 import { formatDuration } from '../common/utils';
 
 abstract class Apex {
@@ -20,6 +22,7 @@ export class ApexClass extends Apex {
   public codeCoverage?: number;
   public totalLines?: number;
   public coveredLines?: number;
+  public uncoveredLineNumbers?: number[];
 
   constructor(id: string, name: string) {
     super(id, name);
@@ -27,24 +30,42 @@ export class ApexClass extends Apex {
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
+    item.contextValue = 'apexCoverageClass';
+    item.command = {
+      command: 'salesforce-tests.openApexClass',
+      title: 'Open Apex Class',
+      arguments: [this],
+    };
+    const coverage = this.codeCoverage;
+    const minimumCoverage = vscode.workspace
+      .getConfiguration('salesforceTests')
+      .get<number>('coverage.minimum', 75);
+    const coverageLevel = getCoverageLevel(coverage, minimumCoverage);
 
-    if (this.codeCoverage === undefined) {
+    if (coverage === undefined) {
       item.iconPath = new vscode.ThemeIcon('file-code', undefined);
       item.description = 'Loading...';
-      item.tooltip = `${item.label}`;
+      item.tooltip = this.name;
       return item;
-    } else if (this.codeCoverage < 0) {
-      item.description = '';
-      item.tooltip = `${item.label}`;
-    } else {
-      item.description = `${this.codeCoverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
-      item.tooltip = `${item.label}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
     }
 
-    let color = undefined;
-    if (this.codeCoverage < 75) {
+    if (coverageLevel === 'unavailable') {
+      item.iconPath = new vscode.ThemeIcon('file-code', undefined);
+      item.description = 'N/A';
+      item.tooltip = this.name;
+      return item;
+    }
+
+    item.description = `${coverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
+    item.tooltip = `${this.name}\nCode Coverage: ${coverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
+    if (this.uncoveredLineNumbers && this.uncoveredLineNumbers.length > 0) {
+      item.tooltip += `\nUncovered Lines: ${formatUncoveredLineSummary(this.uncoveredLineNumbers)}`;
+    }
+
+    let color: vscode.ThemeColor;
+    if (coverageLevel === 'belowMinimum') {
       color = new vscode.ThemeColor('testing.iconFailed');
-    } else if (this.codeCoverage < 85) {
+    } else if (coverageLevel === 'warning') {
       color = new vscode.ThemeColor('testing.iconQueued');
     } else {
       color = new vscode.ThemeColor('testing.iconPassed');
@@ -55,17 +76,26 @@ export class ApexClass extends Apex {
   }
 }
 
-export class ApexTestClass extends Apex {
+export abstract class ApexTestTarget extends Apex {
   public status: string | undefined;
   public startTime?: Date;
   public duration?: number; // ms
   public executionBlocked: boolean;
+  public failureMessage?: string;
+  public failureStackTrace?: string;
 
   constructor(id: string, name: string, status?: string) {
     super(id, name);
     this.status = status;
     this.executionBlocked = false;
   }
+
+  public get selector(): string {
+    return this.name;
+  }
+
+  public abstract readonly historyType: 'Test Class' | 'Test Method' | 'Test Suite' | 'Test Level';
+  public abstract readonly runKind: 'tests' | 'suite' | 'level';
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
@@ -89,15 +119,36 @@ export class ApexTestClass extends Apex {
       description = 'Running...';
     }
 
-    if (this.startTime && this.duration && this.status !== 'Running' && this.status !== undefined) {
-      let startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
-      let startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
-      let tooltipTimeString = `${startDateString} ${startTimeString}`;
+    if (
+      this.startTime
+      && this.duration !== undefined
+      && this.status !== 'Running'
+      && this.status !== undefined
+    ) {
+      const startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
+      const startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
+      const tooltipTimeString = `${startDateString} ${startTimeString}`;
       tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
       description = `${startTimeString} (${formatDuration(this.duration)})`;
-      if (this.executionBlocked) {
-        tooltip = `${tooltip}\n⚠ Last execution was blocked.`;
-        description = `⚠ ${description}`;
+
+      const slowThresholdMs = vscode.workspace
+        .getConfiguration('salesforceTests')
+        .get<number>('test.slowThresholdMilliseconds', 5_000);
+      if (isSlowTest(this.duration, slowThresholdMs)) {
+        tooltip += `\nSlow test: exceeds the configured ${slowThresholdMs} ms threshold.`;
+        description = `Slow · ${description}`;
+      }
+    }
+
+    if (this.executionBlocked && this.status !== 'Running') {
+      tooltip = `${tooltip}\n⚠ Last execution was blocked.`;
+      description = description ? `⚠ ${description}` : '⚠ Blocked';
+    }
+
+    if (this.failureMessage && this.status === 'Failed') {
+      tooltip += `\n\n${this.failureMessage}`;
+      if (this.failureStackTrace) {
+        tooltip += `\n${this.failureStackTrace}`;
       }
     }
 
@@ -105,5 +156,100 @@ export class ApexTestClass extends Apex {
     item.description = description;
 
     return item;
+  }
+}
+
+export class ApexTestMethod extends ApexTestTarget {
+  public readonly historyType = 'Test Method' as const;
+  public readonly runKind = 'tests' as const;
+  public recentPassCount = 0;
+  public recentFailCount = 0;
+  public averageDurationMs?: number;
+
+  constructor(
+    id: string,
+    public readonly className: string,
+    name: string,
+    status?: string
+  ) {
+    super(id, name, status);
+  }
+
+  public get selector(): string {
+    return `${this.className}.${this.name}`;
+  }
+
+  getTreeItem(): vscode.TreeItem {
+    const item = super.getTreeItem();
+    item.contextValue = this.failureStackTrace ? 'apexTestMethodFailure' : 'apexTestMethod';
+    item.iconPath =
+      this.status === undefined ? new vscode.ThemeIcon('symbol-method') : item.iconPath;
+
+    const recentSampleCount = this.recentPassCount + this.recentFailCount;
+    if (recentSampleCount > 0) {
+      const averageDuration =
+        this.averageDurationMs === undefined ?
+          ''
+        : `; average ${formatDuration(this.averageDurationMs)}`;
+      const currentTooltip = typeof item.tooltip === 'string' ? item.tooltip : this.name;
+      item.tooltip = `${currentTooltip}\nRecent history: ${this.recentPassCount} passed, ${this.recentFailCount} failed${averageDuration}`;
+    }
+    if (this.recentPassCount > 0 && this.recentFailCount > 0) {
+      item.description = item.description ? `Flaky · ${item.description}` : 'Flaky';
+      if (this.status === undefined) {
+        item.iconPath = new vscode.ThemeIcon(
+          'warning',
+          new vscode.ThemeColor('testing.iconQueued')
+        );
+      }
+    }
+    return item;
+  }
+}
+
+export class ApexTestClass extends ApexTestTarget {
+  public readonly historyType = 'Test Class' as const;
+  public readonly runKind = 'tests' as const;
+  public readonly methods: ApexTestMethod[];
+
+  constructor(id: string, name: string, status?: string, methodNames: readonly string[] = []) {
+    super(id, name, status);
+    this.methods = methodNames.map(
+      (methodName) => new ApexTestMethod(`${id}.${methodName}`, name, methodName)
+    );
+  }
+
+  getTreeItem(): vscode.TreeItem {
+    const item = super.getTreeItem();
+    item.contextValue = this.failureStackTrace ? 'apexTestClassFailure' : 'apexTestClass';
+    item.collapsibleState =
+      this.methods.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : undefined;
+    return item;
+  }
+}
+
+export class ApexTestSuite extends ApexTestTarget {
+  public readonly historyType = 'Test Suite' as const;
+  public readonly runKind = 'suite' as const;
+
+  getTreeItem(): vscode.TreeItem {
+    const item = super.getTreeItem();
+    item.contextValue = this.failureStackTrace ? 'apexTestSuiteFailure' : 'apexTestSuite';
+    if (this.status === undefined) {
+      item.iconPath = new vscode.ThemeIcon('beaker');
+      item.description = 'Test Suite';
+    }
+    return item;
+  }
+}
+
+export type ApexTestLevelName = 'RunLocalTests' | 'RunAllTestsInOrg';
+
+export class ApexTestLevel extends ApexTestTarget {
+  public readonly historyType = 'Test Level' as const;
+  public readonly runKind = 'level' as const;
+
+  constructor(public readonly level: ApexTestLevelName) {
+    super(level, level === 'RunLocalTests' ? 'All Local Tests' : 'All Tests in Org');
   }
 }

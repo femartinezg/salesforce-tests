@@ -1,0 +1,80 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import {
+  buildGetTestResultArgs,
+  buildRunTestClassArgs,
+  buildRunTestMethodArgs,
+  buildRunTestLevelArgs,
+  buildRunTestSuiteArgs,
+} from '../../src/common/sfCommandArgs';
+
+void describe('buildGetTestResultArgs', () => {
+  void it('polls one test run in the resolved org', () => {
+    const args = buildGetTestResultArgs('707xx0000001234', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--test-run-id') + 1], '707xx0000001234');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+    assert.equal(args.includes('--wait'), false);
+    assert.equal(args.includes('--code-coverage'), true);
+  });
+});
+
+void describe('buildRunTestClassArgs', () => {
+  void it('uses the Salesforce CLI apex run test command order', () => {
+    assert.deepEqual(buildRunTestClassArgs('ExampleTest', 'developer@example.com'), [
+      'apex',
+      'run',
+      'test',
+      '--tests',
+      'ExampleTest',
+      '--synchronous',
+      '--code-coverage',
+      '--json',
+      '--target-org',
+      'developer@example.com',
+    ]);
+  });
+
+  void it('keeps the class name as one argument', () => {
+    const className = 'ExampleTest; echo unsafe';
+
+    assert.equal(buildRunTestClassArgs(className, 'developer@example.com')[4], className);
+  });
+});
+
+void describe('buildRunTestMethodArgs', () => {
+  void it('targets one method without shell interpolation', () => {
+    const args = buildRunTestMethodArgs('ExampleTest', 'passes', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--tests') + 1], 'ExampleTest.passes');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+  });
+});
+
+void describe('buildRunTestSuiteArgs', () => {
+  void it('uses the suite flag and pins the resolved org', () => {
+    const args = buildRunTestSuiteArgs('Regression Suite', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--suite-names') + 1], 'Regression Suite');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+    assert.equal(args.includes('--tests'), false);
+    assert.equal(args[args.indexOf('--wait') + 1], '1');
+  });
+});
+
+void describe('buildRunTestLevelArgs', () => {
+  void it('runs local tests at an explicit level and org', () => {
+    const args = buildRunTestLevelArgs('RunLocalTests', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--test-level') + 1], 'RunLocalTests');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+    assert.equal(args[args.indexOf('--wait') + 1], '1');
+  });
+
+  void it('runs every org test at the explicit all-tests level', () => {
+    const args = buildRunTestLevelArgs('RunAllTestsInOrg', 'developer@example.com');
+
+    assert.equal(args[args.indexOf('--test-level') + 1], 'RunAllTestsInOrg');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'developer@example.com');
+  });
+});

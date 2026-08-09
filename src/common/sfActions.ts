@@ -1,331 +1,226 @@
 import * as vscode from 'vscode';
 import { getContextManager } from '.';
-import { ApexClass, ApexTestClass } from '../classes/Apex';
+import {
+  ApexClass,
+  ApexTestClass,
+  ApexTestLevel,
+  ApexTestSuite,
+  ApexTestTarget,
+} from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
+import { retrieveApexClasses as retrieveApexClassItems } from './ApexClassService';
+import {
+  type ApexTestCaseResult,
+  type ApexTestCoverage,
+  type ApexTestFailure,
+} from './ApexTestRunParser';
+import { executeApexTestRun } from './ApexTestRunService';
+import { retrieveApexClassCoverage, retrieveOrgWideCoverage } from './CoverageService';
+import {
+  createApexTestSuite as createApexTestSuiteItem,
+  deleteApexTestSuite as deleteApexTestSuiteItem,
+  retrieveApexTestSuites as retrieveApexTestSuiteItems,
+} from './ApexTestSuiteService';
+import { retrieveDefaultOrgInfo, type OrgInfo } from './OrgService';
+import { SfCliClient } from './SfCliClient';
+import {
+  retrieveImpactedApexTests as retrieveImpactedApexTestItems,
+  retrieveImpactedApexTestsForComponents as retrieveImpactedApexTestItemsForComponents,
+  type ImpactedApexTest,
+} from './ImpactedTestService';
+import {
+  buildRunTestLevelArgs,
+  buildRunTestSelectorArgs,
+  buildRunTestSuiteArgs,
+} from './sfCommandArgs';
 
-export async function retrieveOrgInfo(): Promise<{
-  status: boolean;
-  alias?: string;
-  username?: string;
-  orgName?: string;
-}> {
-  const { exec } = require('child_process');
+const sfCliClient = new SfCliClient();
 
-  return new Promise((resolve) => {
-    exec('sf org display --json', (error: any, stdout: string) => {
-      if (error) {
-        resolve({ status: false });
-        return;
-      }
-      try {
-        const result = JSON.parse(stdout);
-        const alias = result.result.alias || undefined;
-        const username = result.result.username || undefined;
-        const orgName = result.result.instanceUrl?.split('//')[1].split('.')[0] || undefined;
-        resolve({ status: true, alias: alias, username: username, orgName: orgName });
-      } catch (e) {
-        resolve({ status: false });
-      }
-    });
-  });
+export function retrieveOrgInfo(): Promise<OrgInfo> {
+  return retrieveDefaultOrgInfo(sfCliClient);
 }
 
-export async function retrieveApexClasses(): Promise<{
+export async function retrieveApexClasses(targetOrg: string): Promise<{
   testClasses: ApexTestClass[];
   apexClasses: ApexClass[];
 }> {
-  const { exec } = require('child_process');
-
-  return new Promise((resolve, reject) => {
-    const query = `SELECT Id, Name, Body FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC`;
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
-
-    exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
-
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-        const testClasses = [];
-        const apexClasses = [];
-
-        for (let apex of records) {
-          const isTest = parseBody(apex.Body);
-          if (isTest) {
-            testClasses.push(new ApexTestClass(apex.Id, apex.Name));
-          } else if (isTest === false) {
-            apexClasses.push(new ApexClass(apex.Id, apex.Name));
-          }
-        }
-
-        const response = {
-          testClasses: testClasses,
-          apexClasses: apexClasses,
-        };
-        resolve(response);
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
-  });
-}
-
-function parseBody(body: string): boolean | undefined {
-  const length = body.length;
-  let i = 0;
-  let inSingleLineComment = false;
-  let inMultiLineComment = false;
-  let tokenChars: string[] = [];
-
-  const isWordChar = (ch: string) => {
-    const code = ch.charCodeAt(0);
-    return (
-      (code >= 65 && code <= 90) // A-Z
-      || (code >= 97 && code <= 122) // a-z
-      || (code >= 48 && code <= 57) // 0-9
-      || ch === '@'
-      || ch === '_'
-    );
+  const result = await retrieveApexClassItems(sfCliClient, targetOrg);
+  return {
+    testClasses: result.testClasses.map(
+      (item) => new ApexTestClass(item.id, item.name, undefined, item.methods)
+    ),
+    apexClasses: result.apexClasses.map((item) => new ApexClass(item.id, item.name)),
   };
-
-  while (i < length) {
-    const ch = body[i];
-    const next = body[i + 1];
-
-    // --- Handle comment entry ---
-    if (!inMultiLineComment && !inSingleLineComment && ch === '/' && next === '/') {
-      inSingleLineComment = true;
-      i += 2;
-      continue;
-    }
-    if (!inMultiLineComment && !inSingleLineComment && ch === '/' && next === '*') {
-      inMultiLineComment = true;
-      i += 2;
-      continue;
-    }
-
-    // --- Handle comment exit ---
-    if (inSingleLineComment && (ch === '\n' || ch === '\r')) {
-      inSingleLineComment = false;
-      i++;
-      continue;
-    }
-    if (inMultiLineComment && ch === '*' && next === '/') {
-      inMultiLineComment = false;
-      i += 2;
-      continue;
-    }
-
-    // --- Tokenization ---
-    if (!inSingleLineComment && !inMultiLineComment) {
-      if (isWordChar(ch)) {
-        tokenChars.push(ch);
-      } else if (tokenChars.length > 0) {
-        const lower = tokenChars.join('').toLowerCase();
-        if (lower === '@istest') return true;
-        if (lower === 'class') return false;
-        if (lower === 'interface') return undefined;
-        tokenChars = [];
-      }
-    }
-
-    i++;
-  }
-
-  if (tokenChars.length > 0) {
-    const lower = tokenChars.join('').toLowerCase();
-    if (lower === '@istest') return true;
-    if (lower === 'class') return false;
-    if (lower === 'interface') return undefined;
-  }
-
-  return false;
 }
 
-export async function retrieveCodeCoverage() {
+export async function retrieveApexTestSuites(targetOrg: string): Promise<ApexTestSuite[]> {
+  return (await retrieveApexTestSuiteItems(sfCliClient, targetOrg)).map(
+    (item) => new ApexTestSuite(item.id, item.name)
+  );
+}
+
+export async function createApexTestSuite(
+  name: string,
+  apexClassIds: readonly string[],
+  targetOrg: string
+): Promise<ApexTestSuite> {
+  const item = await createApexTestSuiteItem(sfCliClient, name, apexClassIds, targetOrg);
+  return new ApexTestSuite(item.id, item.name);
+}
+
+export function deleteApexTestSuite(suiteId: string, targetOrg: string): Promise<void> {
+  return deleteApexTestSuiteItem(sfCliClient, suiteId, targetOrg);
+}
+
+export async function retrieveCodeCoverage(targetOrg: string): Promise<void> {
   const contextManager = getContextManager();
-  const { exec } = require('child_process');
+  const coverageByClassId = new Map(
+    (await retrieveApexClassCoverage(sfCliClient, targetOrg)).map((coverage) => [
+      coverage.classId,
+      coverage,
+    ])
+  );
 
-  return new Promise<void>((resolve, reject) => {
-    const query = `SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate`;
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
+  contextManager.codeCoverageData.apexClasses?.forEach((apexClass) => {
+    const coverage = coverageByClassId.get(apexClass.id);
+    if (!coverage) {
+      apexClass.codeCoverage = -1;
+      apexClass.totalLines = -1;
+      apexClass.coveredLines = -1;
+      apexClass.uncoveredLineNumbers = undefined;
+      return;
+    }
 
-    exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
-
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-
-        for (let coverage of records) {
-          const apexClass = contextManager.codeCoverageData.apexClasses?.find(
-            (apexClass: ApexClass) => coverage.ApexClassOrTriggerId === apexClass.id
-          );
-          const numLinesCovered = coverage.NumLinesCovered || 0;
-          const numLinesUncovered = coverage.NumLinesUncovered || 0;
-          const totalLines = numLinesCovered + numLinesUncovered;
-
-          if (apexClass) {
-            apexClass.totalLines = totalLines;
-            apexClass.coveredLines = numLinesCovered;
-            if (totalLines === 0) {
-              apexClass.codeCoverage = 100;
-            } else {
-              apexClass.codeCoverage = (numLinesCovered / totalLines) * 100;
-            }
-          }
-        }
-
-        contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
-          if (apexClass.codeCoverage === undefined) {
-            apexClass.codeCoverage = -1;
-            apexClass.totalLines = -1;
-            apexClass.coveredLines = -1;
-          }
-        });
-
-        resolve();
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
+    const totalLines = coverage.coveredLines + coverage.uncoveredLines;
+    apexClass.totalLines = totalLines;
+    apexClass.coveredLines = coverage.coveredLines;
+    apexClass.uncoveredLineNumbers = coverage.uncoveredLineNumbers;
+    apexClass.codeCoverage = totalLines === 0 ? 100 : (coverage.coveredLines / totalLines) * 100;
   });
 }
 
-export async function runTestClass(
-  testClass: ApexTestClass,
+export async function runApexTest(
+  testTarget: ApexTestTarget,
   contextManager: ContextManager,
   cancellationToken: vscode.CancellationToken
 ): Promise<string[] | undefined> {
-  let message: string[] = [];
-  let oldStatus = testClass.status;
-  testClass.status = 'Running';
+  const message: string[] = [];
+  const oldStatus = testTarget.status;
+  testTarget.status = 'Running';
+  testTarget.failureMessage = undefined;
+  testTarget.failureStackTrace = undefined;
   contextManager.apexTestsData.refresh();
 
-  const { exec } = require('child_process');
-  const command = `sf apex test run --tests ${testClass.name} --synchronous --code-coverage --json`;
+  const targetOrg = contextManager.statusData.username;
+  if (!targetOrg) {
+    testTarget.status = oldStatus;
+    contextManager.apexTestsData.refresh();
+    void vscode.window.showErrorMessage('No default Salesforce org is configured.');
+    return;
+  }
 
   try {
-    const stdout: string = await new Promise((resolve, reject) => {
-      exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-        if (stdout) {
-          resolve(stdout);
-        } else {
-          reject(error);
-        }
-      });
-    });
-
-    const result = JSON.parse(stdout);
+    const result = await executeApexTestRun(
+      createTestCliClient(),
+      testTarget instanceof ApexTestLevel ? buildRunTestLevelArgs(testTarget.level, targetOrg)
+      : testTarget.runKind === 'suite' ? buildRunTestSuiteArgs(testTarget.selector, targetOrg)
+      : buildRunTestSelectorArgs(testTarget.selector, targetOrg),
+      targetOrg,
+      cancellationToken
+    );
 
     if (cancellationToken.isCancellationRequested) {
       return;
     }
 
-    message.push(`${testClass.name} result`);
+    message.push(`${testTarget.selector} result`);
 
-    if (result.status != 0 && result.status != 100) {
+    if (result.kind === 'command-error') {
       message.push('✕ Error running test');
-      if (result.name && result.message) {
-        showTestResultMessage(
-          `Error running ${testClass.name}: ${result.name} - ${result.message}`,
-          MessageType.Error,
-          contextManager
-        );
-        message.push(`${result.name}: ${result.message}`);
-      } else {
-        showTestResultMessage(
-          `Error running ${testClass.name}: Unexpected error`,
-          MessageType.Error,
-          contextManager
-        );
-        message.push(`Unexpected error`);
-      }
+      const detail = result.message ?? result.name ?? 'Unexpected error';
+      showTestResultMessage(
+        `Error running ${testTarget.selector}: ${detail}`,
+        MessageType.Error,
+        contextManager
+      );
+      message.push(detail);
 
-      testClass.status = oldStatus;
-      testClass.executionBlocked = true;
+      testTarget.status = oldStatus;
+      testTarget.executionBlocked = true;
       contextManager.apexTestsData.refresh();
 
       return message;
     }
 
-    testClass.executionBlocked = false;
-    const success = result.result.summary.outcome === 'Passed';
-    const coverageResult = result.result.coverage;
-    const summary = result.result.summary;
-    const tests = result.result.tests;
+    testTarget.executionBlocked = false;
+    const success = result.passed;
+    testTarget.failureMessage =
+      result.failures.length > 0 ?
+        result.failures.map((failure) => `${failure.fullName}: ${failure.message}`).join('\n')
+      : undefined;
+    testTarget.failureStackTrace = result.failures.find(
+      (failure) => failure.stackTrace
+    )?.stackTrace;
 
     if (success) {
-      showTestResultMessage(`${testClass.name} passed.`, MessageType.Info, contextManager);
-      testClass.status = 'Passed';
+      showTestResultMessage(`${testTarget.selector} passed.`, MessageType.Info, contextManager);
+      testTarget.status = 'Passed';
       message.push(`✓ Passed`);
     } else {
-      showTestResultMessage(`${testClass.name} failed.`, MessageType.Error, contextManager);
-      testClass.status = 'Failed';
+      showTestResultMessage(`${testTarget.selector} failed.`, MessageType.Error, contextManager);
+      testTarget.status = 'Failed';
       message.push('✕ Failed');
     }
 
-    if (summary) {
-      testClass.startTime = new Date(summary.testStartTime);
-      testClass.duration = parseInt(summary.testExecutionTime);
-
-      const testRun = new TestRun(
-        testClass.name,
-        'Test Class',
+    const startTime = new Date(result.testStartTime);
+    testTarget.startTime = startTime;
+    testTarget.duration = result.testExecutionTimeMs;
+    applyTestCaseResults(
+      result.tests,
+      result.failures,
+      contextManager,
+      startTime,
+      testTarget.runKind !== 'tests' || testTarget instanceof ApexTestClass
+    );
+    await contextManager.recordTestCaseResults(result.tests);
+    contextManager.recordTestRun(
+      new TestRun(
+        testTarget.selector,
+        testTarget.historyType,
         success,
-        new Date(summary.testStartTime),
-        parseInt(summary.testExecutionTime)
-      );
+        startTime,
+        result.testExecutionTimeMs
+      )
+    );
+    message.push(
+      `TestStartTime: ${result.testStartTime} | TestExecutionTime: ${result.testExecutionTimeMs}`
+    );
 
-      contextManager.statusData.pushTestRun(testRun);
+    for (const failure of result.failures) {
+      const stackTrace = failure.stackTrace?.replace(/\r?\n/g, '\\n');
       message.push(
-        `TestStartTime: ${summary.testStartTime} | TestExecutionTime: ${summary.testExecutionTime}`
+        `• ${failure.fullName}: ${failure.message}${stackTrace ? ` - ${stackTrace}` : ''}`
       );
     }
 
-    if (!success && tests) {
-      for (let test of tests) {
-        if (test.Outcome === 'Fail') {
-          message.push(
-            `• ${test.FullName}: ${test.Message} - ${test.StackTrace.replace('\n', '\\n')}`
-          );
-        }
-      }
-    }
+    applyTestRunCoverage(result.coverage, contextManager);
 
-    if (coverageResult.coverage) {
-      getCodeCoverage(coverageResult.coverage);
-    }
-
-    if (coverageResult.summary) {
-      contextManager.statusData.orgWideCoverage = parseInt(
-        coverageResult.summary.orgWideCoverage.split('%')[0]
-      );
+    if (result.orgWideCoverage !== undefined) {
+      await contextManager.updateOrgCoverage(targetOrg, result.orgWideCoverage);
     }
 
     contextManager.statusData.refresh();
     contextManager.apexTestsData.refresh();
 
     return message;
-  } catch (error: any) {
-    vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
-    testClass.status = undefined;
+  } catch (error: unknown) {
+    if (!cancellationToken.isCancellationRequested) {
+      const detail = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Error running ${testTarget.selector}: ${detail}`);
+    }
+    testTarget.status = cancellationToken.isCancellationRequested ? oldStatus : undefined;
     contextManager.apexTestsData.refresh();
     contextManager.statusData.refresh();
 
@@ -333,61 +228,107 @@ export async function runTestClass(
   }
 }
 
-async function getCodeCoverage(coverage: any[]) {
-  const contextManager = getContextManager();
-  for (let coverageItem of coverage) {
-    let apexClass = contextManager.codeCoverageData.apexClasses?.find(
-      (apexClass: ApexClass) => coverageItem.name === apexClass.name
+function applyTestCaseResults(
+  tests: readonly ApexTestCaseResult[],
+  failures: readonly ApexTestFailure[],
+  contextManager: ContextManager,
+  startTime: Date,
+  updateClassSummaries: boolean
+): void {
+  for (const testClass of contextManager.apexTestsData.testClasses ?? []) {
+    const classResults = tests.filter((test) => test.fullName.startsWith(`${testClass.name}.`));
+    for (const method of testClass.methods) {
+      const result = classResults.find((test) => test.fullName === method.selector);
+      if (!result) {
+        continue;
+      }
+      method.status =
+        result.outcome === 'Pass' ? 'Passed'
+        : result.outcome === 'Fail' ? 'Failed'
+        : undefined;
+      method.startTime = startTime;
+      method.duration = result.runTimeMs;
+      method.executionBlocked = false;
+      const failure = failures.find((item) => item.fullName === method.selector);
+      method.failureMessage = failure?.message;
+      method.failureStackTrace = failure?.stackTrace;
+    }
+
+    if (updateClassSummaries && classResults.length > 0) {
+      testClass.status =
+        classResults.some((test) => test.outcome === 'Fail') ? 'Failed'
+        : classResults.every((test) => test.outcome === 'Pass') ? 'Passed'
+        : undefined;
+      testClass.startTime = startTime;
+      testClass.duration = classResults.reduce(
+        (duration, test) => duration + (test.runTimeMs ?? 0),
+        0
+      );
+      testClass.executionBlocked = false;
+      const classFailures = failures.filter((failure) =>
+        failure.fullName.startsWith(`${testClass.name}.`)
+      );
+      testClass.failureMessage =
+        classFailures.length > 0 ?
+          classFailures.map((failure) => `${failure.fullName}: ${failure.message}`).join('\n')
+        : undefined;
+      testClass.failureStackTrace = classFailures.find((failure) => failure.stackTrace)?.stackTrace;
+    }
+  }
+}
+
+function applyTestRunCoverage(
+  coverage: readonly ApexTestCoverage[],
+  contextManager: ContextManager
+): void {
+  for (const coverageItem of coverage) {
+    const apexClass = contextManager.codeCoverageData.apexClasses?.find(
+      (candidate) => coverageItem.name === candidate.name
     );
     if (apexClass) {
       apexClass.totalLines = coverageItem.totalLines;
-      apexClass.coveredLines = coverageItem.totalCovered;
+      apexClass.coveredLines = coverageItem.coveredLines;
+      apexClass.uncoveredLineNumbers = coverageItem.uncoveredLineNumbers;
       if (coverageItem.totalLines === 0) {
         apexClass.codeCoverage = 100;
       } else {
-        apexClass.codeCoverage = (coverageItem.totalCovered / coverageItem.totalLines) * 100;
+        apexClass.codeCoverage = (coverageItem.coveredLines / coverageItem.totalLines) * 100;
       }
     }
-
-    contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
-      if (apexClass.codeCoverage === undefined) {
-        apexClass.codeCoverage = -1;
-        apexClass.totalLines = -1;
-        apexClass.coveredLines = -1;
-      }
-    });
   }
+
+  contextManager.codeCoverageData.apexClasses?.forEach((apexClass) => {
+    if (apexClass.codeCoverage === undefined) {
+      apexClass.codeCoverage = -1;
+      apexClass.totalLines = -1;
+      apexClass.coveredLines = -1;
+      apexClass.uncoveredLineNumbers = undefined;
+    }
+  });
   contextManager.codeCoverageData.refresh();
 }
 
-export async function retrieveOrgCoverage() {
-  const { exec } = require('child_process');
+export function retrieveOrgCoverage(targetOrg: string): Promise<number> {
+  return retrieveOrgWideCoverage(sfCliClient, targetOrg);
+}
 
-  return new Promise<number>((resolve, reject) => {
-    const query = 'SELECT Id, PercentCovered FROM ApexOrgWideCoverage';
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
+export function retrieveImpactedApexTests(
+  apexClassName: string,
+  targetOrg: string
+): Promise<ImpactedApexTest[]> {
+  return retrieveImpactedApexTestItems(sfCliClient, apexClassName, targetOrg);
+}
 
-    exec(command, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
+export function retrieveImpactedApexTestsForComponents(
+  apexComponentNames: readonly string[],
+  targetOrg: string
+): Promise<ImpactedApexTest[]> {
+  return retrieveImpactedApexTestItemsForComponents(sfCliClient, apexComponentNames, targetOrg);
+}
 
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-        if (records.length > 0) {
-          resolve(records[0].PercentCovered);
-        } else {
-          reject(new Error('No coverage data found'));
-        }
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
-  });
+function createTestCliClient(): SfCliClient {
+  const timeoutMinutes = vscode.workspace
+    .getConfiguration('salesforceTests')
+    .get<number>('test.timeoutMinutes', 10);
+  return new SfCliClient({ timeoutMs: timeoutMinutes * 60_000 });
 }
