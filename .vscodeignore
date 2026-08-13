@@ -9,7 +9,13 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
-node_modules/
+node_modules/**
+!node_modules/cross-spawn/**
+!node_modules/isexe/**
+!node_modules/path-key/**
+!node_modules/shebang-command/**
+!node_modules/shebang-regex/**
+!node_modules/which/**
 .env
 test/
 **/*.test.*

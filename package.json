@@ -170,6 +170,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/cross-spawn": "6.0.6",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "^1.100.0",
@@ -183,6 +184,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@salesforce/core": "^8.11.0"
+    "@salesforce/core": "^8.11.0",
+    "cross-spawn": "7.0.6"
   }
 }
