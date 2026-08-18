@@ -18,6 +18,7 @@ import {
   releaseFakeSfGate,
   resetFakeSf,
   waitFor,
+  waitForFakeSfGate,
 } from './support/extensionHarness';
 
 describe('Synthetic Salesforce CLI contract', () => {
@@ -186,7 +187,7 @@ describe('Synthetic Salesforce CLI contract', () => {
 
     try {
       await waitFor(() => getFakeSfInvocations().length === 1);
-      await new Promise<void>((resolve) => setImmediate(resolve));
+      await waitForFakeSfGate('contract-gate');
       assert.strictEqual(settled, false);
 
       await releaseFakeSfGate('contract-gate');

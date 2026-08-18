@@ -63,6 +63,7 @@ function waitForGate(gate, onRelease) {
     throw new Error('Synthetic gate names may contain only letters, digits, underscore, or dash');
   }
   const gatePath = path.join(runtimeRoot, 'gates', gate);
+  fs.writeFileSync(`${gatePath}.waiting`, 'waiting', 'utf8');
   const deadline = Date.now() + 10000;
   const interval = setInterval(() => {
     if (fs.existsSync(gatePath)) {

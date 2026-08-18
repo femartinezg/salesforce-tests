@@ -143,12 +143,15 @@ export function getFakeSfInvocations(): FakeSfInvocation[] {
 }
 
 export function releaseFakeSfGate(gate: string): Promise<void> {
-  if (!/^[A-Za-z0-9_-]+$/.test(gate)) {
-    throw new Error('Synthetic gate names may contain only letters, digits, underscore, or dash');
-  }
+  validateFakeSfGate(gate);
   fs.mkdirSync(path.join(runtimeRoot, 'gates'), { recursive: true });
   fs.writeFileSync(path.join(runtimeRoot, 'gates', gate), 'released', 'utf8');
   return Promise.resolve();
+}
+
+export function waitForFakeSfGate(gate: string): Promise<void> {
+  validateFakeSfGate(gate);
+  return waitFor(() => fs.existsSync(path.join(runtimeRoot, 'gates', `${gate}.waiting`)));
 }
 
 export async function writeWorkspaceSfConfig(contents: object): Promise<void> {
@@ -177,6 +180,12 @@ function requiredEnvironment(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing ${name}`);
   return value;
+}
+
+function validateFakeSfGate(gate: string): void {
+  if (!/^[A-Za-z0-9_-]+$/.test(gate)) {
+    throw new Error('Synthetic gate names may contain only letters, digits, underscore, or dash');
+  }
 }
 
 function readFixturePlan(): FakeSfPlan {
