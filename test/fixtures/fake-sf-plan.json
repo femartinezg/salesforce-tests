@@ -1,0 +1,97 @@
+{
+  "expected": {
+    "alias": "fixture-org",
+    "username": "fixture.user@example.invalid",
+    "testClass": "FixturePassingTest",
+    "apexClass": "FixtureService",
+    "orgCoverage": 84,
+    "classCoverage": 80
+  },
+  "orgInfo": {
+    "json": {
+      "status": 0,
+      "result": {
+        "alias": "fixture-org",
+        "username": "fixture.user@example.invalid",
+        "instanceUrl": "https://fixture.example.invalid"
+      }
+    }
+  },
+  "apexClasses": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "Id": "fixture-test-id",
+            "Name": "FixturePassingTest",
+            "Body": "@IsTest private class FixturePassingTest {}"
+          },
+          {
+            "Id": "fixture-class-id",
+            "Name": "FixtureService",
+            "Body": "public class FixtureService {}"
+          }
+        ]
+      }
+    }
+  },
+  "codeCoverage": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "ApexClassOrTriggerId": "fixture-class-id",
+            "NumLinesCovered": 8,
+            "NumLinesUncovered": 2
+          }
+        ]
+      }
+    }
+  },
+  "orgCoverage": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "PercentCovered": 84
+          }
+        ]
+      }
+    }
+  },
+  "testRuns": {
+    "FixturePassingTest": {
+      "json": {
+        "status": 0,
+        "result": {
+          "summary": {
+            "outcome": "Passed",
+            "testStartTime": "2026-01-02T03:04:05.000Z",
+            "testExecutionTime": "1250"
+          },
+          "tests": [
+            {
+              "FullName": "FixturePassingTest.passes",
+              "Outcome": "Pass"
+            }
+          ],
+          "coverage": {
+            "coverage": [
+              {
+                "name": "FixtureService",
+                "totalLines": 10,
+                "totalCovered": 9
+              }
+            ],
+            "summary": {
+              "orgWideCoverage": "91%"
+            }
+          }
+        }
+      }
+    }
+  }
+}

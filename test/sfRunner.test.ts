@@ -2,21 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-
-interface RunSfResult {
-  stdout: string;
-  error?: Error;
-}
-
-interface RunSfOptions {
-  maxBuffer?: number;
-}
-
-interface SfRunnerModule {
-  runSf(args: string[], options?: RunSfOptions): Promise<RunSfResult>;
-}
-
-const sfRunner = require('../src/common/sfRunner') as SfRunnerModule;
+import * as sfRunner from '../src/common/sfRunner';
 
 describe('runSf', () => {
   let temporaryDirectory: string;
@@ -101,7 +87,7 @@ describe('runSf', () => {
 
     assert.strictEqual(result.stdout, '{"status":1}');
     assert.ok(result.error instanceof Error);
-    assert.match(result.error.message, /exit|status|code|failure/i);
+    assert.match(result.error.message, /exit code 7: failure from sf/);
   });
 
   it('reports a missing sf executable without fabricating stdout', async () => {
@@ -121,6 +107,15 @@ describe('runSf', () => {
     assert.ok(result.error instanceof Error);
     assert.match(result.error.message, /buffer|stdout|output/i);
   });
+
+  it('accepts stdout exactly at the requested limit', async () => {
+    process.env.FAKE_SF_MODE = 'exact-limit';
+
+    const result = await sfRunner.runSf(['data', 'query'], { maxBuffer: 4 });
+
+    assert.strictEqual(result.error, undefined);
+    assert.strictEqual(result.stdout, '1234');
+  });
 });
 
 function fakeSfSource(): string {
@@ -139,6 +134,9 @@ switch (process.env.FAKE_SF_MODE) {
     break;
   case 'large':
     process.stdout.write('12345');
+    break;
+  case 'exact-limit':
+    process.stdout.write('1234');
     break;
   default:
     process.stdout.write(JSON.stringify(process.argv.slice(2)));
