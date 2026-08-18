@@ -59,7 +59,10 @@ describe('B. Active org and general state', () => {
 
     const orgItem = contextManager.statusData.getRootChildren()[0];
     assert.strictEqual(orgItem.label, 'No SF Org');
-    assert.match(String(orgItem.tooltip), /default salesforce org not found/i);
+    assert.strictEqual(
+      orgItem.tooltip,
+      'Default Salesforce org not found. Please authenticate using the Salesforce CLI to enable Salesforce features in this extension.'
+    );
     assert.deepStrictEqual(contextManager.apexTestsData.testClasses, []);
     assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, []);
   });

@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import sinon = require('sinon');
+import * as sinon from 'sinon';
 import { ApexClass, ApexTestClass } from '../../src/classes/Apex';
 import { getContextManager, getNewContextManager } from '../../src/common';
 import { runTestClass } from '../../src/common/sfActions';
@@ -93,9 +93,10 @@ describe('D. Running an Apex test class', () => {
       await waitFor(() => testClass.status === 'Running' && testRunInvocations().length === 1);
 
       assert.strictEqual(progress.callCount, 1);
-      assert.strictEqual(progress.firstCall.args[0].location, vscode.ProgressLocation.Notification);
-      assert.strictEqual(progress.firstCall.args[0].title, `Running ${pendingClassName}...`);
-      assert.strictEqual(progress.firstCall.args[0].cancellable, false);
+      const progressOptions = progress.firstCall.args[0] as vscode.ProgressOptions;
+      assert.strictEqual(progressOptions.location, vscode.ProgressLocation.Notification);
+      assert.strictEqual(progressOptions.title, `Running ${pendingClassName}...`);
+      assert.strictEqual(progressOptions.cancellable, false);
     } finally {
       await releaseFakeSfGate('running-state');
     }
@@ -263,14 +264,21 @@ function createExecutionContext(testClassName: string): {
 }
 
 function stubProgress(sandbox: sinon.SinonSandbox): sinon.SinonStub {
-  return sandbox.stub(vscode.window, 'withProgress').callsFake(async (_options: any, task: any) => {
+  const withProgress = async <R>(
+    _options: vscode.ProgressOptions,
+    task: (
+      progress: vscode.Progress<{ message?: string; increment?: number }>,
+      token: vscode.CancellationToken
+    ) => Thenable<R>
+  ): Promise<R> => {
     const cancellation = new vscode.CancellationTokenSource();
     try {
       return await task({ report: () => undefined }, cancellation.token);
     } finally {
       cancellation.dispose();
     }
-  });
+  };
+  return sandbox.stub(vscode.window, 'withProgress').callsFake(withProgress);
 }
 
 function testRunInvocations() {

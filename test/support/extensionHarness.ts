@@ -91,14 +91,14 @@ export function defaultFakeSfPlan(): {
   };
 }
 
-export async function resetFakeSf(): Promise<void> {
+export function resetFakeSf(): Promise<void> {
   fs.rmSync(path.join(runtimeRoot, 'gates'), { recursive: true, force: true });
   fs.mkdirSync(path.join(runtimeRoot, 'gates'), { recursive: true });
   writePlan(readFixturePlan());
-  await clearFakeSfInvocations();
+  return clearFakeSfInvocations();
 }
 
-export async function configureFakeSf(overrides: FakeSfPlanOverrides): Promise<void> {
+export function configureFakeSf(overrides: FakeSfPlanOverrides): Promise<void> {
   const defaults = readFixturePlan();
   writePlan({
     ...defaults,
@@ -109,10 +109,12 @@ export async function configureFakeSf(overrides: FakeSfPlanOverrides): Promise<v
       ...(overrides.testRuns ?? {}),
     },
   });
+  return Promise.resolve();
 }
 
-export async function clearFakeSfInvocations(): Promise<void> {
+export function clearFakeSfInvocations(): Promise<void> {
   fs.writeFileSync(logPath, '', 'utf8');
+  return Promise.resolve();
 }
 
 export function getFakeSfInvocations(): FakeSfInvocation[] {
@@ -122,12 +124,13 @@ export function getFakeSfInvocations(): FakeSfInvocation[] {
   return contents.split('\n').map((line) => JSON.parse(line) as FakeSfInvocation);
 }
 
-export async function releaseFakeSfGate(gate: string): Promise<void> {
+export function releaseFakeSfGate(gate: string): Promise<void> {
   if (!/^[A-Za-z0-9_-]+$/.test(gate)) {
     throw new Error('Synthetic gate names may contain only letters, digits, underscore, or dash');
   }
   fs.mkdirSync(path.join(runtimeRoot, 'gates'), { recursive: true });
   fs.writeFileSync(path.join(runtimeRoot, 'gates', gate), 'released', 'utf8');
+  return Promise.resolve();
 }
 
 export async function writeWorkspaceSfConfig(contents: object): Promise<void> {

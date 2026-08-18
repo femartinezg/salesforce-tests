@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import sinon = require('sinon');
+import * as sinon from 'sinon';
 import { ApexClass, ApexTestClass } from '../../src/classes/Apex';
 import { getContextManager } from '../../src/common';
 import {
@@ -22,9 +22,9 @@ interface ExtensionManifest {
   contributes: {
     commands: CommandContribution[];
     viewsContainers: {
-      activitybar: Array<{ id: string; title: string }>;
+      activitybar: { id: string; title: string }[];
     };
-    views: Record<string, Array<{ id: string; name: string }>>;
+    views: Record<string, { id: string; name: string }[]>;
   };
 }
 
@@ -142,9 +142,9 @@ describe('A. VS Code integration and navigation', () => {
     it(`${scenario.id} focuses the intended view before opening list search`, async () => {
       const executeRegisteredCommand = vscode.commands.executeCommand.bind(vscode.commands);
       const delegatedCommands: string[] = [];
-      sandbox.stub(vscode.commands, 'executeCommand').callsFake(async (command: string) => {
+      sandbox.stub(vscode.commands, 'executeCommand').callsFake((command: string) => {
         delegatedCommands.push(command);
-        return undefined;
+        return Promise.resolve(undefined);
       });
 
       await executeRegisteredCommand(scenario.extensionCommand);

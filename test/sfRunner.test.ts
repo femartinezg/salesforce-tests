@@ -2,21 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-
-interface RunSfResult {
-  stdout: string;
-  error?: Error;
-}
-
-interface RunSfOptions {
-  maxBuffer?: number;
-}
-
-interface SfRunnerModule {
-  runSf(args: string[], options?: RunSfOptions): Promise<RunSfResult>;
-}
-
-const sfRunner = require('../src/common/sfRunner') as SfRunnerModule;
+import * as sfRunner from '../src/common/sfRunner';
 
 describe('runSf', () => {
   let temporaryDirectory: string;

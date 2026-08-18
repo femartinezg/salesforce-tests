@@ -1,19 +1,5 @@
 import * as assert from 'assert';
-
-interface SfInvocation {
-  args: string[];
-  options?: { maxBuffer?: number };
-}
-
-interface SfCommandsModule {
-  getOrgInfoInvocation(): SfInvocation;
-  getApexClassesInvocation(): SfInvocation;
-  getCodeCoverageInvocation(): SfInvocation;
-  getTestClassInvocation(testClassName: string): SfInvocation;
-  getOrgCoverageInvocation(): SfInvocation;
-}
-
-const sfCommands = require('../src/common/sfCommands') as SfCommandsModule;
+import * as sfCommands from '../src/common/sfCommands';
 
 describe('Salesforce CLI invocations', () => {
   const largeOutputOptions = { maxBuffer: 100 * 1024 * 1024 };
