@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { ApexClass, ApexTestClass } from '../../src/classes/Apex';
 import { getContextManager, getNewContextManager } from '../../src/common';
+import { ContextManager } from '../../src/common/ContextManager';
 import { runTestClass } from '../../src/common/sfActions';
 import { MessageType, showTestResultMessage } from '../../src/common/messaging';
 import {
@@ -322,20 +323,28 @@ describe('D. Running an Apex test class', () => {
   });
 
   it('D8 opens the output for View Results from both success and error notifications', async () => {
-    const displayOutput = sandbox.spy();
-    const contextManager = { displayOutput };
+    const contextManager = getNewContextManager();
+    const originalOutputChannel = ContextManager.outputChannel;
+    const showOutput = sandbox.spy();
+    ContextManager.outputChannel = {
+      show: showOutput,
+    } as unknown as vscode.OutputChannel;
     const information = sandbox
       .stub(vscode.window, 'showInformationMessage')
       .resolves('View Results' as never);
     const error = sandbox.stub(vscode.window, 'showErrorMessage').resolves('View Results' as never);
 
-    showTestResultMessage('synthetic success', MessageType.Info, contextManager);
-    showTestResultMessage('synthetic failure', MessageType.Error, contextManager);
-    await waitFor(() => displayOutput.callCount === 2);
+    try {
+      showTestResultMessage('synthetic success', MessageType.Info, contextManager);
+      showTestResultMessage('synthetic failure', MessageType.Error, contextManager);
+      await waitFor(() => showOutput.callCount === 2);
 
-    assert.deepStrictEqual(information.firstCall.args, ['synthetic success', 'View Results']);
-    assert.deepStrictEqual(error.firstCall.args, ['synthetic failure', 'View Results']);
-    assert.strictEqual(displayOutput.callCount, 2);
+      assert.deepStrictEqual(information.firstCall.args, ['synthetic success', 'View Results']);
+      assert.deepStrictEqual(error.firstCall.args, ['synthetic failure', 'View Results']);
+      assert.strictEqual(showOutput.callCount, 2);
+    } finally {
+      ContextManager.outputChannel = originalOutputChannel;
+    }
   });
 
   it('D9.1 ignores a pending result after Refresh Org replaces its context', async () => {
