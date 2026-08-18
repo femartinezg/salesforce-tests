@@ -6,26 +6,29 @@ import { retrieveApexClasses } from '../src/common/sfActions';
 import { refreshApexTests, refreshCodeCoverage } from '../src/commands/refresh';
 import { ApexTestsTreeViewProvider } from '../src/views/ApexTestsTreeViewProvider';
 import { CodeCoverageTreeViewProvider } from '../src/views/CodeCoverageTreeViewProvider';
-import { ModelsSfHarness } from './modelsSfHarness';
+import {
+  configureFakeSf,
+  getFakeSfInvocations,
+  releaseFakeSfGate,
+  resetFakeSf,
+  waitFor,
+  type FakeSfResponse,
+} from './support/extensionHarness';
 
 describe('Apex discovery and views', () => {
-  let sf: ModelsSfHarness;
-
-  beforeEach(() => {
-    sf = new ModelsSfHarness();
-  });
-
-  afterEach(() => {
-    sf.dispose();
+  beforeEach(async () => {
+    await resetFakeSf();
   });
 
   it('C1 requests unmanaged Apex in name order and separates test and production classes', async () => {
-    sf.setApexRecords([
-      { Id: '01p-alpha', Name: 'AlphaService', Body: 'public class AlphaService {}' },
-      { Id: '01p-beta', Name: 'BetaServiceTest', Body: '@isTest class BetaServiceTest {}' },
-      { Id: '01p-gamma', Name: 'GammaService', Body: 'public class GammaService {}' },
-      { Id: '01p-zeta', Name: 'ZetaServiceTest', Body: '@isTest class ZetaServiceTest {}' },
-    ]);
+    await configureFakeSf({
+      apexClasses: recordsResponse([
+        { Id: '01p-alpha', Name: 'AlphaService', Body: 'public class AlphaService {}' },
+        { Id: '01p-beta', Name: 'BetaServiceTest', Body: '@isTest class BetaServiceTest {}' },
+        { Id: '01p-gamma', Name: 'GammaService', Body: 'public class GammaService {}' },
+        { Id: '01p-zeta', Name: 'ZetaServiceTest', Body: '@isTest class ZetaServiceTest {}' },
+      ]),
+    });
 
     const result = await retrieveApexClasses();
 
@@ -44,30 +47,32 @@ describe('Apex discovery and views', () => {
       ]
     );
 
-    const invocation = sf.readInvocations()[0];
+    const invocation = getFakeSfInvocations()[0].args;
     const query = invocation[invocation.indexOf('--query') + 1];
     assert.match(query, /ManageableState = 'unmanaged'/);
     assert.match(query, /ORDER BY Name ASC/);
   });
 
   it('C2 classifies case-insensitively, ignores comment tokens, and omits interfaces', async () => {
-    sf.setApexRecords([
-      {
-        Id: '01p-production',
-        Name: 'ProductionClass',
-        Body: '// @isTest\n/* interface Hidden {} */\npublic CLASS ProductionClass {}',
-      },
-      {
-        Id: '01p-test',
-        Name: 'MixedCaseTest',
-        Body: '/* class Hidden {} */\n@IsTeSt private class MixedCaseTest {}',
-      },
-      {
-        Id: '01p-interface',
-        Name: 'IgnoredInterface',
-        Body: '// @isTest class Hidden {}\npublic InTeRfAcE IgnoredInterface {}',
-      },
-    ]);
+    await configureFakeSf({
+      apexClasses: recordsResponse([
+        {
+          Id: '01p-production',
+          Name: 'ProductionClass',
+          Body: '// @isTest\n/* interface Hidden {} */\npublic CLASS ProductionClass {}',
+        },
+        {
+          Id: '01p-test',
+          Name: 'MixedCaseTest',
+          Body: '/* class Hidden {} */\n@IsTeSt private class MixedCaseTest {}',
+        },
+        {
+          Id: '01p-interface',
+          Name: 'IgnoredInterface',
+          Body: '// @isTest class Hidden {}\npublic InTeRfAcE IgnoredInterface {}',
+        },
+      ]),
+    });
 
     const result = await retrieveApexClasses();
 
@@ -131,20 +136,24 @@ describe('Apex discovery and views', () => {
     const oldProductionClass = coveredClass('01p-old', 'ExistingProduction', 90, 9, 10);
     contextManager.apexTestsData.testClasses = [new ApexTestClass('01p-test-old', 'OldTest')];
     contextManager.codeCoverageData.apexClasses = [oldProductionClass];
-    sf.setApexRecords([
-      { Id: '01p-new-test', Name: 'NewTest', Body: '@isTest class NewTest {}' },
-      { Id: '01p-new-class', Name: 'NewProduction', Body: 'public class NewProduction {}' },
-    ]);
-    sf.block('apex');
+    await configureFakeSf({
+      apexClasses: recordsResponse(
+        [
+          { Id: '01p-new-test', Name: 'NewTest', Body: '@isTest class NewTest {}' },
+          { Id: '01p-new-class', Name: 'NewProduction', Body: 'public class NewProduction {}' },
+        ],
+        'models-apex'
+      ),
+    });
 
     const refresh = refreshApexTests();
-    await sf.waitForInvocation('FROM ApexClass');
+    await waitForInvocation('FROM ApexClass');
 
     assert.strictEqual(contextManager.apexTestsData.testClasses, undefined);
     assert.deepStrictEqual(contextManager.apexTestsData.getRootChildren(), []);
     assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, [oldProductionClass]);
 
-    sf.release('apex');
+    await releaseFakeSfGate('models-apex');
     await refresh;
 
     const refreshedTests = contextManager.apexTestsData.testClasses as ApexTestClass[] | undefined;
@@ -153,7 +162,7 @@ describe('Apex discovery and views', () => {
       ['NewTest']
     );
     assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, [oldProductionClass]);
-    assert.strictEqual(sf.readInvocations().length, 1);
+    assert.strictEqual(getFakeSfInvocations().length, 1);
   });
 
   it('C6 replaces production classes first and refreshes their coverage asynchronously', async () => {
@@ -161,21 +170,25 @@ describe('Apex discovery and views', () => {
     const existingTest = new ApexTestClass('01p-existing-test', 'ExistingTest');
     contextManager.apexTestsData.testClasses = [existingTest];
     contextManager.codeCoverageData.apexClasses = [new ApexClass('01p-old', 'OldProduction')];
-    sf.setApexRecords([
-      { Id: '01p-new-test', Name: 'NewTestIgnoredHere', Body: '@isTest class NewTest {}' },
-      { Id: '01p-new-class', Name: 'NewProduction', Body: 'public class NewProduction {}' },
-    ]);
-    sf.setCoverageRecords([
-      {
-        ApexClassOrTriggerId: '01p-new-class',
-        NumLinesCovered: 3,
-        NumLinesUncovered: 1,
-      },
-    ]);
-    sf.block('coverage');
+    await configureFakeSf({
+      apexClasses: recordsResponse([
+        { Id: '01p-new-test', Name: 'NewTestIgnoredHere', Body: '@isTest class NewTest {}' },
+        { Id: '01p-new-class', Name: 'NewProduction', Body: 'public class NewProduction {}' },
+      ]),
+      codeCoverage: recordsResponse(
+        [
+          {
+            ApexClassOrTriggerId: '01p-new-class',
+            NumLinesCovered: 3,
+            NumLinesUncovered: 1,
+          },
+        ],
+        'models-coverage'
+      ),
+    });
 
     await refreshCodeCoverage();
-    await sf.waitForInvocation('ApexCodeCoverageAggregate');
+    await waitForInvocation('ApexCodeCoverageAggregate');
 
     assert.deepStrictEqual(contextManager.apexTestsData.testClasses, [existingTest]);
     assert.deepStrictEqual(
@@ -188,7 +201,7 @@ describe('Apex discovery and views', () => {
     );
 
     const finalRefresh = nextTreeRefresh(contextManager.codeCoverageData.onDidChangeTreeData);
-    sf.release('coverage');
+    await releaseFakeSfGate('models-coverage');
     await finalRefresh;
 
     const updatedClass = contextManager.codeCoverageData.apexClasses?.[0];
@@ -199,7 +212,7 @@ describe('Apex discovery and views', () => {
       contextManager.codeCoverageData.getRootChildren()[0].description,
       '75.00% (3/4)'
     );
-    assert.strictEqual(sf.readInvocations().length, 2);
+    assert.strictEqual(getFakeSfInvocations().length, 2);
   });
 });
 
@@ -224,4 +237,17 @@ function nextTreeRefresh(event: vscode.Event<vscode.TreeItem | undefined | void>
       resolve();
     });
   });
+}
+
+function recordsResponse(records: unknown[], gate?: string): FakeSfResponse {
+  return {
+    json: { status: 0, result: { records } },
+    ...(gate ? { gate } : {}),
+  };
+}
+
+async function waitForInvocation(fragment: string): Promise<void> {
+  await waitFor(() =>
+    getFakeSfInvocations().some(({ args }) => args.some((argument) => argument.includes(fragment)))
+  );
 }

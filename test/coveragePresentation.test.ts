@@ -3,17 +3,16 @@ import * as vscode from 'vscode';
 import { ApexClass, ApexTestClass } from '../src/classes/Apex';
 import { ContextManager } from '../src/common/ContextManager';
 import { retrieveCodeCoverage, runTestClass } from '../src/common/sfActions';
-import { ModelsSfHarness } from './modelsSfHarness';
+import {
+  configureFakeSf,
+  getFakeSfInvocations,
+  resetFakeSf,
+  type FakeSfResponse,
+} from './support/extensionHarness';
 
 describe('Code coverage presentation', () => {
-  let sf: ModelsSfHarness;
-
-  beforeEach(() => {
-    sf = new ModelsSfHarness();
-  });
-
-  afterEach(() => {
-    sf.dispose();
+  beforeEach(async () => {
+    await resetFakeSf();
   });
 
   it('E1 renders percentage, covered lines, and a coherent tooltip with two decimals', () => {
@@ -31,7 +30,7 @@ describe('Code coverage presentation', () => {
     const contextManager = ContextManager.resetInstance();
     const apexClass = new ApexClass('01p-missing', 'NoCoverageClass');
     contextManager.codeCoverageData.apexClasses = [apexClass];
-    sf.setCoverageRecords([]);
+    await configureFakeSf({ codeCoverage: recordsResponse([]) });
 
     const loadingItem = apexClass.getTreeItem();
     assert.strictEqual(loadingItem.description, 'Loading...');
@@ -51,13 +50,15 @@ describe('Code coverage presentation', () => {
     const contextManager = ContextManager.resetInstance();
     const apexClass = new ApexClass('01p-empty', 'NoCountedLines');
     contextManager.codeCoverageData.apexClasses = [apexClass];
-    sf.setCoverageRecords([
-      {
-        ApexClassOrTriggerId: '01p-empty',
-        NumLinesCovered: 0,
-        NumLinesUncovered: 0,
-      },
-    ]);
+    await configureFakeSf({
+      codeCoverage: recordsResponse([
+        {
+          ApexClassOrTriggerId: '01p-empty',
+          NumLinesCovered: 0,
+          NumLinesUncovered: 0,
+        },
+      ]),
+    });
 
     await retrieveCodeCoverage();
 
@@ -91,18 +92,24 @@ describe('Code coverage presentation', () => {
     contextManager.codeCoverageData.apexClasses = [includedClass, untouchedClass];
     const testClass = new ApexTestClass('01p-test', 'CoverageUpdatingTest');
     contextManager.apexTestsData.testClasses = [testClass];
-    sf.setTestResult({
-      status: 0,
-      result: {
-        summary: {
-          outcome: 'Passed',
-          testStartTime: '2026-08-18T12:00:00.000Z',
-          testExecutionTime: '1250',
-        },
-        tests: [],
-        coverage: {
-          coverage: [{ name: 'IncludedClass', totalLines: 8, totalCovered: 6 }],
-          summary: { orgWideCoverage: '91%' },
+    await configureFakeSf({
+      testRuns: {
+        CoverageUpdatingTest: {
+          json: {
+            status: 0,
+            result: {
+              summary: {
+                outcome: 'Passed',
+                testStartTime: '2026-08-18T12:00:00.000Z',
+                testExecutionTime: '1250',
+              },
+              tests: [],
+              coverage: {
+                coverage: [{ name: 'IncludedClass', totalLines: 8, totalCovered: 6 }],
+                summary: { orgWideCoverage: '91%' },
+              },
+            },
+          },
         },
       },
     });
@@ -116,7 +123,7 @@ describe('Code coverage presentation', () => {
     assert.strictEqual(includedClass.totalLines, 8);
     assert.strictEqual(untouchedClass.codeCoverage, -1);
     assert.strictEqual(contextManager.statusData.orgWideCoverage, 91);
-    assert.strictEqual(sf.readInvocations().length, 1);
+    assert.strictEqual(getFakeSfInvocations().length, 1);
   });
 });
 
@@ -137,4 +144,8 @@ function coverageClass(
 function themeIcon(item: vscode.TreeItem): vscode.ThemeIcon {
   assert.ok(item.iconPath instanceof vscode.ThemeIcon);
   return item.iconPath;
+}
+
+function recordsResponse(records: unknown[]): FakeSfResponse {
+  return { json: { status: 0, result: { records } } };
 }
