@@ -4,6 +4,14 @@ import { ApexClass, ApexTestClass } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
+import {
+  getApexClassesInvocation,
+  getCodeCoverageInvocation,
+  getOrgCoverageInvocation,
+  getOrgInfoInvocation,
+  getTestClassInvocation,
+} from './sfCommands';
+import { runSf } from './sfRunner';
 
 export async function retrieveOrgInfo(): Promise<{
   status: boolean;
@@ -11,72 +19,52 @@ export async function retrieveOrgInfo(): Promise<{
   username?: string;
   orgName?: string;
 }> {
-  const { exec } = require('child_process');
+  const invocation = getOrgInfoInvocation();
+  const { error, stdout } = await runSf(invocation.args, invocation.options);
+  if (error) return { status: false };
 
-  return new Promise((resolve) => {
-    exec('sf org display --json', (error: any, stdout: string) => {
-      if (error) {
-        resolve({ status: false });
-        return;
-      }
-      try {
-        const result = JSON.parse(stdout);
-        const alias = result.result.alias || undefined;
-        const username = result.result.username || undefined;
-        const orgName = result.result.instanceUrl?.split('//')[1].split('.')[0] || undefined;
-        resolve({ status: true, alias: alias, username: username, orgName: orgName });
-      } catch (e) {
-        resolve({ status: false });
-      }
-    });
-  });
+  try {
+    const result = JSON.parse(stdout);
+    const alias = result.result.alias || undefined;
+    const username = result.result.username || undefined;
+    const orgName = result.result.instanceUrl?.split('//')[1].split('.')[0] || undefined;
+    return { status: true, alias: alias, username: username, orgName: orgName };
+  } catch {
+    return { status: false };
+  }
 }
 
 export async function retrieveApexClasses(): Promise<{
   testClasses: ApexTestClass[];
   apexClasses: ApexClass[];
 }> {
-  const { exec } = require('child_process');
+  const invocation = getApexClassesInvocation();
+  const { error, stdout } = await runSf(invocation.args, invocation.options);
+  if (error) throw new Error(String(error));
 
-  return new Promise((resolve, reject) => {
-    const query = `SELECT Id, Name, Body FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC`;
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
+  try {
+    const result = JSON.parse(stdout);
+    const records = result.result.records || [];
+    const testClasses = [];
+    const apexClasses = [];
 
-    exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
+    for (let apex of records) {
+      const isTest = parseBody(apex.Body);
+      if (isTest) {
+        testClasses.push(new ApexTestClass(apex.Id, apex.Name));
+      } else if (isTest === false) {
+        apexClasses.push(new ApexClass(apex.Id, apex.Name));
       }
+    }
 
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-        const testClasses = [];
-        const apexClasses = [];
-
-        for (let apex of records) {
-          const isTest = parseBody(apex.Body);
-          if (isTest) {
-            testClasses.push(new ApexTestClass(apex.Id, apex.Name));
-          } else if (isTest === false) {
-            apexClasses.push(new ApexClass(apex.Id, apex.Name));
-          }
-        }
-
-        const response = {
-          testClasses: testClasses,
-          apexClasses: apexClasses,
-        };
-        resolve(response);
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
-  });
+    return {
+      testClasses: testClasses,
+      apexClasses: apexClasses,
+    };
+  } catch (e: unknown) {
+    if (e instanceof Error) throw e;
+    throw new Error('Unexpected error');
+  }
 }
 
 function parseBody(body: string): boolean | undefined {
@@ -153,59 +141,44 @@ function parseBody(body: string): boolean | undefined {
 
 export async function retrieveCodeCoverage() {
   const contextManager = getContextManager();
-  const { exec } = require('child_process');
+  const invocation = getCodeCoverageInvocation();
+  const { error, stdout } = await runSf(invocation.args, invocation.options);
+  if (error) throw new Error(String(error));
 
-  return new Promise<void>((resolve, reject) => {
-    const query = `SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate`;
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
+  try {
+    const result = JSON.parse(stdout);
+    const records = result.result.records || [];
 
-    exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
+    for (let coverage of records) {
+      const apexClass = contextManager.codeCoverageData.apexClasses?.find(
+        (apexClass: ApexClass) => coverage.ApexClassOrTriggerId === apexClass.id
+      );
+      const numLinesCovered = coverage.NumLinesCovered || 0;
+      const numLinesUncovered = coverage.NumLinesUncovered || 0;
+      const totalLines = numLinesCovered + numLinesUncovered;
 
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-
-        for (let coverage of records) {
-          const apexClass = contextManager.codeCoverageData.apexClasses?.find(
-            (apexClass: ApexClass) => coverage.ApexClassOrTriggerId === apexClass.id
-          );
-          const numLinesCovered = coverage.NumLinesCovered || 0;
-          const numLinesUncovered = coverage.NumLinesUncovered || 0;
-          const totalLines = numLinesCovered + numLinesUncovered;
-
-          if (apexClass) {
-            apexClass.totalLines = totalLines;
-            apexClass.coveredLines = numLinesCovered;
-            if (totalLines === 0) {
-              apexClass.codeCoverage = 100;
-            } else {
-              apexClass.codeCoverage = (numLinesCovered / totalLines) * 100;
-            }
-          }
-        }
-
-        contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
-          if (apexClass.codeCoverage === undefined) {
-            apexClass.codeCoverage = -1;
-            apexClass.totalLines = -1;
-            apexClass.coveredLines = -1;
-          }
-        });
-
-        resolve();
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
+      if (apexClass) {
+        apexClass.totalLines = totalLines;
+        apexClass.coveredLines = numLinesCovered;
+        if (totalLines === 0) {
+          apexClass.codeCoverage = 100;
         } else {
-          reject(new Error('Unexpected error'));
+          apexClass.codeCoverage = (numLinesCovered / totalLines) * 100;
         }
+      }
+    }
+
+    contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
+      if (apexClass.codeCoverage === undefined) {
+        apexClass.codeCoverage = -1;
+        apexClass.totalLines = -1;
+        apexClass.coveredLines = -1;
       }
     });
-  });
+  } catch (e: unknown) {
+    if (e instanceof Error) throw e;
+    throw new Error('Unexpected error');
+  }
 }
 
 export async function runTestClass(
@@ -218,19 +191,11 @@ export async function runTestClass(
   testClass.status = 'Running';
   contextManager.apexTestsData.refresh();
 
-  const { exec } = require('child_process');
-  const command = `sf apex test run --tests ${testClass.name} --synchronous --code-coverage --json`;
-
   try {
-    const stdout: string = await new Promise((resolve, reject) => {
-      exec(command, { maxBuffer: 100 * 1024 * 1024 }, (error: any, stdout: string) => {
-        if (stdout) {
-          resolve(stdout);
-        } else {
-          reject(error);
-        }
-      });
-    });
+    const invocation = getTestClassInvocation(testClass.name);
+    const execution = await runSf(invocation.args, invocation.options);
+    if (!execution.stdout) throw execution.error ?? new Error('Salesforce CLI returned no output');
+    const stdout = execution.stdout;
 
     const result = JSON.parse(stdout);
 
@@ -361,33 +326,17 @@ async function getCodeCoverage(coverage: any[]) {
 }
 
 export async function retrieveOrgCoverage() {
-  const { exec } = require('child_process');
+  const invocation = getOrgCoverageInvocation();
+  const { error, stdout } = await runSf(invocation.args, invocation.options);
+  if (error) throw new Error(String(error));
 
-  return new Promise<number>((resolve, reject) => {
-    const query = 'SELECT Id, PercentCovered FROM ApexOrgWideCoverage';
-    const command = `sf data query --query "${query}" --use-tooling-api --json`;
-
-    exec(command, (error: any, stdout: string) => {
-      if (error) {
-        reject(new Error(error));
-        return;
-      }
-
-      try {
-        const result = JSON.parse(stdout);
-        const records = result.result.records || [];
-        if (records.length > 0) {
-          resolve(records[0].PercentCovered);
-        } else {
-          reject(new Error('No coverage data found'));
-        }
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          reject(e);
-        } else {
-          reject(new Error('Unexpected error'));
-        }
-      }
-    });
-  });
+  try {
+    const result = JSON.parse(stdout);
+    const records = result.result.records || [];
+    if (records.length > 0) return records[0].PercentCovered;
+    throw new Error('No coverage data found');
+  } catch (e: unknown) {
+    if (e instanceof Error) throw e;
+    throw new Error('Unexpected error');
+  }
 }
