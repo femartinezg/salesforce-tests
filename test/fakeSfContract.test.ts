@@ -25,6 +25,13 @@ describe('Synthetic Salesforce CLI contract', () => {
     await resetFakeSf();
   });
 
+  it('runs the global isolation preflight before loading the test suite', () => {
+    assert.strictEqual(
+      process.env.SALESFORCE_TESTS_ISOLATION_VERIFIED,
+      process.env.SALESFORCE_TESTS_FAKE_ROOT
+    );
+  });
+
   it('keeps the committed fixture deterministic, coherent, and synthetic', () => {
     const fixturePath = path.join(extensionRoot, 'test', 'fixtures', 'fake-sf-plan.json');
     const fixtureText = fs.readFileSync(fixturePath, 'utf8');

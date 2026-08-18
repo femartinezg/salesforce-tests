@@ -71,6 +71,7 @@ const isolatedEnvironment = {
   SF_CONFIG_DIR: path.join(runtimeRoot, 'sf-config'),
   SFDX_CONFIG_DIR: path.join(runtimeRoot, 'sfdx-config'),
   TMPDIR: tempRoot,
+  SALESFORCE_TESTS_SYSTEM_TMP: tmpdir(),
   SALESFORCE_TESTS_FAKE_ROOT: runtimeRoot,
   SALESFORCE_TESTS_FAKE_PLAN: planPath,
   SALESFORCE_TESTS_FAKE_LOG: logPath,
