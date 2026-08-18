@@ -165,14 +165,17 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "pretest": "npm run compile",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "npm run test:extension",
+    "test:extension": "vscode-test --jobs 1",
+    "test:coverage": "npm run compile && vscode-test --jobs 1 --coverage"
   },
   "devDependencies": {
     "@types/cross-spawn": "6.0.6",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/sinon": "^22.0.0",
     "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.31.1",
@@ -181,6 +184,7 @@
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.5",
     "prettier": "3.5.3",
+    "sinon": "^22.1.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
