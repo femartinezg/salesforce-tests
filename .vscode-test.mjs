@@ -26,6 +26,7 @@ await Promise.all([
   mkdir(path.join(runtimeRoot, 'xdg-cache'), { recursive: true }),
   mkdir(path.join(runtimeRoot, 'xdg-data'), { recursive: true }),
   mkdir(path.join(runtimeRoot, 'sf-config'), { recursive: true }),
+  mkdir(path.join(runtimeRoot, 'sfdx-config'), { recursive: true }),
   mkdir(path.join(runtimeRoot, 'user-data'), { recursive: true }),
   mkdir(path.join(runtimeRoot, 'extensions'), { recursive: true }),
 ]);
@@ -53,7 +54,14 @@ if (process.platform === 'win32') {
   await chmod(executablePath, 0o755);
 }
 
+const scrubbedSalesforceEnvironment = Object.fromEntries(
+  Object.keys(process.env)
+    .filter((name) => /^(?:SF|SFDX)_/i.test(name))
+    .map((name) => [name, undefined])
+);
+
 const isolatedEnvironment = {
+  ...scrubbedSalesforceEnvironment,
   PATH: fakeBin,
   HOME: homeRoot,
   USERPROFILE: homeRoot,
@@ -61,6 +69,7 @@ const isolatedEnvironment = {
   XDG_CACHE_HOME: path.join(runtimeRoot, 'xdg-cache'),
   XDG_DATA_HOME: path.join(runtimeRoot, 'xdg-data'),
   SF_CONFIG_DIR: path.join(runtimeRoot, 'sf-config'),
+  SFDX_CONFIG_DIR: path.join(runtimeRoot, 'sfdx-config'),
   TMPDIR: tempRoot,
   SALESFORCE_TESTS_FAKE_ROOT: runtimeRoot,
   SALESFORCE_TESTS_FAKE_PLAN: planPath,
@@ -81,6 +90,9 @@ export default defineConfig({
       ],
       env: isolatedEnvironment,
       mocha: {
+        failZero: true,
+        forbidOnly: true,
+        forbidPending: true,
         ui: 'bdd',
         timeout: 10000,
         parallel: false,
