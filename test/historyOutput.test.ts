@@ -1,10 +1,13 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import * as sinon from 'sinon';
 import { ApexTestClass } from '../src/classes/Apex';
 import { TestRun } from '../src/classes/TestRun';
 import { ContextManager } from '../src/common/ContextManager';
 import { formatDuration } from '../src/common/utils';
+import { activate } from '../src/extension';
 import { StatusTreeViewProvider } from '../src/views/StatusTreeViewProvider';
+import { defaultFakeSfPlan, resetFakeSf, waitFor } from './support/extensionHarness';
 
 describe('History, timing, states, and output', () => {
   it('F1 shows the empty history and retains only the five latest completed runs', () => {
@@ -156,6 +159,50 @@ describe('History, timing, states, and output', () => {
         + '           ✓ Passed\n'
         + '           TestStartTime: fixture | TestExecutionTime: 1250\n'
     );
+  });
+
+  it('F5 wires activation and org connection messages through the production lifecycle', async () => {
+    const activationContext = ContextManager.resetInstance();
+    const sandbox = sinon.createSandbox();
+
+    try {
+      const init = sandbox.stub(activationContext, 'init').resolves();
+      const printOutput = sandbox.spy(activationContext, 'printOutput');
+      sandbox.stub(vscode.workspace, 'createFileSystemWatcher').returns({
+        onDidChange: () => ({ dispose: () => undefined }),
+      } as unknown as vscode.FileSystemWatcher);
+      sandbox.stub(vscode.commands, 'registerCommand').returns({
+        dispose: () => undefined,
+      });
+
+      await activate({ subscriptions: [] } as unknown as vscode.ExtensionContext);
+
+      assert.strictEqual(init.callCount, 1);
+      assert.strictEqual(
+        printOutput.calledWithExactly('Salesforce Tests extension activated'),
+        true
+      );
+    } finally {
+      sandbox.restore();
+    }
+
+    await resetFakeSf();
+    const connectedContext = ContextManager.resetInstance();
+    const printOutput = sinon.spy(connectedContext, 'printOutput');
+    try {
+      await connectedContext.init();
+      const defaults = defaultFakeSfPlan();
+      await waitFor(
+        () =>
+          connectedContext.statusData.orgWideCoverage === defaults.expectedOrgCoverage
+          && connectedContext.codeCoverageData.apexClasses?.[0]?.codeCoverage
+            === defaults.expectedClassCoverage
+      );
+
+      assert.strictEqual(printOutput.calledWithExactly('Connected to org: fixture'), true);
+    } finally {
+      printOutput.restore();
+    }
   });
 });
 

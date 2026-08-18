@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { ApexClass, ApexTestClass } from '../../src/classes/Apex';
-import { getContextManager } from '../../src/common';
+import { getContextManager, getNewContextManager } from '../../src/common';
 import {
   activateExtension,
   extensionRoot,
@@ -25,6 +25,7 @@ interface ExtensionManifest {
       activitybar: { id: string; title: string }[];
     };
     views: Record<string, { id: string; name: string }[]>;
+    viewsWelcome: { view: string; contents: string }[];
   };
 }
 
@@ -85,6 +86,16 @@ describe('A. VS Code integration and navigation', () => {
     assert.notStrictEqual(contextManager.statusData.isAuthenticated, undefined);
     assert.notStrictEqual(contextManager.apexTestsData.testClasses, undefined);
     assert.notStrictEqual(contextManager.codeCoverageData.apexClasses, undefined);
+
+    const registerProvider = sandbox.stub(vscode.window, 'registerTreeDataProvider');
+    const isolatedContext = getNewContextManager();
+    assert.deepStrictEqual(
+      registerProvider.getCalls().map(({ args }) => args[0]),
+      ['statusTreeView', 'apexTestsTreeView', 'codeCoverageTreeView']
+    );
+    assert.strictEqual(registerProvider.firstCall.args[1], isolatedContext.statusData);
+    assert.strictEqual(registerProvider.secondCall.args[1], isolatedContext.apexTestsData);
+    assert.strictEqual(registerProvider.thirdCall.args[1], isolatedContext.codeCoverageData);
   });
 
   it('A3 keeps data-dependent actions disabled and all three views empty while loading', async () => {
@@ -93,25 +104,49 @@ describe('A. VS Code integration and navigation', () => {
       manifest.contributes.commands.map(({ command, enablement }) => [command, enablement])
     );
     const contextManager = getContextManager();
+    const setContext = sandbox.stub(vscode.commands, 'executeCommand').resolves(undefined);
 
     contextManager.statusData.reset();
     contextManager.apexTestsData.reset();
     contextManager.codeCoverageData.reset();
 
+    assert.deepStrictEqual(
+      setContext.getCalls().map(({ args }) => args),
+      [
+        ['setContext', 'statusLoading', true],
+        ['setContext', 'apexTestsLoading', true],
+        ['setContext', 'codeCoverageLoading', true],
+      ]
+    );
     assert.deepStrictEqual(await contextManager.statusData.getChildren(), []);
     assert.deepStrictEqual(await contextManager.apexTestsData.getChildren(), []);
     assert.deepStrictEqual(await contextManager.codeCoverageData.getChildren(), []);
-    assert.match(enablementByCommand.get('salesforce-tests.refreshOrg') ?? '', /!statusLoading/);
-    for (const command of [
-      'salesforce-tests.runTestClass',
-      'salesforce-tests.refreshApexTests',
-      'salesforce-tests.findTest',
-    ]) {
-      assert.match(enablementByCommand.get(command) ?? '', /!apexTestsLoading/);
-    }
-    for (const command of ['salesforce-tests.refreshCodeCoverage', 'salesforce-tests.findClass']) {
-      assert.match(enablementByCommand.get(command) ?? '', /!codeCoverageLoading/);
-    }
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.runTestClass'),
+      '!apexTestsLoading'
+    );
+    assert.strictEqual(enablementByCommand.get('salesforce-tests.refreshOrg'), '!statusLoading');
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.refreshApexTests'),
+      'view == apexTestsTreeView && !apexTestsLoading'
+    );
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.findTest'),
+      'view == apexTestsTreeView && !apexTestsLoading'
+    );
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.refreshCodeCoverage'),
+      'view == codeCoverageTreeView && !codeCoverageLoading'
+    );
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.findClass'),
+      'view == codeCoverageTreeView && !codeCoverageLoading'
+    );
+    assert.deepStrictEqual(manifest.contributes.viewsWelcome, [
+      { view: 'statusTreeView', contents: 'Loading...' },
+      { view: 'apexTestsTreeView', contents: 'Loading...' },
+      { view: 'codeCoverageTreeView', contents: 'Loading...' },
+    ]);
 
     contextManager.statusData.isAuthenticated = true;
     contextManager.statusData.username = 'fixture.user@example.invalid';
@@ -122,6 +157,17 @@ describe('A. VS Code integration and navigation', () => {
       new ApexClass('fixture-class-id', 'FixtureService'),
     ];
 
+    assert.deepStrictEqual(
+      setContext
+        .getCalls()
+        .slice(3)
+        .map(({ args }) => args),
+      [
+        ['setContext', 'statusLoading', false],
+        ['setContext', 'apexTestsLoading', false],
+        ['setContext', 'codeCoverageLoading', false],
+      ]
+    );
     assert.strictEqual((await contextManager.statusData.getChildren()).length, 2);
     assert.strictEqual((await contextManager.apexTestsData.getChildren()).length, 1);
     assert.strictEqual((await contextManager.codeCoverageData.getChildren()).length, 1);

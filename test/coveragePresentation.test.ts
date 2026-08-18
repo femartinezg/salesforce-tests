@@ -114,9 +114,17 @@ describe('Code coverage presentation', () => {
       },
     });
     const cancellation = new vscode.CancellationTokenSource();
+    let coverageRefreshes = 0;
+    const coverageRefresh = contextManager.codeCoverageData.onDidChangeTreeData(() => {
+      coverageRefreshes++;
+    });
 
-    await runTestClass(testClass, contextManager, cancellation.token);
-    cancellation.dispose();
+    try {
+      await runTestClass(testClass, contextManager, cancellation.token);
+    } finally {
+      cancellation.dispose();
+      coverageRefresh.dispose();
+    }
 
     assert.strictEqual(includedClass.codeCoverage, 75);
     assert.strictEqual(includedClass.coveredLines, 6);
@@ -124,6 +132,7 @@ describe('Code coverage presentation', () => {
     assert.strictEqual(untouchedClass.codeCoverage, -1);
     assert.strictEqual(contextManager.statusData.orgWideCoverage, 91);
     assert.strictEqual(getFakeSfInvocations().length, 1);
+    assert.strictEqual(coverageRefreshes, 1);
   });
 });
 

@@ -8,6 +8,7 @@ import {
   activateExtension,
   configureFakeSf,
   defaultFakeSfPlan,
+  releaseFakeSfGate,
   resetFakeSf,
   waitFor,
   writeWorkspaceSfConfig,
@@ -83,32 +84,40 @@ describe('B. Active org and general state', () => {
 
   it('B4/B6 refresh cancels pending runs, replaces context and history, and reloads all org data', async () => {
     const { oldContext, cancellation, wasCancelled } = seedContextWithPendingHistory();
+    const gate = 'manual-org-refresh';
+    await configureReloadGate(gate);
 
     try {
       await vscode.commands.executeCommand('salesforce-tests.refreshOrg');
-      const newContext = await waitForReload(oldContext);
+      const { context: newContext, refreshes } = await waitForReload(oldContext, gate);
 
       assert.strictEqual(wasCancelled(), true);
       assert.notStrictEqual(newContext, oldContext);
       assert.strictEqual(newContext.statusData.testRuns.length, 0);
       assertLoadedDefaultOrg(newContext);
+      assertProviderRefreshes(refreshes);
     } finally {
+      await releaseFakeSfGate(gate);
       cancellation.dispose();
     }
   });
 
   it('B5/B6 changing an existing .sf/config.json cancels runs, replaces history, and reloads context', async () => {
     const { oldContext, cancellation, wasCancelled } = seedContextWithPendingHistory();
+    const gate = 'config-org-refresh';
+    await configureReloadGate(gate);
 
     try {
       await writeWorkspaceSfConfig({ revision: 'context-change' });
-      const newContext = await waitForReload(oldContext);
+      const { context: newContext, refreshes } = await waitForReload(oldContext, gate);
 
       assert.strictEqual(wasCancelled(), true);
       assert.notStrictEqual(newContext, oldContext);
       assert.strictEqual(newContext.statusData.testRuns.length, 0);
       assertLoadedDefaultOrg(newContext);
+      assertProviderRefreshes(refreshes);
     } finally {
+      await releaseFakeSfGate(gate);
       cancellation.dispose();
     }
   });
@@ -136,16 +145,41 @@ function seedContextWithPendingHistory(): {
   return { oldContext, cancellation, wasCancelled: () => cancelled };
 }
 
-async function waitForReload(oldContext: ReturnType<typeof getContextManager>) {
+async function waitForReload(
+  oldContext: ReturnType<typeof getContextManager>,
+  gate: string
+): Promise<{
+  context: ReturnType<typeof getContextManager>;
+  refreshes: { status: number; apexTests: number; codeCoverage: number };
+}> {
   await waitFor(() => getContextManager() !== oldContext);
   const newContext = getContextManager();
-  await waitFor(
-    () =>
-      newContext.statusData.orgWideCoverage === defaultFakeSfPlan().expectedOrgCoverage
-      && newContext.codeCoverageData.apexClasses?.[0]?.codeCoverage
-        === defaultFakeSfPlan().expectedClassCoverage
-  );
-  return newContext;
+  const refreshes = { status: 0, apexTests: 0, codeCoverage: 0 };
+  const listeners = [
+    newContext.statusData.onDidChangeTreeData(() => {
+      refreshes.status++;
+    }),
+    newContext.apexTestsData.onDidChangeTreeData(() => {
+      refreshes.apexTests++;
+    }),
+    newContext.codeCoverageData.onDidChangeTreeData(() => {
+      refreshes.codeCoverage++;
+    }),
+  ];
+  try {
+    await releaseFakeSfGate(gate);
+    await waitFor(
+      () =>
+        newContext.statusData.orgWideCoverage === defaultFakeSfPlan().expectedOrgCoverage
+        && newContext.codeCoverageData.apexClasses?.[0]?.codeCoverage
+          === defaultFakeSfPlan().expectedClassCoverage
+    );
+    return { context: newContext, refreshes };
+  } finally {
+    listeners.forEach((listener) => {
+      listener.dispose();
+    });
+  }
 }
 
 function assertLoadedDefaultOrg(contextManager: ReturnType<typeof getContextManager>): void {
@@ -165,4 +199,31 @@ function assertLoadedDefaultOrg(contextManager: ReturnType<typeof getContextMana
     contextManager.codeCoverageData.apexClasses?.[0]?.codeCoverage,
     defaults.expectedClassCoverage
   );
+}
+
+function assertProviderRefreshes(refreshes: {
+  status: number;
+  apexTests: number;
+  codeCoverage: number;
+}): void {
+  assert.strictEqual(refreshes.status, 2);
+  assert.strictEqual(refreshes.apexTests, 1);
+  assert.strictEqual(refreshes.codeCoverage, 2);
+}
+
+async function configureReloadGate(gate: string): Promise<void> {
+  const defaults = defaultFakeSfPlan();
+  await configureFakeSf({
+    orgInfo: {
+      json: {
+        status: 0,
+        result: {
+          alias: defaults.expectedAlias,
+          username: defaults.expectedUsername,
+          instanceUrl: 'https://fixture.example.invalid',
+        },
+      },
+      gate,
+    },
+  });
 }

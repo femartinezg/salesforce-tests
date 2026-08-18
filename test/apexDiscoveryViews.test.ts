@@ -1,12 +1,13 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { ApexClass, ApexTestClass } from '../src/classes/Apex';
+import { getContextManager } from '../src/common';
 import { ContextManager } from '../src/common/ContextManager';
 import { retrieveApexClasses } from '../src/common/sfActions';
-import { refreshApexTests, refreshCodeCoverage } from '../src/commands/refresh';
 import { ApexTestsTreeViewProvider } from '../src/views/ApexTestsTreeViewProvider';
 import { CodeCoverageTreeViewProvider } from '../src/views/CodeCoverageTreeViewProvider';
 import {
+  activateExtension,
   configureFakeSf,
   getFakeSfInvocations,
   releaseFakeSfGate,
@@ -16,6 +17,12 @@ import {
 } from './support/extensionHarness';
 
 describe('Apex discovery and views', () => {
+  before(async () => {
+    await resetFakeSf();
+    await activateExtension();
+    await waitFor(() => getContextManager().apexTestsData.testClasses !== undefined);
+  });
+
   beforeEach(async () => {
     await resetFakeSf();
   });
@@ -145,24 +152,45 @@ describe('Apex discovery and views', () => {
         'models-apex'
       ),
     });
+    let apexRefreshes = 0;
+    let coverageRefreshes = 0;
+    const apexRefresh = contextManager.apexTestsData.onDidChangeTreeData(() => {
+      apexRefreshes++;
+    });
+    const coverageRefresh = contextManager.codeCoverageData.onDidChangeTreeData(() => {
+      coverageRefreshes++;
+    });
 
-    const refresh = refreshApexTests();
-    await waitForInvocation('FROM ApexClass');
+    const refresh = vscode.commands.executeCommand('salesforce-tests.refreshApexTests');
+    try {
+      await waitForInvocation('FROM ApexClass');
 
-    assert.strictEqual(contextManager.apexTestsData.testClasses, undefined);
-    assert.deepStrictEqual(contextManager.apexTestsData.getRootChildren(), []);
-    assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, [oldProductionClass]);
+      assert.strictEqual(apexRefreshes, 1);
+      assert.strictEqual(coverageRefreshes, 0);
+      assert.strictEqual(contextManager.apexTestsData.testClasses, undefined);
+      assert.deepStrictEqual(contextManager.apexTestsData.getRootChildren(), []);
+      assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, [oldProductionClass]);
 
-    await releaseFakeSfGate('models-apex');
-    await refresh;
+      await releaseFakeSfGate('models-apex');
+      await refresh;
 
-    const refreshedTests = contextManager.apexTestsData.testClasses as ApexTestClass[] | undefined;
-    assert.deepStrictEqual(
-      refreshedTests?.map((item) => item.name),
-      ['NewTest']
-    );
-    assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, [oldProductionClass]);
-    assert.strictEqual(getFakeSfInvocations().length, 1);
+      const refreshedTests = contextManager.apexTestsData.testClasses as
+        | ApexTestClass[]
+        | undefined;
+      assert.deepStrictEqual(
+        refreshedTests?.map((item) => item.name),
+        ['NewTest']
+      );
+      assert.strictEqual(apexRefreshes, 2);
+      assert.strictEqual(coverageRefreshes, 0);
+      assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, [oldProductionClass]);
+      assert.strictEqual(getFakeSfInvocations().length, 1);
+    } finally {
+      await releaseFakeSfGate('models-apex');
+      await refresh;
+      apexRefresh.dispose();
+      coverageRefresh.dispose();
+    }
   });
 
   it('C6 replaces production classes first and refreshes their coverage asynchronously', async () => {
@@ -186,33 +214,50 @@ describe('Apex discovery and views', () => {
         'models-coverage'
       ),
     });
+    let apexRefreshes = 0;
+    let coverageRefreshes = 0;
+    const apexRefresh = contextManager.apexTestsData.onDidChangeTreeData(() => {
+      apexRefreshes++;
+    });
+    const coverageRefresh = contextManager.codeCoverageData.onDidChangeTreeData(() => {
+      coverageRefreshes++;
+    });
 
-    await refreshCodeCoverage();
-    await waitForInvocation('ApexCodeCoverageAggregate');
+    await vscode.commands.executeCommand('salesforce-tests.refreshCodeCoverage');
+    try {
+      await waitForInvocation('ApexCodeCoverageAggregate');
 
-    assert.deepStrictEqual(contextManager.apexTestsData.testClasses, [existingTest]);
-    assert.deepStrictEqual(
-      contextManager.codeCoverageData.apexClasses?.map((item) => item.name),
-      ['NewProduction']
-    );
-    assert.strictEqual(
-      contextManager.codeCoverageData.getRootChildren()[0].description,
-      'Loading...'
-    );
+      assert.strictEqual(apexRefreshes, 0);
+      assert.strictEqual(coverageRefreshes, 2);
+      assert.deepStrictEqual(contextManager.apexTestsData.testClasses, [existingTest]);
+      assert.deepStrictEqual(
+        contextManager.codeCoverageData.apexClasses?.map((item) => item.name),
+        ['NewProduction']
+      );
+      assert.strictEqual(
+        contextManager.codeCoverageData.getRootChildren()[0].description,
+        'Loading...'
+      );
 
-    const finalRefresh = nextTreeRefresh(contextManager.codeCoverageData.onDidChangeTreeData);
-    await releaseFakeSfGate('models-coverage');
-    await finalRefresh;
+      const finalRefresh = nextTreeRefresh(contextManager.codeCoverageData.onDidChangeTreeData);
+      await releaseFakeSfGate('models-coverage');
+      await finalRefresh;
 
-    const updatedClass = contextManager.codeCoverageData.apexClasses?.[0];
-    assert.strictEqual(updatedClass?.codeCoverage, 75);
-    assert.strictEqual(updatedClass?.coveredLines, 3);
-    assert.strictEqual(updatedClass?.totalLines, 4);
-    assert.strictEqual(
-      contextManager.codeCoverageData.getRootChildren()[0].description,
-      '75.00% (3/4)'
-    );
-    assert.strictEqual(getFakeSfInvocations().length, 2);
+      const updatedClass = contextManager.codeCoverageData.apexClasses?.[0];
+      assert.strictEqual(updatedClass?.codeCoverage, 75);
+      assert.strictEqual(updatedClass?.coveredLines, 3);
+      assert.strictEqual(updatedClass?.totalLines, 4);
+      assert.strictEqual(
+        contextManager.codeCoverageData.getRootChildren()[0].description,
+        '75.00% (3/4)'
+      );
+      assert.strictEqual(coverageRefreshes, 3);
+      assert.strictEqual(getFakeSfInvocations().length, 2);
+    } finally {
+      await releaseFakeSfGate('models-coverage');
+      apexRefresh.dispose();
+      coverageRefresh.dispose();
+    }
   });
 });
 

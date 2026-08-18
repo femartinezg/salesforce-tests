@@ -40,20 +40,41 @@ describe('D. Running an Apex test class', () => {
   });
 
   it('D1 runs the selected class both inline and through the general selector', async () => {
-    const { testClass } = createExecutionContext(passingClassName);
+    const { contextManager, testClass } = createExecutionContext(passingClassName);
     stubProgress(sandbox);
     sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+    const output = sandbox.spy(contextManager, 'printOutput');
 
     await vscode.commands.executeCommand('salesforce-tests.runTestClass', {
       label: passingClassName,
     });
-    await waitFor(() => testClass.status === 'Passed');
+    await waitFor(() => testClass.status === 'Passed' && output.callCount === 2);
     assert.strictEqual(testRunInvocations().length, 1);
 
     testClass.status = undefined;
-    sandbox.stub(vscode.window, 'showQuickPick').resolves(passingClassName as never);
+    const quickPick = sandbox
+      .stub(vscode.window, 'showQuickPick')
+      .resolves(passingClassName as never);
     await vscode.commands.executeCommand('salesforce-tests.runTestClass');
-    await waitFor(() => testRunInvocations().length === 2 && testClass.status === 'Passed');
+    await waitFor(
+      () =>
+        testRunInvocations().length === 2 && testClass.status === 'Passed' && output.callCount === 4
+    );
+
+    assert.deepStrictEqual(quickPick.firstCall.args, [
+      [passingClassName],
+      { placeHolder: 'Select the Apex test class to run' },
+    ]);
+    const outputMessages = output.getCalls().map(({ args }) => args[0]);
+    const expectedResult = [
+      `${passingClassName} result`,
+      '✓ Passed',
+      'TestStartTime: 2026-01-02T03:04:05.000Z | TestExecutionTime: 1250',
+    ];
+    assert.strictEqual(outputMessages[0], `Running test: ${passingClassName}`);
+    assert.deepStrictEqual(outputMessages[1], expectedResult);
+    assert.strictEqual(outputMessages[2], `Running test: ${passingClassName}`);
+    assert.deepStrictEqual(outputMessages[3], expectedResult);
   });
 
   it('D2 does not start execution after cancelling, choosing an unknown class, or selecting Running', async () => {
@@ -74,7 +95,7 @@ describe('D. Running an Apex test class', () => {
   });
 
   it('D3 exposes Running state and notification progress with the class name while pending', async () => {
-    const { testClass } = createExecutionContext(pendingClassName);
+    const { contextManager, testClass } = createExecutionContext(pendingClassName);
     await configureFakeSf({
       testRuns: {
         [pendingClassName]: {
@@ -85,6 +106,10 @@ describe('D. Running an Apex test class', () => {
     });
     const progress = stubProgress(sandbox);
     sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+    let apexRefreshes = 0;
+    const apexRefresh = contextManager.apexTestsData.onDidChangeTreeData(() => {
+      apexRefreshes++;
+    });
 
     try {
       await vscode.commands.executeCommand('salesforce-tests.runTestClass', {
@@ -97,16 +122,27 @@ describe('D. Running an Apex test class', () => {
       assert.strictEqual(progressOptions.location, vscode.ProgressLocation.Notification);
       assert.strictEqual(progressOptions.title, `Running ${pendingClassName}...`);
       assert.strictEqual(progressOptions.cancellable, false);
+      assert.strictEqual(apexRefreshes, 1);
     } finally {
       await releaseFakeSfGate('running-state');
     }
     await waitFor(() => testClass.status === 'Passed');
+    assert.strictEqual(apexRefreshes, 2);
+    apexRefresh.dispose();
   });
 
   it('D4 stores a Passed result, time, duration, history, class coverage, and org coverage', async () => {
     const { contextManager, testClass, apexClass } = createExecutionContext(passingClassName);
     const information = sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
     const cancellation = new vscode.CancellationTokenSource();
+    let apexRefreshes = 0;
+    let statusRefreshes = 0;
+    let coverageRefreshes = 0;
+    const refreshes = [
+      contextManager.apexTestsData.onDidChangeTreeData(() => apexRefreshes++),
+      contextManager.statusData.onDidChangeTreeData(() => statusRefreshes++),
+      contextManager.codeCoverageData.onDidChangeTreeData(() => coverageRefreshes++),
+    ];
 
     try {
       const message = await runTestClass(testClass, contextManager, cancellation.token);
@@ -118,14 +154,25 @@ describe('D. Running an Apex test class', () => {
       assert.strictEqual(contextManager.statusData.testRuns.length, 1);
       assert.strictEqual(contextManager.statusData.testRuns[0].name, passingClassName);
       assert.strictEqual(contextManager.statusData.testRuns[0].success, true);
+      assert.deepStrictEqual(
+        contextManager.statusData.testRuns[0].startTime,
+        new Date('2026-01-02T03:04:05.000Z')
+      );
+      assert.strictEqual(contextManager.statusData.testRuns[0].duration, 1250);
       assert.strictEqual(apexClass.codeCoverage, 90);
       assert.strictEqual(apexClass.coveredLines, 9);
       assert.strictEqual(apexClass.totalLines, 10);
       assert.strictEqual(contextManager.statusData.orgWideCoverage, 91);
       assert.ok(message?.includes('✓ Passed'));
       assert.strictEqual(information.firstCall.args[0], `${passingClassName} passed.`);
+      assert.strictEqual(apexRefreshes, 2);
+      assert.strictEqual(statusRefreshes, 1);
+      assert.strictEqual(coverageRefreshes, 1);
     } finally {
       cancellation.dispose();
+      refreshes.forEach((refresh) => {
+        refresh.dispose();
+      });
     }
   });
 
@@ -139,6 +186,14 @@ describe('D. Running an Apex test class', () => {
     const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
     const output = sandbox.spy(contextManager, 'printOutput');
     stubProgress(sandbox);
+    let apexRefreshes = 0;
+    let statusRefreshes = 0;
+    let coverageRefreshes = 0;
+    const refreshes = [
+      contextManager.apexTestsData.onDidChangeTreeData(() => apexRefreshes++),
+      contextManager.statusData.onDidChangeTreeData(() => statusRefreshes++),
+      contextManager.codeCoverageData.onDidChangeTreeData(() => coverageRefreshes++),
+    ];
 
     await vscode.commands.executeCommand('salesforce-tests.runTestClass', {
       label: failingClassName,
@@ -161,6 +216,12 @@ describe('D. Running an Apex test class', () => {
     );
     assert.doesNotMatch(resultOutput?.join('\n') ?? '', /FixtureFailingTest\.passes/);
     assert.strictEqual(errorMessage.firstCall.args[0], `${failingClassName} failed.`);
+    assert.strictEqual(apexRefreshes, 2);
+    assert.strictEqual(statusRefreshes, 1);
+    assert.strictEqual(coverageRefreshes, 1);
+    refreshes.forEach((refresh) => {
+      refresh.dispose();
+    });
   });
 
   it('D6 restores the previous state and marks a rejected execution as blocked', async () => {
@@ -168,6 +229,10 @@ describe('D. Running an Apex test class', () => {
     testClass.status = 'Passed';
     testClass.startTime = new Date('2026-01-01T00:00:00.000Z');
     testClass.duration = 250;
+    const previousStartTime = testClass.startTime;
+    const previousDuration = testClass.duration;
+    const previousDescription = testClass.getTreeItem().description;
+    const previousCoverage = contextManager.statusData.orgWideCoverage;
     await configureFakeSf({
       testRuns: {
         [passingClassName]: {
@@ -181,20 +246,39 @@ describe('D. Running an Apex test class', () => {
     });
     const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
     const cancellation = new vscode.CancellationTokenSource();
+    let apexRefreshes = 0;
+    let statusRefreshes = 0;
+    let coverageRefreshes = 0;
+    const refreshes = [
+      contextManager.apexTestsData.onDidChangeTreeData(() => apexRefreshes++),
+      contextManager.statusData.onDidChangeTreeData(() => statusRefreshes++),
+      contextManager.codeCoverageData.onDidChangeTreeData(() => coverageRefreshes++),
+    ];
 
     try {
       const message = await runTestClass(testClass, contextManager, cancellation.token);
 
       assert.strictEqual(testClass.status, 'Passed');
       assert.strictEqual(testClass.executionBlocked, true);
-      assert.match(String(testClass.getTreeItem().description ?? ''), /^⚠ /);
+      assert.deepStrictEqual(testClass.startTime, previousStartTime);
+      assert.strictEqual(testClass.duration, previousDuration);
+      assert.strictEqual(contextManager.statusData.orgWideCoverage, previousCoverage);
+      assert.strictEqual(contextManager.statusData.testRuns.length, 0);
+      assert.strictEqual(contextManager.codeCoverageData.apexClasses?.[0]?.codeCoverage, undefined);
+      assert.strictEqual(testClass.getTreeItem().description, `⚠ ${previousDescription}`);
       assert.match(
         message?.join('\n') ?? '',
         /SyntheticOperationError: Fixture execution rejected/
       );
       assert.match(String(errorMessage.firstCall.args[0]), /Fixture execution rejected/);
+      assert.strictEqual(apexRefreshes, 2);
+      assert.strictEqual(statusRefreshes, 0);
+      assert.strictEqual(coverageRefreshes, 0);
     } finally {
       cancellation.dispose();
+      refreshes.forEach((refresh) => {
+        refresh.dispose();
+      });
     }
   });
 
@@ -206,14 +290,29 @@ describe('D. Running an Apex test class', () => {
       { stdout: 'not-json' },
     ]) {
       const { contextManager, testClass } = createExecutionContext(passingClassName);
+      let apexRefreshes = 0;
+      let statusRefreshes = 0;
+      let coverageRefreshes = 0;
+      const refreshes = [
+        contextManager.apexTestsData.onDidChangeTreeData(() => apexRefreshes++),
+        contextManager.statusData.onDidChangeTreeData(() => statusRefreshes++),
+        contextManager.codeCoverageData.onDidChangeTreeData(() => coverageRefreshes++),
+      ];
       await configureFakeSf({ testRuns: { [passingClassName]: response } });
       const cancellation = new vscode.CancellationTokenSource();
       try {
         await runTestClass(testClass, contextManager, cancellation.token);
         assert.notStrictEqual(testClass.status, 'Running');
         assert.strictEqual(testClass.status, undefined);
+        assert.strictEqual(contextManager.statusData.testRuns.length, 0);
+        assert.strictEqual(apexRefreshes, 2);
+        assert.strictEqual(statusRefreshes, 1);
+        assert.strictEqual(coverageRefreshes, 0);
       } finally {
         cancellation.dispose();
+        refreshes.forEach((refresh) => {
+          refresh.dispose();
+        });
       }
     }
 
@@ -225,26 +324,38 @@ describe('D. Running an Apex test class', () => {
   it('D8 opens the output for View Results from both success and error notifications', async () => {
     const displayOutput = sandbox.spy();
     const contextManager = { displayOutput };
-    sandbox.stub(vscode.window, 'showInformationMessage').resolves('View Results' as never);
-    sandbox.stub(vscode.window, 'showErrorMessage').resolves('View Results' as never);
+    const information = sandbox
+      .stub(vscode.window, 'showInformationMessage')
+      .resolves('View Results' as never);
+    const error = sandbox.stub(vscode.window, 'showErrorMessage').resolves('View Results' as never);
 
     showTestResultMessage('synthetic success', MessageType.Info, contextManager);
     showTestResultMessage('synthetic failure', MessageType.Error, contextManager);
     await waitFor(() => displayOutput.callCount === 2);
 
+    assert.deepStrictEqual(information.firstCall.args, ['synthetic success', 'View Results']);
+    assert.deepStrictEqual(error.firstCall.args, ['synthetic failure', 'View Results']);
     assert.strictEqual(displayOutput.callCount, 2);
   });
 
   it('D9.1 ignores a pending result after Refresh Org replaces its context', async () => {
+    const information = sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+    const error = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
     await assertLateResultIgnored(async () => {
       await vscode.commands.executeCommand('salesforce-tests.refreshOrg');
     }, 'refresh-org');
+    assert.strictEqual(information.callCount, 0);
+    assert.strictEqual(error.callCount, 0);
   });
 
   it('D9.2 ignores a pending result after .sf/config.json replaces its context', async () => {
+    const information = sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+    const error = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
     await assertLateResultIgnored(async () => {
       await writeWorkspaceSfConfig({ executionRevision: 'late-result' });
     }, 'config-change');
+    assert.strictEqual(information.callCount, 0);
+    assert.strictEqual(error.callCount, 0);
   });
 });
 
