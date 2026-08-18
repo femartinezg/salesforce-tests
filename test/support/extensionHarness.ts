@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { getContextManager, getNewContextManager } from '../../src/common';
 
 export interface FakeSfResponse {
   stdout?: string;
@@ -54,6 +55,7 @@ export async function activateExtension(): Promise<vscode.Extension<unknown>> {
   const extension = vscode.extensions.getExtension<unknown>('femartinezg.salesforce-tests');
   assert.ok(extension, 'Salesforce Tests must be available in the Extension Host');
   if (!extension.isActive) {
+    getNewContextManager();
     const previousOrgInfoCalls = getFakeSfInvocations().filter(
       ({ operation }) => operation === 'orgInfo'
     ).length;
@@ -63,6 +65,22 @@ export async function activateExtension(): Promise<vscode.Extension<unknown>> {
         getFakeSfInvocations().filter(({ operation }) => operation === 'orgInfo').length
         > previousOrgInfoCalls
     );
+    const expected = defaultFakeSfPlan();
+    await waitFor(() => {
+      const contextManager = getContextManager();
+      return (
+        contextManager.statusData.alias === expected.expectedAlias
+        && contextManager.statusData.username === expected.expectedUsername
+        && contextManager.statusData.orgWideCoverage === expected.expectedOrgCoverage
+        && contextManager.apexTestsData.testClasses?.some(
+          ({ name }) => name === expected.expectedTestClass
+        ) === true
+        && contextManager.codeCoverageData.apexClasses?.some(
+          ({ name, codeCoverage }) =>
+            name === expected.expectedApexClass && codeCoverage === expected.expectedClassCoverage
+        ) === true
+      );
+    });
     initialLoadObservedDuringActivation = true;
   }
   return extension;

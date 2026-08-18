@@ -79,8 +79,9 @@ describe('D. Running an Apex test class', () => {
   });
 
   it('D2 does not start execution after cancelling, choosing an unknown class, or selecting Running', async () => {
-    const { testClass } = createExecutionContext(passingClassName);
+    const { contextManager, testClass } = createExecutionContext(passingClassName);
     const quickPick = sandbox.stub(vscode.window, 'showQuickPick').resolves(undefined);
+    const output = sandbox.spy(contextManager, 'printOutput');
 
     await vscode.commands.executeCommand('salesforce-tests.runTestClass');
     await vscode.commands.executeCommand('salesforce-tests.runTestClass', {
@@ -92,6 +93,7 @@ describe('D. Running an Apex test class', () => {
     });
 
     assert.strictEqual(quickPick.callCount, 1);
+    assert.strictEqual(output.callCount, 0);
     assert.deepStrictEqual(testRunInvocations(), []);
   });
 
