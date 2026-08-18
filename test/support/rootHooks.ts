@@ -54,10 +54,7 @@ export function mochaGlobalSetup(): void {
 
 export function mochaGlobalTeardown(): void {
   delete process.env.SALESFORCE_TESTS_ISOLATION_VERIFIED;
-  const runtimeRoot = process.env.SALESFORCE_TESTS_FAKE_ROOT;
-  if (runtimeRoot) {
-    fs.rmSync(runtimeRoot, { recursive: true, force: true });
-  }
+  // The outer test runner removes the runtime after the Extension Host has stopped.
 }
 
 function requiredEnvironment(name: string): string {

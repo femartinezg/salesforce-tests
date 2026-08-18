@@ -7,7 +7,14 @@ import { fileURLToPath } from 'node:url';
 
 const extensionRoot = path.dirname(fileURLToPath(import.meta.url));
 const runtimeRoot = await mkdtemp(path.join(tmpdir(), 'salesforce-tests-extension-'));
-process.once('exit', () => rmSync(runtimeRoot, { recursive: true, force: true }));
+process.once('exit', () =>
+  rmSync(runtimeRoot, {
+    recursive: true,
+    force: true,
+    maxRetries: 20,
+    retryDelay: 50,
+  })
+);
 const fakeBin = path.join(runtimeRoot, 'bin');
 const workspaceRoot = path.join(runtimeRoot, 'workspace');
 const homeRoot = path.join(runtimeRoot, 'home');
