@@ -341,9 +341,13 @@ describe('D. Running an Apex test class', () => {
   it('D9.1 ignores a pending result after Refresh Org replaces its context', async () => {
     const information = sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
     const error = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
-    await assertLateResultIgnored(async () => {
-      await vscode.commands.executeCommand('salesforce-tests.refreshOrg');
-    }, 'refresh-org');
+    await assertLateResultIgnored(
+      async () => {
+        await vscode.commands.executeCommand('salesforce-tests.refreshOrg');
+      },
+      'refresh-org',
+      sandbox
+    );
     assert.strictEqual(information.callCount, 0);
     assert.strictEqual(error.callCount, 0);
   });
@@ -351,9 +355,13 @@ describe('D. Running an Apex test class', () => {
   it('D9.2 ignores a pending result after .sf/config.json replaces its context', async () => {
     const information = sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
     const error = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
-    await assertLateResultIgnored(async () => {
-      await writeWorkspaceSfConfig({ executionRevision: 'late-result' });
-    }, 'config-change');
+    await assertLateResultIgnored(
+      async () => {
+        await writeWorkspaceSfConfig({ executionRevision: 'late-result' });
+      },
+      'config-change',
+      sandbox
+    );
     assert.strictEqual(information.callCount, 0);
     assert.strictEqual(error.callCount, 0);
   });
@@ -398,11 +406,10 @@ function testRunInvocations() {
 
 async function assertLateResultIgnored(
   replaceContext: () => Promise<void>,
-  gate: string
+  gate: string,
+  sandbox: sinon.SinonSandbox
 ): Promise<void> {
   const { contextManager: oldContext, testClass } = createExecutionContext(pendingClassName);
-  const cancellation = new vscode.CancellationTokenSource();
-  oldContext.runTestCancelTokens.push(cancellation);
   await configureFakeSf({
     testRuns: {
       [pendingClassName]: {
@@ -411,17 +418,27 @@ async function assertLateResultIgnored(
       },
     },
   });
-  const pendingResult = runTestClass(testClass, oldContext, cancellation.token);
+  stubProgress(sandbox);
+  const output = sandbox.spy(oldContext, 'printOutput');
+  await vscode.commands.executeCommand('salesforce-tests.runTestClass', {
+    label: pendingClassName,
+  });
 
   try {
-    await waitFor(() => testClass.status === 'Running' && testRunInvocations().length === 1);
+    await waitFor(
+      () =>
+        testClass.status === 'Running'
+        && testRunInvocations().length === 1
+        && oldContext.runTestCancelTokens.length === 1
+    );
+    const cancellation = oldContext.runTestCancelTokens[0];
     await replaceContext();
     await waitFor(
       () => getContextManager() !== oldContext && cancellation.token.isCancellationRequested
     );
     const newContext = getContextManager();
     await releaseFakeSfGate(gate);
-    await pendingResult;
+    await waitFor(() => oldContext.runTestCancelTokens.length === 0);
     await waitFor(
       () =>
         newContext.statusData.orgWideCoverage === 84
@@ -432,9 +449,12 @@ async function assertLateResultIgnored(
     assert.strictEqual(newContext.statusData.orgWideCoverage, 84);
     assert.strictEqual(newContext.codeCoverageData.apexClasses?.[0]?.codeCoverage, 80);
     assert.strictEqual(newContext.apexTestsData.testClasses?.[0]?.status, undefined);
+    assert.deepStrictEqual(
+      output.getCalls().map(({ args }) => args[0]),
+      [`Running test: ${pendingClassName}`]
+    );
   } finally {
     await releaseFakeSfGate(gate);
-    cancellation.dispose();
   }
 }
 
