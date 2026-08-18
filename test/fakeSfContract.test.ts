@@ -20,6 +20,7 @@ import {
   waitFor,
   waitForFakeSfGate,
 } from './support/extensionHarness';
+import { mochaGlobalTeardown } from './support/rootHooks';
 
 describe('Synthetic Salesforce CLI contract', () => {
   beforeEach(async () => {
@@ -31,6 +32,25 @@ describe('Synthetic Salesforce CLI contract', () => {
       process.env.SALESFORCE_TESTS_ISOLATION_VERIFIED,
       process.env.SALESFORCE_TESTS_FAKE_ROOT
     );
+  });
+
+  it('defers runtime cleanup until after the Extension Host has stopped', () => {
+    const runtimeRoot = process.env.SALESFORCE_TESTS_FAKE_ROOT;
+    const isolationCanary = process.env.SALESFORCE_TESTS_ISOLATION_VERIFIED;
+    assert.ok(runtimeRoot);
+    assert.ok(isolationCanary);
+
+    try {
+      mochaGlobalTeardown();
+
+      assert.ok(
+        fs.existsSync(runtimeRoot),
+        'The Extension Host teardown must leave its active runtime for the outer runner to clean'
+      );
+      assert.strictEqual(process.env.SALESFORCE_TESTS_ISOLATION_VERIFIED, undefined);
+    } finally {
+      process.env.SALESFORCE_TESTS_ISOLATION_VERIFIED = isolationCanary;
+    }
   });
 
   it('keeps the committed fixture deterministic, coherent, and synthetic', () => {
