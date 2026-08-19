@@ -382,7 +382,7 @@ export async function runTestClass(
     }
 
     if (coverageResult.coverage) {
-      getCodeCoverage(coverageResult.coverage);
+      void getCodeCoverage(coverageResult.coverage);
     }
 
     if (coverageResult.summary) {
@@ -412,31 +412,36 @@ export async function runTestClass(
   }
 }
 
-async function getCodeCoverage(coverage: TestCoverage[]) {
-  const contextManager = getContextManager();
-  for (const coverageItem of coverage) {
-    const apexClass = contextManager.codeCoverageData.apexClasses?.find(
-      (apexClass: ApexClass) => coverageItem.name === apexClass.name
-    );
-    if (apexClass) {
-      apexClass.totalLines = coverageItem.totalLines;
-      apexClass.coveredLines = coverageItem.totalCovered;
-      if (coverageItem.totalLines === 0) {
-        apexClass.codeCoverage = 100;
-      } else {
-        apexClass.codeCoverage = (coverageItem.totalCovered / coverageItem.totalLines) * 100;
+function getCodeCoverage(coverage: TestCoverage[]): Promise<void> {
+  try {
+    const contextManager = getContextManager();
+    for (const coverageItem of coverage) {
+      const apexClass = contextManager.codeCoverageData.apexClasses?.find(
+        (apexClass: ApexClass) => coverageItem.name === apexClass.name
+      );
+      if (apexClass) {
+        apexClass.totalLines = coverageItem.totalLines;
+        apexClass.coveredLines = coverageItem.totalCovered;
+        if (coverageItem.totalLines === 0) {
+          apexClass.codeCoverage = 100;
+        } else {
+          apexClass.codeCoverage = (coverageItem.totalCovered / coverageItem.totalLines) * 100;
+        }
       }
-    }
 
-    contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
-      if (apexClass.codeCoverage === undefined) {
-        apexClass.codeCoverage = -1;
-        apexClass.totalLines = -1;
-        apexClass.coveredLines = -1;
-      }
-    });
+      contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
+        if (apexClass.codeCoverage === undefined) {
+          apexClass.codeCoverage = -1;
+          apexClass.totalLines = -1;
+          apexClass.coveredLines = -1;
+        }
+      });
+    }
+    contextManager.codeCoverageData.refresh();
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error as Error);
   }
-  contextManager.codeCoverageData.refresh();
 }
 
 export async function retrieveOrgCoverage() {
