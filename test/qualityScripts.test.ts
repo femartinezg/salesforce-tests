@@ -4,6 +4,13 @@ import * as path from 'path';
 import { extensionRoot } from './support/extensionHarness';
 
 interface PackageManifest {
+  capabilities?: {
+    untrustedWorkspaces?: {
+      supported?: boolean;
+      description?: string;
+    };
+  };
+  dependencies?: Record<string, string>;
   scripts: Record<string, string>;
 }
 
@@ -20,5 +27,27 @@ describe('Local quality checks', () => {
       'npm run compile && npm run lint && npm run test:extension'
     );
     assert.doesNotMatch(manifest.scripts.check, /\bnpm ci\b/);
+  });
+
+  it('does not declare the unused Salesforce Core production dependency', () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(extensionRoot, 'package.json'), 'utf8')
+    ) as PackageManifest;
+    const packageLock = fs.readFileSync(path.join(extensionRoot, 'package-lock.json'), 'utf8');
+
+    assert.strictEqual(manifest.dependencies?.['@salesforce/core'], undefined);
+    assert.doesNotMatch(packageLock, /"@salesforce\/core"/);
+    assert.doesNotMatch(packageLock, /node_modules\/@salesforce\/core/);
+  });
+
+  it('declares that untrusted workspaces are unsupported with an explanation', () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(extensionRoot, 'package.json'), 'utf8')
+    ) as PackageManifest;
+
+    assert.deepStrictEqual(manifest.capabilities?.untrustedWorkspaces, {
+      supported: false,
+      description: 'The extension executes Salesforce CLI commands using workspace configuration.',
+    });
   });
 });
