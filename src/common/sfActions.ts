@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { getContextManager } from '.';
 import { ApexClass, ApexTestClass } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
@@ -23,6 +22,11 @@ import {
 } from './sfResponseParsers';
 import { runSf } from './sfRunner';
 
+export const ORG_TARGET_ERROR_MESSAGE =
+  'Unable to use the selected Salesforce org. Check authentication or run Refresh Org.';
+
+class OrgTargetError extends Error {}
+
 export async function retrieveOrgInfo(): Promise<{
   status: boolean;
   alias?: string;
@@ -37,18 +41,22 @@ export async function retrieveOrgInfo(): Promise<{
     const { alias, username, orgName } = parseJsonResponse(stdout, 'org', parseOrgInfoResponse);
     return { status: true, alias, username, orgName };
   } catch (error) {
-    reportResponseError(error);
+    reportOperationError(error);
     return { status: false };
   }
 }
 
-export async function retrieveApexClasses(): Promise<{
+export async function retrieveApexClasses(targetOrg: string): Promise<{
   testClasses: ApexTestClass[];
   apexClasses: ApexClass[];
 }> {
-  const invocation = getApexClassesInvocation();
+  const invocation = getApexClassesInvocation(targetOrg);
   const { error, stdout } = await runSf(invocation.args, invocation.options);
-  if (error) throw new Error(String(error));
+  if (error) {
+    const orgError = new OrgTargetError(ORG_TARGET_ERROR_MESSAGE);
+    reportOperationError(orgError);
+    throw orgError;
+  }
 
   try {
     const { records, discardedRecords } = parseJsonResponse(
@@ -79,7 +87,7 @@ export async function retrieveApexClasses(): Promise<{
       apexClasses: apexClasses,
     };
   } catch (e: unknown) {
-    reportResponseError(e);
+    reportOperationError(e);
     if (e instanceof Error) throw e;
     throw new Error('Unexpected error');
   }
@@ -157,11 +165,14 @@ function parseBody(body: string): boolean | undefined {
   return false;
 }
 
-export async function retrieveCodeCoverage() {
-  const contextManager = getContextManager();
-  const invocation = getCodeCoverageInvocation();
+export async function retrieveCodeCoverage(contextManager: ContextManager, targetOrg: string) {
+  const invocation = getCodeCoverageInvocation(targetOrg);
   const { error, stdout } = await runSf(invocation.args, invocation.options);
-  if (error) throw new Error(String(error));
+  if (error) {
+    const orgError = new OrgTargetError(ORG_TARGET_ERROR_MESSAGE);
+    reportOperationError(orgError);
+    throw orgError;
+  }
 
   try {
     const { records } = parseJsonResponse(stdout, 'codeCoverage', parseCodeCoverageResponse);
@@ -193,7 +204,7 @@ export async function retrieveCodeCoverage() {
       }
     });
   } catch (e: unknown) {
-    reportResponseError(e);
+    reportOperationError(e);
     if (e instanceof Error) throw e;
     throw new Error('Unexpected error');
   }
@@ -202,6 +213,7 @@ export async function retrieveCodeCoverage() {
 export async function runTestClass(
   testClass: ApexTestClass,
   contextManager: ContextManager,
+  targetOrg: string,
   cancellationToken: vscode.CancellationToken
 ): Promise<string[] | undefined> {
   const message: string[] = [];
@@ -210,9 +222,11 @@ export async function runTestClass(
   contextManager.apexTestsData.refresh();
 
   try {
-    const invocation = getTestClassInvocation(testClass.name);
+    const invocation = getTestClassInvocation(testClass.name, targetOrg);
     const execution = await runSf(invocation.args, invocation.options);
-    if (!execution.stdout) throw execution.error ?? new Error('Salesforce CLI returned no output');
+    if (execution.error || !execution.stdout) {
+      throw new OrgTargetError(ORG_TARGET_ERROR_MESSAGE);
+    }
     const stdout = execution.stdout;
 
     const result = parseJsonResponse(stdout, 'testExecution', parseTestExecutionResponse);
@@ -286,7 +300,7 @@ export async function runTestClass(
     }
 
     if (result.coverage) {
-      void getCodeCoverage(result.coverage.classes);
+      void getCodeCoverage(result.coverage.classes, contextManager);
       contextManager.statusData.orgWideCoverage = result.coverage.orgWideCoverage;
     }
 
@@ -311,9 +325,11 @@ export async function runTestClass(
   }
 }
 
-function getCodeCoverage(coverage: TestClassCoverageDto[]): Promise<void> {
+function getCodeCoverage(
+  coverage: TestClassCoverageDto[],
+  contextManager: ContextManager
+): Promise<void> {
   try {
-    const contextManager = getContextManager();
     for (const coverageItem of coverage) {
       const apexClass = contextManager.codeCoverageData.apexClasses?.find(
         (apexClass: ApexClass) => coverageItem.name === apexClass.name
@@ -343,15 +359,19 @@ function getCodeCoverage(coverage: TestClassCoverageDto[]): Promise<void> {
   }
 }
 
-export async function retrieveOrgCoverage() {
-  const invocation = getOrgCoverageInvocation();
+export async function retrieveOrgCoverage(targetOrg: string) {
+  const invocation = getOrgCoverageInvocation(targetOrg);
   const { error, stdout } = await runSf(invocation.args, invocation.options);
-  if (error) throw new Error(String(error));
+  if (error) {
+    const orgError = new OrgTargetError(ORG_TARGET_ERROR_MESSAGE);
+    reportOperationError(orgError);
+    throw orgError;
+  }
 
   try {
     return parseJsonResponse(stdout, 'orgCoverage', parseOrgCoverageResponse);
   } catch (e: unknown) {
-    reportResponseError(e);
+    reportOperationError(e);
     if (e instanceof Error) throw e;
     throw new Error('Unexpected error');
   }
@@ -371,8 +391,8 @@ function parseJsonResponse<T>(
   return parser(response);
 }
 
-function reportResponseError(error: unknown): void {
-  if (error instanceof SfResponseError) {
+function reportOperationError(error: unknown): void {
+  if (error instanceof SfResponseError || error instanceof OrgTargetError) {
     void vscode.window.showErrorMessage(error.message);
   }
 }
