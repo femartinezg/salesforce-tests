@@ -186,6 +186,41 @@ describe('D. Running an Apex test class', () => {
     }
   });
 
+  it('D4.1 keeps the completed result and history without applying absent or invalid coverage', async () => {
+    sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+
+    for (const coverage of [
+      undefined,
+      { coverage: 'not-an-array', summary: { orgWideCoverage: 'response-secret' } },
+    ]) {
+      const { contextManager, testClass, apexClass } = createExecutionContext(passingClassName);
+      apexClass.codeCoverage = 60;
+      apexClass.coveredLines = 6;
+      apexClass.totalLines = 10;
+      await configureFakeSf({
+        testRuns: {
+          [passingClassName]: {
+            json: completedResultWithOptionalCoverage(passingClassName, coverage),
+          },
+        },
+      });
+      const cancellation = new vscode.CancellationTokenSource();
+
+      try {
+        await runTestClass(testClass, contextManager, cancellation.token);
+
+        assert.strictEqual(testClass.status, 'Passed');
+        assert.strictEqual(contextManager.statusData.testRuns.length, 1);
+        assert.strictEqual(contextManager.statusData.orgWideCoverage, 84);
+        assert.strictEqual(apexClass.codeCoverage, 60);
+        assert.strictEqual(apexClass.coveredLines, 6);
+        assert.strictEqual(apexClass.totalLines, 10);
+      } finally {
+        cancellation.dispose();
+      }
+    }
+  });
+
   it('D5 stores a Failed result and reports only failed methods with message and stack trace', async () => {
     const { contextManager, testClass } = createExecutionContext(failingClassName);
     await configureFakeSf({
@@ -292,6 +327,37 @@ describe('D. Running an Apex test class', () => {
     }
   });
 
+  it('D6.1 uses a generic safe error when rejection details are absent or incompatible', async () => {
+    const { contextManager, testClass } = createExecutionContext(passingClassName);
+    await configureFakeSf({
+      testRuns: {
+        [passingClassName]: {
+          json: {
+            status: 1,
+            name: 42,
+            message: { secret: 'rejection-response-secret' },
+          },
+        },
+      },
+    });
+    const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+    const cancellation = new vscode.CancellationTokenSource();
+
+    try {
+      const message = await runTestClass(testClass, contextManager, cancellation.token);
+
+      assert.strictEqual(testClass.executionBlocked, true);
+      assert.ok(message?.includes('Unexpected error'));
+      assert.strictEqual(
+        errorMessage.firstCall.args[0],
+        `Error running ${passingClassName}: Unexpected error`
+      );
+      assert.doesNotMatch(String(errorMessage.firstCall.args[0]), /secret|response|\{|\}/i);
+    } finally {
+      cancellation.dispose();
+    }
+  });
+
   it('D7 clears Running and reports both a failed process and non-JSON output', async () => {
     const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
 
@@ -328,7 +394,63 @@ describe('D. Running an Apex test class', () => {
 
     assert.strictEqual(errorMessage.callCount, 2);
     assert.match(String(errorMessage.firstCall.args[0]), /Error running FixturePassingTest/);
-    assert.match(String(errorMessage.secondCall.args[0]), /Error running FixturePassingTest/);
+    assert.strictEqual(
+      errorMessage.secondCall.args[0],
+      `Error running ${passingClassName}: Salesforce CLI returned an incompatible test execution response.`
+    );
+  });
+
+  it('D7.2 rejects an incompatible completed response without applying partial result data', async () => {
+    const { contextManager, testClass, apexClass } = createExecutionContext(passingClassName);
+    testClass.status = 'Passed';
+    testClass.startTime = new Date('2026-01-01T00:00:00.000Z');
+    testClass.duration = 250;
+    apexClass.codeCoverage = 80;
+    apexClass.coveredLines = 8;
+    apexClass.totalLines = 10;
+    await configureFakeSf({
+      testRuns: {
+        [passingClassName]: {
+          json: {
+            status: 0,
+            result: {
+              summary: {
+                outcome: 'Passed',
+                testStartTime: 'not-a-date',
+                testExecutionTime: '1250',
+              },
+              coverage: {
+                coverage: [{ name: 'FixtureService', totalLines: 10, totalCovered: 10 }],
+                summary: { orgWideCoverage: '100%' },
+              },
+              secret: 'test-response-secret',
+            },
+          },
+        },
+      },
+    });
+    const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+    const cancellation = new vscode.CancellationTokenSource();
+
+    try {
+      await runTestClass(testClass, contextManager, cancellation.token);
+
+      assert.strictEqual(testClass.status, undefined);
+      assert.deepStrictEqual(testClass.startTime, new Date('2026-01-01T00:00:00.000Z'));
+      assert.strictEqual(testClass.duration, 250);
+      assert.strictEqual(contextManager.statusData.testRuns.length, 0);
+      assert.strictEqual(contextManager.statusData.orgWideCoverage, 84);
+      assert.strictEqual(apexClass.codeCoverage, 80);
+      assert.strictEqual(apexClass.coveredLines, 8);
+      assert.strictEqual(apexClass.totalLines, 10);
+      assert.strictEqual(
+        errorMessage.firstCall.args[0],
+        `Error running ${passingClassName}: Salesforce CLI returned an incompatible test execution response.`
+      );
+      assert.doesNotMatch(String(errorMessage.firstCall.args[0]), /secret|not-a-date|\{|\}/i);
+    } finally {
+      cancellation.dispose();
+    }
   });
 
   it('D7.1 falls back to the thrown value when its message is empty', async () => {
@@ -510,6 +632,21 @@ function passedResult(testClassName: string) {
         coverage: [{ name: 'FixtureService', totalLines: 10, totalCovered: 9 }],
         summary: { orgWideCoverage: '91%' },
       },
+    },
+  };
+}
+
+function completedResultWithOptionalCoverage(testClassName: string, coverage: unknown) {
+  return {
+    status: 0,
+    result: {
+      summary: {
+        outcome: 'Passed',
+        testStartTime: '2026-01-02T03:04:05.000Z',
+        testExecutionTime: '500',
+      },
+      tests: [{ FullName: `${testClassName}.passes`, Outcome: 'Pass' }],
+      ...(coverage === undefined ? {} : { coverage }),
     },
   };
 }

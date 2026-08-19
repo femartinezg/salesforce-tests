@@ -1,0 +1,139 @@
+{
+  "org": {
+    "status": 0,
+    "result": {
+      "alias": "fixture-org",
+      "username": "fixture.user@example.invalid",
+      "instanceUrl": "https://fixture.example.invalid"
+    }
+  },
+  "apexInventory": {
+    "status": 0,
+    "result": {
+      "records": [
+        {
+          "Id": "fixture-test-id",
+          "Name": "FixturePassingTest",
+          "Body": "@IsTest private class FixturePassingTest {}"
+        },
+        {
+          "Id": "fixture-class-id",
+          "Name": "FixtureService",
+          "Body": "public class FixtureService {}"
+        }
+      ]
+    }
+  },
+  "codeCoverage": {
+    "status": 0,
+    "result": {
+      "records": [
+        {
+          "ApexClassOrTriggerId": "fixture-class-id",
+          "NumLinesCovered": 8,
+          "NumLinesUncovered": 2
+        }
+      ]
+    }
+  },
+  "orgCoverage": {
+    "status": 0,
+    "result": {
+      "records": [
+        {
+          "PercentCovered": 84
+        }
+      ]
+    }
+  },
+  "testPassed": {
+    "status": 0,
+    "result": {
+      "summary": {
+        "outcome": "Passed",
+        "testStartTime": "2026-01-02T03:04:05.000Z",
+        "testExecutionTime": "1250 ms"
+      },
+      "tests": [
+        {
+          "FullName": "FixturePassingTest.passes",
+          "Outcome": "Pass"
+        }
+      ],
+      "coverage": {
+        "coverage": [
+          {
+            "name": "FixtureService",
+            "totalLines": 10,
+            "totalCovered": 9
+          }
+        ],
+        "summary": {
+          "orgWideCoverage": "91%"
+        }
+      }
+    }
+  },
+  "testFailed": {
+    "status": 100,
+    "result": {
+      "summary": {
+        "outcome": "Failed",
+        "testStartTime": "2026-01-02T03:04:05.000Z",
+        "testExecutionTime": 875
+      },
+      "tests": [
+        {
+          "FullName": "FixtureFailingTest.fails",
+          "Outcome": "Fail",
+          "Message": "synthetic assertion",
+          "StackTrace": "Class.FixtureFailingTest: line 7"
+        }
+      ],
+      "coverage": {
+        "coverage": [
+          {
+            "name": "FixtureService",
+            "totalLines": 10,
+            "totalCovered": 6
+          }
+        ],
+        "summary": {
+          "orgWideCoverage": "72%"
+        }
+      }
+    }
+  },
+  "testWithoutCoverage": {
+    "status": 0,
+    "result": {
+      "summary": {
+        "outcome": "Passed",
+        "testStartTime": "2026-01-02T03:04:05.000Z",
+        "testExecutionTime": "500"
+      }
+    }
+  },
+  "testWithIncompleteMethods": {
+    "status": 100,
+    "result": {
+      "summary": {
+        "outcome": "Failed",
+        "testStartTime": "2026-01-02T03:04:05.000Z",
+        "testExecutionTime": "625ms"
+      },
+      "tests": [
+        {
+          "Outcome": "Fail",
+          "FullName": "FixtureFailingTest.incomplete"
+        },
+        {
+          "Outcome": "Fail",
+          "FullName": "FixtureFailingTest.complete",
+          "Message": "synthetic assertion",
+          "StackTrace": "Class.FixtureFailingTest: line 9"
+        }
+      ]
+    }
+  }
+}

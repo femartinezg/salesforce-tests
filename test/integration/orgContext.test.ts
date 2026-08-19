@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { ApexTestClass } from '../../src/classes/Apex';
 import { TestRun } from '../../src/classes/TestRun';
@@ -54,24 +55,60 @@ describe('B. Active org and general state', () => {
     assert.strictEqual(orgWithoutIdentity.description, '');
   });
 
-  it('B1.1 preserves empty org fields and a missing coverage collection as falsy fallbacks', async () => {
+  it('B1.1 uses the username fallback for optional org fields and rejects missing coverage', async () => {
     await configureFakeSf({
       orgInfo: {
         json: {
           status: 0,
-          result: { alias: '', username: '', instanceUrl: 'https://.example.invalid' },
+          result: {
+            alias: 42,
+            username: 'fixture.user@example.invalid',
+            instanceUrl: 'not-a-url',
+          },
         },
       },
       orgCoverage: { json: { status: 0, result: {} } },
     });
+    const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
 
-    assert.deepStrictEqual(await retrieveOrgInfo(), {
-      status: true,
-      alias: undefined,
-      username: undefined,
-      orgName: undefined,
+    try {
+      assert.deepStrictEqual(await retrieveOrgInfo(), {
+        status: true,
+        alias: 'fixture.user@example.invalid',
+        username: 'fixture.user@example.invalid',
+        orgName: undefined,
+      });
+      await assert.rejects(retrieveOrgCoverage(), /incompatible org coverage response/i);
+      assert.strictEqual(
+        errorMessage.firstCall.args[0],
+        'Salesforce CLI returned an incompatible org coverage response.'
+      );
+    } finally {
+      errorMessage.restore();
+    }
+  });
+
+  it('B1.2 rejects an incompatible org identity with a safe visible error', async () => {
+    await configureFakeSf({
+      orgInfo: {
+        json: {
+          status: 0,
+          result: { username: 42, secret: 'org-response-secret' },
+        },
+      },
     });
-    await assert.rejects(retrieveOrgCoverage(), /No coverage data found/);
+    const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+
+    try {
+      assert.deepStrictEqual(await retrieveOrgInfo(), { status: false });
+      assert.strictEqual(
+        errorMessage.firstCall.args[0],
+        'Salesforce CLI returned an incompatible org response.'
+      );
+      assert.doesNotMatch(String(errorMessage.firstCall.args[0]), /secret|username|42|\{|\}/i);
+    } finally {
+      errorMessage.restore();
+    }
   });
 
   it('B2 shows No SF Org and leaves Apex Tests and Code Coverage empty when org resolution fails', async () => {

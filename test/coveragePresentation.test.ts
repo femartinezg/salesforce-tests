@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { ApexClass, ApexTestClass } from '../src/classes/Apex';
 import { ContextManager } from '../src/common/ContextManager';
@@ -30,7 +31,7 @@ describe('Code coverage presentation', () => {
     const contextManager = ContextManager.resetInstance();
     const apexClass = new ApexClass('01p-missing', 'NoCoverageClass');
     contextManager.codeCoverageData.apexClasses = [apexClass];
-    await configureFakeSf({ codeCoverage: { json: { status: 0, result: {} } } });
+    await configureFakeSf({ codeCoverage: recordsResponse([]) });
 
     const loadingItem = apexClass.getTreeItem();
     assert.strictEqual(loadingItem.description, 'Loading...');
@@ -67,6 +68,56 @@ describe('Code coverage presentation', () => {
     assert.strictEqual(apexClass.codeCoverage, 100);
     assert.strictEqual(item.description, '100.00% (0/0)');
     assert.strictEqual(themeIcon(item).color?.id, 'testing.iconPassed');
+  });
+
+  it('E3.1 rejects an incompatible coverage envelope without mutating existing state', async () => {
+    const contextManager = ContextManager.resetInstance();
+    const apexClass = coverageClass('01p-existing', 'ExistingCoverage', 75, 3, 4);
+    contextManager.codeCoverageData.apexClasses = [apexClass];
+    await configureFakeSf({
+      codeCoverage: {
+        json: {
+          status: 0,
+          result: { records: { secret: 'coverage-response-secret' } },
+        },
+      },
+    });
+    const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+
+    try {
+      await assert.rejects(retrieveCodeCoverage(), /incompatible code coverage response/);
+      assert.strictEqual(apexClass.codeCoverage, 75);
+      assert.strictEqual(apexClass.coveredLines, 3);
+      assert.strictEqual(apexClass.totalLines, 4);
+      assert.strictEqual(
+        errorMessage.firstCall.args[0],
+        'Salesforce CLI returned an incompatible code coverage response.'
+      );
+      assert.doesNotMatch(String(errorMessage.firstCall.args[0]), /secret|records|\{|\}/i);
+    } finally {
+      errorMessage.restore();
+    }
+  });
+
+  it('E3.2 degrades an incompatible coverage record to unavailable coverage', async () => {
+    const contextManager = ContextManager.resetInstance();
+    const apexClass = new ApexClass('01p-invalid', 'InvalidCoverage');
+    contextManager.codeCoverageData.apexClasses = [apexClass];
+    await configureFakeSf({
+      codeCoverage: recordsResponse([
+        {
+          ApexClassOrTriggerId: '01p-invalid',
+          NumLinesCovered: -1,
+          NumLinesUncovered: 2,
+        },
+      ]),
+    });
+
+    await retrieveCodeCoverage();
+
+    assert.strictEqual(apexClass.codeCoverage, -1);
+    assert.strictEqual(apexClass.coveredLines, -1);
+    assert.strictEqual(apexClass.totalLines, -1);
   });
 
   it('E4 preserves the failed, warning, and passed bands at both boundaries', () => {

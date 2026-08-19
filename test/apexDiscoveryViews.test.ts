@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { ApexClass, ApexTestClass } from '../src/classes/Apex';
 import { getContextManager } from '../src/common';
@@ -93,12 +94,76 @@ describe('Apex discovery and views', () => {
     );
   });
 
-  it('C2.1 treats a missing Apex records collection as empty', async () => {
-    await configureFakeSf({ apexClasses: { json: { status: 0, result: {} } } });
+  it('C2.1 accepts an explicit empty Apex records collection', async () => {
+    await configureFakeSf({ apexClasses: recordsResponse([]) });
 
     const result = await retrieveApexClasses();
 
     assert.deepStrictEqual(result, { testClasses: [], apexClasses: [] });
+  });
+
+  it('C2.2 applies valid Apex records and emits one safe warning for every partial inventory', async () => {
+    const valid = {
+      Id: '01p-valid',
+      Name: 'ValidClass',
+      Body: 'public class ValidClass {}',
+    };
+    const invalid = [
+      { Id: '01p-no-body', Name: 'SecretMissingBody', secret: 'inventory-secret' },
+      { Id: 42, Name: 'SecretWrongId', Body: 'class SecretWrongId {}' },
+    ];
+    const scenarios = [
+      { records: [valid, invalid[0]], expectedNames: ['ValidClass'] },
+      { records: [valid, ...invalid], expectedNames: ['ValidClass'] },
+      { records: invalid, expectedNames: [] },
+    ];
+    const warning = sinon.stub(vscode.window, 'showWarningMessage').resolves(undefined);
+
+    try {
+      for (const scenario of scenarios) {
+        warning.resetHistory();
+        await configureFakeSf({ apexClasses: recordsResponse(scenario.records) });
+
+        const result = await retrieveApexClasses();
+
+        assert.deepStrictEqual(
+          result.apexClasses.map(({ name }) => name),
+          scenario.expectedNames
+        );
+        assert.deepStrictEqual(result.testClasses, []);
+        assert.strictEqual(warning.callCount, 1);
+        assert.strictEqual(
+          warning.firstCall.args[0],
+          'Some Apex classes were omitted because Salesforce CLI returned incompatible records.'
+        );
+        assert.doesNotMatch(String(warning.firstCall.args[0]), /secret|SecretWrongId|\{|\}/);
+      }
+    } finally {
+      warning.restore();
+    }
+  });
+
+  it('C2.3 rejects an incompatible Apex collection before returning partial data', async () => {
+    await configureFakeSf({
+      apexClasses: {
+        json: {
+          status: 0,
+          result: { records: { secret: 'inventory-response-secret' } },
+        },
+      },
+    });
+    const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+
+    try {
+      await assert.rejects(retrieveApexClasses(), /incompatible Apex inventory response/);
+      assert.strictEqual(
+        errorMessage.firstCall.args[0],
+        'Salesforce CLI returned an incompatible Apex inventory response.'
+      );
+      assert.doesNotMatch(String(errorMessage.firstCall.args[0]), /secret|records|\{|\}/i);
+    } finally {
+      errorMessage.restore();
+    }
   });
 
   it('C3 presents loading, empty, and populated Apex Tests states', () => {
