@@ -53,7 +53,7 @@ export async function runTestClassCommandHandler(runTestInput?: unknown) {
         cancellationToken?.dispose();
       });
 
-      runTestClass(testClass, contextManager, cancellationToken.token).then((message) => {
+      void runTestClass(testClass, contextManager, cancellationToken.token).then((message) => {
         if (message) contextManager.printOutput(message);
         isFinished = true;
         cancellationToken?.dispose();
