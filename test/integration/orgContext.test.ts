@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { ApexTestClass } from '../../src/classes/Apex';
 import { TestRun } from '../../src/classes/TestRun';
 import { getContextManager, getNewContextManager } from '../../src/common';
+import { retrieveOrgCoverage, retrieveOrgInfo } from '../../src/common/sfActions';
 import { StatusTreeViewProvider } from '../../src/views/StatusTreeViewProvider';
 import {
   activateExtension,
@@ -44,6 +45,32 @@ describe('B. Active org and general state', () => {
     const orgWithoutAlias = provider.getRootChildren()[0];
     assert.strictEqual(orgWithoutAlias.label, 'fixture.user@example.invalid');
     assert.strictEqual(orgWithoutAlias.description, 'fixture.user@example.invalid');
+
+    provider.alias = '';
+    provider.username = '';
+    const orgWithoutIdentity = provider.getRootChildren()[0];
+    assert.strictEqual(orgWithoutIdentity.label, 'Authenticated');
+    assert.strictEqual(orgWithoutIdentity.description, '');
+  });
+
+  it('B1.1 preserves empty org fields and a missing coverage collection as falsy fallbacks', async () => {
+    await configureFakeSf({
+      orgInfo: {
+        json: {
+          status: 0,
+          result: { alias: '', username: '', instanceUrl: 'https://.example.invalid' },
+        },
+      },
+      orgCoverage: { json: { status: 0, result: {} } },
+    });
+
+    assert.deepStrictEqual(await retrieveOrgInfo(), {
+      status: true,
+      alias: undefined,
+      username: undefined,
+      orgName: undefined,
+    });
+    await assert.rejects(retrieveOrgCoverage(), /No coverage data found/);
   });
 
   it('B2 shows No SF Org and leaves Apex Tests and Code Coverage empty when org resolution fails', async () => {
