@@ -1,11 +1,16 @@
 import * as vscode from 'vscode';
+import type { ContextManager } from './ContextManager';
 
 export enum MessageType {
   Info = 'Info',
   Error = 'Error',
 }
 
-export function showTestResultMessage(message: string, type: MessageType, contextManager: any) {
+export function showTestResultMessage(
+  message: string,
+  type: MessageType,
+  contextManager: ContextManager
+) {
   if (!message) {
     return;
   }

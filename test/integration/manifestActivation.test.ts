@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { ApexClass, ApexTestClass } from '../../src/classes/Apex';
 import { getContextManager, getNewContextManager } from '../../src/common';
+import { activate as activateProduction } from '../../src/extension';
 import {
   activateExtension,
   extensionRoot,
@@ -96,6 +97,16 @@ describe('A. VS Code integration and navigation', () => {
     assert.strictEqual(registerProvider.firstCall.args[1], isolatedContext.statusData);
     assert.strictEqual(registerProvider.secondCall.args[1], isolatedContext.apexTestsData);
     assert.strictEqual(registerProvider.thirdCall.args[1], isolatedContext.codeCoverageData);
+  });
+
+  it('A2.1 converts a synchronous activation failure into a rejected promise', async () => {
+    const failure = new Error('synthetic activation failure');
+    sandbox.stub(vscode.workspace, 'createFileSystemWatcher').throws(failure);
+
+    const activation = activateProduction({} as vscode.ExtensionContext);
+
+    assert.ok(activation instanceof Promise);
+    await assert.rejects(activation, (error: unknown) => error === failure);
   });
 
   it('A3 keeps data-dependent actions disabled and all three views empty while loading', async () => {

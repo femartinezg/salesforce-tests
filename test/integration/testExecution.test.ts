@@ -84,6 +84,9 @@ describe('D. Running an Apex test class', () => {
     const output = sandbox.spy(contextManager, 'printOutput');
 
     await vscode.commands.executeCommand('salesforce-tests.runTestClass');
+    contextManager.apexTestsData.testClasses = undefined;
+    await vscode.commands.executeCommand('salesforce-tests.runTestClass');
+    contextManager.apexTestsData.testClasses = [testClass];
     await vscode.commands.executeCommand('salesforce-tests.runTestClass', {
       label: 'UnknownFixtureTest',
     });
@@ -92,7 +95,11 @@ describe('D. Running an Apex test class', () => {
       label: passingClassName,
     });
 
-    assert.strictEqual(quickPick.callCount, 1);
+    assert.strictEqual(quickPick.callCount, 2);
+    assert.deepStrictEqual(quickPick.secondCall.args, [
+      [],
+      { placeHolder: 'Select the Apex test class to run' },
+    ]);
     assert.strictEqual(output.callCount, 0);
     assert.deepStrictEqual(testRunInvocations(), []);
   });
@@ -322,6 +329,26 @@ describe('D. Running an Apex test class', () => {
     assert.strictEqual(errorMessage.callCount, 2);
     assert.match(String(errorMessage.firstCall.args[0]), /Error running FixturePassingTest/);
     assert.match(String(errorMessage.secondCall.args[0]), /Error running FixturePassingTest/);
+  });
+
+  it('D7.1 falls back to the thrown value when its message is empty', async () => {
+    const { contextManager, testClass } = createExecutionContext(passingClassName);
+    sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+    const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+    sandbox.stub(contextManager.statusData, 'pushTestRun').throws(new Error(''));
+    const cancellation = new vscode.CancellationTokenSource();
+
+    try {
+      await runTestClass(testClass, contextManager, cancellation.token);
+
+      assert.strictEqual(testClass.status, undefined);
+      assert.strictEqual(
+        errorMessage.firstCall.args[0],
+        `Error running ${passingClassName}: Error`
+      );
+    } finally {
+      cancellation.dispose();
+    }
   });
 
   it('D8 opens the output for View Results from both success and error notifications', async () => {

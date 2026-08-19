@@ -4,21 +4,26 @@ import { ApexTestClass } from '../classes/Apex';
 import { runTestClass } from '../common/sfActions';
 import { sleep } from '../common/utils';
 
-export async function runTestClassCommandHandler(runTestInput?: any) {
+export async function runTestClassCommandHandler(runTestInput?: unknown) {
   const contextManager = getContextManager();
   const testClasses = contextManager.apexTestsData.testClasses;
   let testClass = undefined;
   let testClassName: string | undefined = undefined;
 
   if (runTestInput instanceof Object) {
-    testClassName = runTestInput.label;
+    testClassName = (runTestInput as { label?: string }).label;
   }
 
   if (!runTestInput) {
-    const options =
-      testClasses?.map((testClass: ApexTestClass) => {
-        return testClass.name;
-      }) || [];
+    const availableOptions = testClasses?.map((testClass: ApexTestClass) => {
+      return testClass.name;
+    });
+    let options: string[];
+    if (availableOptions) {
+      options = availableOptions;
+    } else {
+      options = [];
+    }
     testClassName = await vscode.window.showQuickPick(options, {
       placeHolder: 'Select the Apex test class to run',
     });
@@ -41,14 +46,14 @@ export async function runTestClassCommandHandler(runTestInput?: any) {
     async () => {
       let isFinished = false;
 
-      let cancellationToken = new vscode.CancellationTokenSource();
+      const cancellationToken = new vscode.CancellationTokenSource();
       contextManager.runTestCancelTokens.push(cancellationToken);
       cancellationToken.token.onCancellationRequested(() => {
         isFinished = true;
         cancellationToken?.dispose();
       });
 
-      runTestClass(testClass, contextManager, cancellationToken.token).then((message) => {
+      void runTestClass(testClass, contextManager, cancellationToken.token).then((message) => {
         if (message) contextManager.printOutput(message);
         isFinished = true;
         cancellationToken?.dispose();

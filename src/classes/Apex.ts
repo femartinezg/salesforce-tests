@@ -31,14 +31,14 @@ export class ApexClass extends Apex {
     if (this.codeCoverage === undefined) {
       item.iconPath = new vscode.ThemeIcon('file-code', undefined);
       item.description = 'Loading...';
-      item.tooltip = `${item.label}`;
+      item.tooltip = `${item.label as string}`;
       return item;
     } else if (this.codeCoverage < 0) {
       item.description = '';
-      item.tooltip = `${item.label}`;
+      item.tooltip = `${item.label as string}`;
     } else {
       item.description = `${this.codeCoverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
-      item.tooltip = `${item.label}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
+      item.tooltip = `${item.label as string}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
     }
 
     let color = undefined;
@@ -90,9 +90,9 @@ export class ApexTestClass extends Apex {
     }
 
     if (this.startTime && this.duration && this.status !== 'Running' && this.status !== undefined) {
-      let startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
-      let startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
-      let tooltipTimeString = `${startDateString} ${startTimeString}`;
+      const startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
+      const startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
+      const tooltipTimeString = `${startDateString} ${startTimeString}`;
       tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
       description = `${startTimeString} (${formatDuration(this.duration)})`;
       if (this.executionBlocked) {

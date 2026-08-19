@@ -167,8 +167,9 @@
     "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
-    "lint": "eslint src",
+    "lint": "eslint src test",
     "lint:tests": "eslint test",
+    "check": "npm run compile && npm run lint && npm run test:extension",
     "test": "npm run test:extension",
     "test:extension": "vscode-test --jobs 1",
     "test:coverage": "npm run compile && vscode-test --jobs 1 --coverage"

@@ -49,7 +49,7 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
   }
 
   getRootChildren(): vscode.TreeItem[] {
-    let children: vscode.TreeItem[] = [];
+    const children: vscode.TreeItem[] = [];
     let orgItem: vscode.TreeItem;
     let lastTestRunsItem: vscode.TreeItem;
 
@@ -63,7 +63,19 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
       orgItem.contextValue = 'statusOrg';
       children.push(orgItem);
     } else {
-      orgItem = new vscode.TreeItem(this.alias || this.username || 'Authenticated');
+      const alias = this.alias;
+      let orgLabel: string;
+      if (alias) {
+        orgLabel = alias;
+      } else {
+        const username = this.username;
+        if (username) {
+          orgLabel = username;
+        } else {
+          orgLabel = 'Authenticated';
+        }
+      }
+      orgItem = new vscode.TreeItem(orgLabel);
       orgItem.description = this.username;
       let tooltip = this.alias ? `${this.alias} (${this.username})` : this.username;
       if (this.orgWideCoverage !== undefined)
@@ -97,7 +109,7 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
   }
 
   getLastTestRunsChildren(): vscode.TreeItem[] {
-    let children = [];
+    const children = [];
 
     if (this.testRuns.length === 0) {
       const noTestRunsItem = new vscode.TreeItem('');
