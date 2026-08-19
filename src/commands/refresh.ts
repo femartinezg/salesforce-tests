@@ -1,13 +1,18 @@
 import { getContextManager, getNewContextManager } from '../common';
 import { retrieveApexClasses, retrieveCodeCoverage } from '../common/sfActions';
 
-export async function refreshOrg() {
-  let contextManager = getContextManager();
-  contextManager.runTestCancelTokens.forEach((token) => {
-    token.cancel();
-  });
-  contextManager = getNewContextManager();
-  contextManager.init();
+export function refreshOrg(): Promise<void> {
+  try {
+    let contextManager = getContextManager();
+    contextManager.runTestCancelTokens.forEach((token) => {
+      token.cancel();
+    });
+    contextManager = getNewContextManager();
+    void contextManager.init();
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error as Error);
+  }
 }
 
 export async function refreshApexTests() {
@@ -26,5 +31,5 @@ export async function refreshCodeCoverage() {
   const { apexClasses } = await retrieveApexClasses();
   contextManager.codeCoverageData.apexClasses = apexClasses;
   contextManager.codeCoverageData.refresh();
-  retrieveCodeCoverage().then(() => contextManager.codeCoverageData.refresh());
+  void retrieveCodeCoverage().then(() => contextManager.codeCoverageData.refresh());
 }

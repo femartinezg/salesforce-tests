@@ -4,12 +4,17 @@ import { getContextManager, getNewContextManager } from './common';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
 import { findClass, findTest } from './commands/find';
 
-export async function activate(context: vscode.ExtensionContext) {
-  registerFileSystemWatchers();
-  registerCommands(context);
-  const contextManager = getContextManager();
-  contextManager.init();
-  contextManager.printOutput('Salesforce Tests extension activated');
+export function activate(context: vscode.ExtensionContext): Promise<void> {
+  try {
+    registerFileSystemWatchers();
+    registerCommands(context);
+    const contextManager = getContextManager();
+    void contextManager.init();
+    contextManager.printOutput('Salesforce Tests extension activated');
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error as Error);
+  }
 }
 
 export function deactivate() {

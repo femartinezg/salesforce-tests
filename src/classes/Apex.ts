@@ -31,14 +31,14 @@ export class ApexClass extends Apex {
     if (this.codeCoverage === undefined) {
       item.iconPath = new vscode.ThemeIcon('file-code', undefined);
       item.description = 'Loading...';
-      item.tooltip = `${item.label}`;
+      item.tooltip = `${item.label as string}`;
       return item;
     } else if (this.codeCoverage < 0) {
       item.description = '';
-      item.tooltip = `${item.label}`;
+      item.tooltip = `${item.label as string}`;
     } else {
       item.description = `${this.codeCoverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
-      item.tooltip = `${item.label}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
+      item.tooltip = `${item.label as string}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
     }
 
     let color = undefined;

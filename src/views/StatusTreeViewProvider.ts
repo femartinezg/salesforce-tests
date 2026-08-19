@@ -63,7 +63,19 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
       orgItem.contextValue = 'statusOrg';
       children.push(orgItem);
     } else {
-      orgItem = new vscode.TreeItem(this.alias || this.username || 'Authenticated');
+      const alias = this.alias;
+      let orgLabel: string;
+      if (alias) {
+        orgLabel = alias;
+      } else {
+        const username = this.username;
+        if (username) {
+          orgLabel = username;
+        } else {
+          orgLabel = 'Authenticated';
+        }
+      }
+      orgItem = new vscode.TreeItem(orgLabel);
       orgItem.description = this.username;
       let tooltip = this.alias ? `${this.alias} (${this.username})` : this.username;
       if (this.orgWideCoverage !== undefined)

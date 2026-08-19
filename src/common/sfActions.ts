@@ -13,6 +13,71 @@ import {
 } from './sfCommands';
 import { runSf } from './sfRunner';
 
+interface OrgInfoResponse {
+  result: {
+    alias?: string;
+    username?: string;
+    instanceUrl?: string;
+  };
+}
+
+interface QueryResponse<T> {
+  result: {
+    records?: T[];
+  };
+}
+
+interface ApexClassRecord {
+  Id: string;
+  Name: string;
+  Body: string;
+}
+
+interface CodeCoverageRecord {
+  ApexClassOrTriggerId: string;
+  NumLinesCovered?: number;
+  NumLinesUncovered?: number;
+}
+
+interface TestExecutionSummary {
+  outcome: string;
+  testStartTime: string;
+  testExecutionTime: string;
+}
+
+interface TestMethodResult {
+  Outcome: string;
+  FullName: string;
+  Message: string;
+  StackTrace: string;
+}
+
+interface TestCoverage {
+  name: string;
+  totalLines: number;
+  totalCovered: number;
+}
+
+interface TestExecutionResponse {
+  status: number;
+  name?: string;
+  message?: string;
+  result: {
+    summary: TestExecutionSummary;
+    coverage: {
+      coverage?: TestCoverage[];
+      summary?: {
+        orgWideCoverage: string;
+      };
+    };
+    tests?: TestMethodResult[];
+  };
+}
+
+interface OrgCoverageRecord {
+  PercentCovered: number;
+}
+
 export async function retrieveOrgInfo(): Promise<{
   status: boolean;
   alias?: string;
@@ -24,10 +89,28 @@ export async function retrieveOrgInfo(): Promise<{
   if (error) return { status: false };
 
   try {
-    const result = JSON.parse(stdout);
-    const alias = result.result.alias || undefined;
-    const username = result.result.username || undefined;
-    const orgName = result.result.instanceUrl?.split('//')[1].split('.')[0] || undefined;
+    const result = JSON.parse(stdout) as OrgInfoResponse;
+    const responseAlias = result.result.alias;
+    let alias: string | undefined;
+    if (responseAlias) {
+      alias = responseAlias;
+    } else {
+      alias = undefined;
+    }
+    const responseUsername = result.result.username;
+    let username: string | undefined;
+    if (responseUsername) {
+      username = responseUsername;
+    } else {
+      username = undefined;
+    }
+    const responseOrgName = result.result.instanceUrl?.split('//')[1].split('.')[0];
+    let orgName: string | undefined;
+    if (responseOrgName) {
+      orgName = responseOrgName;
+    } else {
+      orgName = undefined;
+    }
     return { status: true, alias: alias, username: username, orgName: orgName };
   } catch {
     return { status: false };
@@ -43,8 +126,14 @@ export async function retrieveApexClasses(): Promise<{
   if (error) throw new Error(String(error));
 
   try {
-    const result = JSON.parse(stdout);
-    const records = result.result.records || [];
+    const result = JSON.parse(stdout) as QueryResponse<ApexClassRecord>;
+    const responseRecords = result.result.records;
+    let records: ApexClassRecord[];
+    if (responseRecords) {
+      records = responseRecords;
+    } else {
+      records = [];
+    }
     const testClasses = [];
     const apexClasses = [];
 
@@ -146,15 +235,33 @@ export async function retrieveCodeCoverage() {
   if (error) throw new Error(String(error));
 
   try {
-    const result = JSON.parse(stdout);
-    const records = result.result.records || [];
+    const result = JSON.parse(stdout) as QueryResponse<CodeCoverageRecord>;
+    const responseRecords = result.result.records;
+    let records: CodeCoverageRecord[];
+    if (responseRecords) {
+      records = responseRecords;
+    } else {
+      records = [];
+    }
 
     for (const coverage of records) {
       const apexClass = contextManager.codeCoverageData.apexClasses?.find(
         (apexClass: ApexClass) => coverage.ApexClassOrTriggerId === apexClass.id
       );
-      const numLinesCovered = coverage.NumLinesCovered || 0;
-      const numLinesUncovered = coverage.NumLinesUncovered || 0;
+      const responseNumLinesCovered = coverage.NumLinesCovered;
+      let numLinesCovered: number;
+      if (responseNumLinesCovered) {
+        numLinesCovered = responseNumLinesCovered;
+      } else {
+        numLinesCovered = 0;
+      }
+      const responseNumLinesUncovered = coverage.NumLinesUncovered;
+      let numLinesUncovered: number;
+      if (responseNumLinesUncovered) {
+        numLinesUncovered = responseNumLinesUncovered;
+      } else {
+        numLinesUncovered = 0;
+      }
       const totalLines = numLinesCovered + numLinesUncovered;
 
       if (apexClass) {
@@ -197,7 +304,7 @@ export async function runTestClass(
     if (!execution.stdout) throw execution.error ?? new Error('Salesforce CLI returned no output');
     const stdout = execution.stdout;
 
-    const result = JSON.parse(stdout);
+    const result = JSON.parse(stdout) as TestExecutionResponse;
 
     if (cancellationToken.isCancellationRequested) {
       return;
@@ -275,7 +382,7 @@ export async function runTestClass(
     }
 
     if (coverageResult.coverage) {
-      getCodeCoverage(coverageResult.coverage);
+      void getCodeCoverage(coverageResult.coverage);
     }
 
     if (coverageResult.summary) {
@@ -288,8 +395,15 @@ export async function runTestClass(
     contextManager.apexTestsData.refresh();
 
     return message;
-  } catch (error: any) {
-    vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
+  } catch (error) {
+    const responseErrorMessage = (error as { message?: string }).message;
+    let errorMessage: unknown;
+    if (responseErrorMessage) {
+      errorMessage = responseErrorMessage;
+    } else {
+      errorMessage = error;
+    }
+    vscode.window.showErrorMessage(`Error running ${testClass.name}: ${errorMessage as string}`);
     testClass.status = undefined;
     contextManager.apexTestsData.refresh();
     contextManager.statusData.refresh();
@@ -298,31 +412,36 @@ export async function runTestClass(
   }
 }
 
-async function getCodeCoverage(coverage: any[]) {
-  const contextManager = getContextManager();
-  for (const coverageItem of coverage) {
-    const apexClass = contextManager.codeCoverageData.apexClasses?.find(
-      (apexClass: ApexClass) => coverageItem.name === apexClass.name
-    );
-    if (apexClass) {
-      apexClass.totalLines = coverageItem.totalLines;
-      apexClass.coveredLines = coverageItem.totalCovered;
-      if (coverageItem.totalLines === 0) {
-        apexClass.codeCoverage = 100;
-      } else {
-        apexClass.codeCoverage = (coverageItem.totalCovered / coverageItem.totalLines) * 100;
+function getCodeCoverage(coverage: TestCoverage[]): Promise<void> {
+  try {
+    const contextManager = getContextManager();
+    for (const coverageItem of coverage) {
+      const apexClass = contextManager.codeCoverageData.apexClasses?.find(
+        (apexClass: ApexClass) => coverageItem.name === apexClass.name
+      );
+      if (apexClass) {
+        apexClass.totalLines = coverageItem.totalLines;
+        apexClass.coveredLines = coverageItem.totalCovered;
+        if (coverageItem.totalLines === 0) {
+          apexClass.codeCoverage = 100;
+        } else {
+          apexClass.codeCoverage = (coverageItem.totalCovered / coverageItem.totalLines) * 100;
+        }
       }
-    }
 
-    contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
-      if (apexClass.codeCoverage === undefined) {
-        apexClass.codeCoverage = -1;
-        apexClass.totalLines = -1;
-        apexClass.coveredLines = -1;
-      }
-    });
+      contextManager.codeCoverageData.apexClasses?.forEach((apexClass: ApexClass) => {
+        if (apexClass.codeCoverage === undefined) {
+          apexClass.codeCoverage = -1;
+          apexClass.totalLines = -1;
+          apexClass.coveredLines = -1;
+        }
+      });
+    }
+    contextManager.codeCoverageData.refresh();
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error as Error);
   }
-  contextManager.codeCoverageData.refresh();
 }
 
 export async function retrieveOrgCoverage() {
@@ -331,8 +450,14 @@ export async function retrieveOrgCoverage() {
   if (error) throw new Error(String(error));
 
   try {
-    const result = JSON.parse(stdout);
-    const records = result.result.records || [];
+    const result = JSON.parse(stdout) as QueryResponse<OrgCoverageRecord>;
+    const responseRecords = result.result.records;
+    let records: OrgCoverageRecord[];
+    if (responseRecords) {
+      records = responseRecords;
+    } else {
+      records = [];
+    }
     if (records.length > 0) return records[0].PercentCovered;
     throw new Error('No coverage data found');
   } catch (e: unknown) {

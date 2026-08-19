@@ -93,6 +93,14 @@ describe('Apex discovery and views', () => {
     );
   });
 
+  it('C2.1 treats a missing Apex records collection as empty', async () => {
+    await configureFakeSf({ apexClasses: { json: { status: 0, result: {} } } });
+
+    const result = await retrieveApexClasses();
+
+    assert.deepStrictEqual(result, { testClasses: [], apexClasses: [] });
+  });
+
   it('C3 presents loading, empty, and populated Apex Tests states', () => {
     const provider = new ApexTestsTreeViewProvider();
 
