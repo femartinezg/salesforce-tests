@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { ApexTestClass } from '../../src/classes/Apex';
 import { TestRun } from '../../src/classes/TestRun';
+import { refreshOrg } from '../../src/commands/refresh';
 import { getContextManager, getNewContextManager } from '../../src/common';
 import { retrieveOrgCoverage, retrieveOrgInfo } from '../../src/common/sfActions';
 import { StatusTreeViewProvider } from '../../src/views/StatusTreeViewProvider';
@@ -107,6 +108,25 @@ describe('B. Active org and general state', () => {
     provider.orgWideCoverage = 0;
     assert.strictEqual(provider.getOrgChildren()[0].description, '0%');
     assert.strictEqual(provider.getOrgChildren()[0].tooltip, 'Org Wide Coverage: 0%');
+  });
+
+  it('B3.1 converts a synchronous refresh failure into a rejected promise', async () => {
+    const contextManager = getNewContextManager();
+    const failure = new Error('synthetic refresh failure');
+    contextManager.runTestCancelTokens.push({
+      cancel: () => {
+        throw failure;
+      },
+    } as unknown as vscode.CancellationTokenSource);
+
+    try {
+      const refresh = refreshOrg();
+
+      assert.ok(refresh instanceof Promise);
+      await assert.rejects(refresh, (error: unknown) => error === failure);
+    } finally {
+      contextManager.runTestCancelTokens = [];
+    }
   });
 
   it('B4/B6 refresh cancels pending runs, replaces context and history, and reloads all org data', async () => {
