@@ -15,10 +15,15 @@ export async function runTestClassCommandHandler(runTestInput?: unknown) {
   }
 
   if (!runTestInput) {
-    const options =
-      testClasses?.map((testClass: ApexTestClass) => {
-        return testClass.name;
-      }) || [];
+    const availableOptions = testClasses?.map((testClass: ApexTestClass) => {
+      return testClass.name;
+    });
+    let options: string[];
+    if (availableOptions) {
+      options = availableOptions;
+    } else {
+      options = [];
+    }
     testClassName = await vscode.window.showQuickPick(options, {
       placeHolder: 'Select the Apex test class to run',
     });
