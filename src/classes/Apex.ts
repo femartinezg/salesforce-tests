@@ -90,9 +90,9 @@ export class ApexTestClass extends Apex {
     }
 
     if (this.startTime && this.duration && this.status !== 'Running' && this.status !== undefined) {
-      let startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
-      let startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
-      let tooltipTimeString = `${startDateString} ${startTimeString}`;
+      const startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
+      const startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
+      const tooltipTimeString = `${startDateString} ${startTimeString}`;
       tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
       description = `${startTimeString} (${formatDuration(this.duration)})`;
       if (this.executionBlocked) {

@@ -41,7 +41,7 @@ export async function runTestClassCommandHandler(runTestInput?: any) {
     async () => {
       let isFinished = false;
 
-      let cancellationToken = new vscode.CancellationTokenSource();
+      const cancellationToken = new vscode.CancellationTokenSource();
       contextManager.runTestCancelTokens.push(cancellationToken);
       cancellationToken.token.onCancellationRequested(() => {
         isFinished = true;

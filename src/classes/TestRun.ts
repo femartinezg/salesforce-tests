@@ -17,17 +17,17 @@ export class TestRun {
   }
 
   getTreeItem(): vscode.TreeItem {
-    let treeItem = new vscode.TreeItem(`${this.name}`);
+    const treeItem = new vscode.TreeItem(`${this.name}`);
 
     treeItem.iconPath = new vscode.ThemeIcon(this.success ? 'check' : 'x');
-    let startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
-    let startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
-    let descriptionTimeString =
+    const startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
+    const startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
+    const descriptionTimeString =
       this.startTime.getDate() === new Date().getDate() ?
         startTimeString
       : `${startDateString} ${startTimeString}`;
     treeItem.description = `${descriptionTimeString} (${formatDuration(this.duration)})`;
-    let successString = this.success ? '✓' : '✕';
+    const successString = this.success ? '✓' : '✕';
     treeItem.tooltip = `${successString} ${this.name}\nStart Time: ${startDateString} ${startTimeString}\nExecution Time: ${this.duration}ms`;
 
     return treeItem;

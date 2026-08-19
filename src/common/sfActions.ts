@@ -48,7 +48,7 @@ export async function retrieveApexClasses(): Promise<{
     const testClasses = [];
     const apexClasses = [];
 
-    for (let apex of records) {
+    for (const apex of records) {
       const isTest = parseBody(apex.Body);
       if (isTest) {
         testClasses.push(new ApexTestClass(apex.Id, apex.Name));
@@ -149,7 +149,7 @@ export async function retrieveCodeCoverage() {
     const result = JSON.parse(stdout);
     const records = result.result.records || [];
 
-    for (let coverage of records) {
+    for (const coverage of records) {
       const apexClass = contextManager.codeCoverageData.apexClasses?.find(
         (apexClass: ApexClass) => coverage.ApexClassOrTriggerId === apexClass.id
       );
@@ -186,8 +186,8 @@ export async function runTestClass(
   contextManager: ContextManager,
   cancellationToken: vscode.CancellationToken
 ): Promise<string[] | undefined> {
-  let message: string[] = [];
-  let oldStatus = testClass.status;
+  const message: string[] = [];
+  const oldStatus = testClass.status;
   testClass.status = 'Running';
   contextManager.apexTestsData.refresh();
 
@@ -265,7 +265,7 @@ export async function runTestClass(
     }
 
     if (!success && tests) {
-      for (let test of tests) {
+      for (const test of tests) {
         if (test.Outcome === 'Fail') {
           message.push(
             `• ${test.FullName}: ${test.Message} - ${test.StackTrace.replace('\n', '\\n')}`
@@ -300,8 +300,8 @@ export async function runTestClass(
 
 async function getCodeCoverage(coverage: any[]) {
   const contextManager = getContextManager();
-  for (let coverageItem of coverage) {
-    let apexClass = contextManager.codeCoverageData.apexClasses?.find(
+  for (const coverageItem of coverage) {
+    const apexClass = contextManager.codeCoverageData.apexClasses?.find(
       (apexClass: ApexClass) => coverageItem.name === apexClass.name
     );
     if (apexClass) {

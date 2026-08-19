@@ -49,7 +49,7 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
   }
 
   getRootChildren(): vscode.TreeItem[] {
-    let children: vscode.TreeItem[] = [];
+    const children: vscode.TreeItem[] = [];
     let orgItem: vscode.TreeItem;
     let lastTestRunsItem: vscode.TreeItem;
 
@@ -97,7 +97,7 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
   }
 
   getLastTestRunsChildren(): vscode.TreeItem[] {
-    let children = [];
+    const children = [];
 
     if (this.testRuns.length === 0) {
       const noTestRunsItem = new vscode.TreeItem('');

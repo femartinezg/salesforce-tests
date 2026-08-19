@@ -98,7 +98,7 @@ export class ContextManager {
     const timeString = now.toLocaleTimeString('en-US', { hour12: false });
     ContextManager.outputChannel.append(`[${timeString}] `);
     let isFirst = true;
-    for (let line of messageList) {
+    for (const line of messageList) {
       if (isFirst) {
         ContextManager.outputChannel.append(`${line}\n`);
         isFirst = false;
