@@ -65,11 +65,11 @@ export class ContextManager {
     this.apexTestsData.refresh();
     this.codeCoverageData.refresh();
 
-    retrieveOrgCoverage().then((orgWideCoverage) => {
+    void retrieveOrgCoverage().then((orgWideCoverage) => {
       this.statusData.orgWideCoverage = orgWideCoverage;
       this.statusData.refresh();
     });
-    retrieveCodeCoverage().then(() => this.codeCoverageData.refresh());
+    void retrieveCodeCoverage().then(() => this.codeCoverageData.refresh());
   }
 
   public async reset() {

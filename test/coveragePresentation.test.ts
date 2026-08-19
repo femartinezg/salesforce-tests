@@ -30,10 +30,11 @@ describe('Code coverage presentation', () => {
     const contextManager = ContextManager.resetInstance();
     const apexClass = new ApexClass('01p-missing', 'NoCoverageClass');
     contextManager.codeCoverageData.apexClasses = [apexClass];
-    await configureFakeSf({ codeCoverage: recordsResponse([]) });
+    await configureFakeSf({ codeCoverage: { json: { status: 0, result: {} } } });
 
     const loadingItem = apexClass.getTreeItem();
     assert.strictEqual(loadingItem.description, 'Loading...');
+    assert.strictEqual(loadingItem.tooltip, 'NoCoverageClass');
     assert.strictEqual(themeIcon(loadingItem).color, undefined);
 
     await retrieveCodeCoverage();
