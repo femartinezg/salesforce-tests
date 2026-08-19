@@ -13,6 +13,71 @@ import {
 } from './sfCommands';
 import { runSf } from './sfRunner';
 
+interface OrgInfoResponse {
+  result: {
+    alias?: string;
+    username?: string;
+    instanceUrl?: string;
+  };
+}
+
+interface QueryResponse<T> {
+  result: {
+    records?: T[];
+  };
+}
+
+interface ApexClassRecord {
+  Id: string;
+  Name: string;
+  Body: string;
+}
+
+interface CodeCoverageRecord {
+  ApexClassOrTriggerId: string;
+  NumLinesCovered?: number;
+  NumLinesUncovered?: number;
+}
+
+interface TestExecutionSummary {
+  outcome: string;
+  testStartTime: string;
+  testExecutionTime: string;
+}
+
+interface TestMethodResult {
+  Outcome: string;
+  FullName: string;
+  Message: string;
+  StackTrace: string;
+}
+
+interface TestCoverage {
+  name: string;
+  totalLines: number;
+  totalCovered: number;
+}
+
+interface TestExecutionResponse {
+  status: number;
+  name?: string;
+  message?: string;
+  result: {
+    summary: TestExecutionSummary;
+    coverage: {
+      coverage?: TestCoverage[];
+      summary?: {
+        orgWideCoverage: string;
+      };
+    };
+    tests?: TestMethodResult[];
+  };
+}
+
+interface OrgCoverageRecord {
+  PercentCovered: number;
+}
+
 export async function retrieveOrgInfo(): Promise<{
   status: boolean;
   alias?: string;
@@ -24,7 +89,7 @@ export async function retrieveOrgInfo(): Promise<{
   if (error) return { status: false };
 
   try {
-    const result = JSON.parse(stdout);
+    const result = JSON.parse(stdout) as OrgInfoResponse;
     const alias = result.result.alias || undefined;
     const username = result.result.username || undefined;
     const orgName = result.result.instanceUrl?.split('//')[1].split('.')[0] || undefined;
@@ -43,7 +108,7 @@ export async function retrieveApexClasses(): Promise<{
   if (error) throw new Error(String(error));
 
   try {
-    const result = JSON.parse(stdout);
+    const result = JSON.parse(stdout) as QueryResponse<ApexClassRecord>;
     const records = result.result.records || [];
     const testClasses = [];
     const apexClasses = [];
@@ -146,7 +211,7 @@ export async function retrieveCodeCoverage() {
   if (error) throw new Error(String(error));
 
   try {
-    const result = JSON.parse(stdout);
+    const result = JSON.parse(stdout) as QueryResponse<CodeCoverageRecord>;
     const records = result.result.records || [];
 
     for (const coverage of records) {
@@ -197,7 +262,7 @@ export async function runTestClass(
     if (!execution.stdout) throw execution.error ?? new Error('Salesforce CLI returned no output');
     const stdout = execution.stdout;
 
-    const result = JSON.parse(stdout);
+    const result = JSON.parse(stdout) as TestExecutionResponse;
 
     if (cancellationToken.isCancellationRequested) {
       return;
@@ -288,8 +353,10 @@ export async function runTestClass(
     contextManager.apexTestsData.refresh();
 
     return message;
-  } catch (error: any) {
-    vscode.window.showErrorMessage(`Error running ${testClass.name}: ${error.message || error}`);
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Error running ${testClass.name}: ${(error as { message?: string }).message || (error as string)}`
+    );
     testClass.status = undefined;
     contextManager.apexTestsData.refresh();
     contextManager.statusData.refresh();
@@ -298,7 +365,7 @@ export async function runTestClass(
   }
 }
 
-async function getCodeCoverage(coverage: any[]) {
+async function getCodeCoverage(coverage: TestCoverage[]) {
   const contextManager = getContextManager();
   for (const coverageItem of coverage) {
     const apexClass = contextManager.codeCoverageData.apexClasses?.find(
@@ -331,7 +398,7 @@ export async function retrieveOrgCoverage() {
   if (error) throw new Error(String(error));
 
   try {
-    const result = JSON.parse(stdout);
+    const result = JSON.parse(stdout) as QueryResponse<OrgCoverageRecord>;
     const records = result.result.records || [];
     if (records.length > 0) return records[0].PercentCovered;
     throw new Error('No coverage data found');

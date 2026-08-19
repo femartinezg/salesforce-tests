@@ -4,14 +4,14 @@ import { ApexTestClass } from '../classes/Apex';
 import { runTestClass } from '../common/sfActions';
 import { sleep } from '../common/utils';
 
-export async function runTestClassCommandHandler(runTestInput?: any) {
+export async function runTestClassCommandHandler(runTestInput?: unknown) {
   const contextManager = getContextManager();
   const testClasses = contextManager.apexTestsData.testClasses;
   let testClass = undefined;
   let testClassName: string | undefined = undefined;
 
   if (runTestInput instanceof Object) {
-    testClassName = runTestInput.label;
+    testClassName = (runTestInput as { label?: string }).label;
   }
 
   if (!runTestInput) {
