@@ -34,6 +34,7 @@ describe('Code coverage presentation', () => {
 
     const loadingItem = apexClass.getTreeItem();
     assert.strictEqual(loadingItem.description, 'Loading...');
+    assert.strictEqual(loadingItem.tooltip, 'NoCoverageClass');
     assert.strictEqual(themeIcon(loadingItem).color, undefined);
 
     await retrieveCodeCoverage();
