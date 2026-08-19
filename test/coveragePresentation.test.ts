@@ -11,6 +11,8 @@ import {
   type FakeSfResponse,
 } from './support/extensionHarness';
 
+const targetOrg = 'fixture.user@example.invalid';
+
 describe('Code coverage presentation', () => {
   beforeEach(async () => {
     await resetFakeSf();
@@ -38,7 +40,7 @@ describe('Code coverage presentation', () => {
     assert.strictEqual(loadingItem.tooltip, 'NoCoverageClass');
     assert.strictEqual(themeIcon(loadingItem).color, undefined);
 
-    await retrieveCodeCoverage();
+    await retrieveCodeCoverage(contextManager, targetOrg);
 
     const missingItem = apexClass.getTreeItem();
     assert.strictEqual(missingItem.description, '');
@@ -62,7 +64,7 @@ describe('Code coverage presentation', () => {
       ]),
     });
 
-    await retrieveCodeCoverage();
+    await retrieveCodeCoverage(contextManager, targetOrg);
 
     const item = apexClass.getTreeItem();
     assert.strictEqual(apexClass.codeCoverage, 100);
@@ -85,7 +87,10 @@ describe('Code coverage presentation', () => {
     const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
 
     try {
-      await assert.rejects(retrieveCodeCoverage(), /incompatible code coverage response/);
+      await assert.rejects(
+        retrieveCodeCoverage(contextManager, targetOrg),
+        /incompatible code coverage response/
+      );
       assert.strictEqual(apexClass.codeCoverage, 75);
       assert.strictEqual(apexClass.coveredLines, 3);
       assert.strictEqual(apexClass.totalLines, 4);
@@ -113,7 +118,7 @@ describe('Code coverage presentation', () => {
       ]),
     });
 
-    await retrieveCodeCoverage();
+    await retrieveCodeCoverage(contextManager, targetOrg);
 
     assert.strictEqual(apexClass.codeCoverage, -1);
     assert.strictEqual(apexClass.coveredLines, -1);
@@ -172,7 +177,7 @@ describe('Code coverage presentation', () => {
     });
 
     try {
-      await runTestClass(testClass, contextManager, cancellation.token);
+      await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
     } finally {
       cancellation.dispose();
       coverageRefresh.dispose();

@@ -9,13 +9,18 @@ import { retrieveOrgCoverage, retrieveOrgInfo } from '../../src/common/sfActions
 import { StatusTreeViewProvider } from '../../src/views/StatusTreeViewProvider';
 import {
   activateExtension,
+  clearFakeSfInvocations,
   configureFakeSf,
   defaultFakeSfPlan,
+  getFakeSfInvocations,
   releaseFakeSfGate,
   resetFakeSf,
   waitFor,
+  waitForFakeSfGate,
   writeWorkspaceSfConfig,
 } from '../support/extensionHarness';
+
+const targetOrg = 'fixture.user@example.invalid';
 
 describe('B. Active org and general state', () => {
   before(async () => {
@@ -78,7 +83,7 @@ describe('B. Active org and general state', () => {
         username: 'fixture.user@example.invalid',
         orgName: undefined,
       });
-      await assert.rejects(retrieveOrgCoverage(), /incompatible org coverage response/i);
+      await assert.rejects(retrieveOrgCoverage(targetOrg), /incompatible org coverage response/i);
       assert.strictEqual(
         errorMessage.firstCall.args[0],
         'Salesforce CLI returned an incompatible org coverage response.'
@@ -106,6 +111,170 @@ describe('B. Active org and general state', () => {
         'Salesforce CLI returned an incompatible org response.'
       );
       assert.doesNotMatch(String(errorMessage.firstCall.args[0]), /secret|username|42|\{|\}/i);
+    } finally {
+      errorMessage.restore();
+    }
+  });
+
+  it('B1.3 resolves one org per cycle and keeps later operations pinned when the default changes', async () => {
+    const pinnedOrg = 'pinned.user@example.invalid';
+    await clearFakeSfInvocations();
+    await configureFakeSf({
+      orgInfo: {
+        json: {
+          status: 0,
+          result: {
+            alias: 'pinned-org',
+            username: pinnedOrg,
+            instanceUrl: 'https://pinned.example.invalid',
+          },
+        },
+      },
+    });
+    const contextManager = getNewContextManager();
+
+    await contextManager.init();
+    await waitFor(
+      () =>
+        contextManager.statusData.orgWideCoverage === defaultFakeSfPlan().expectedOrgCoverage
+        && contextManager.codeCoverageData.apexClasses?.[0]?.codeCoverage
+          === defaultFakeSfPlan().expectedClassCoverage
+    );
+
+    const initialInvocations = getFakeSfInvocations();
+    assert.strictEqual(contextManager.targetOrg, pinnedOrg);
+    assert.strictEqual(initialInvocations[0].operation, 'orgInfo');
+    assert.strictEqual(
+      initialInvocations.filter(({ operation }) => operation === 'orgInfo').length,
+      1
+    );
+    for (const invocation of initialInvocations.slice(1)) {
+      assertPinnedTarget(invocation.args, pinnedOrg);
+    }
+
+    await clearFakeSfInvocations();
+    await configureFakeSf({
+      apexClasses: {
+        json: {
+          status: 0,
+          result: {
+            records: [
+              {
+                Id: 'pinned-refresh-id',
+                Name: 'PinnedRefreshTest',
+                Body: '@isTest class PinnedRefreshTest {}',
+              },
+            ],
+          },
+        },
+        gate: 'pinned-default-change',
+      },
+    });
+    const refresh = vscode.commands.executeCommand('salesforce-tests.refreshApexTests');
+
+    try {
+      await waitForFakeSfGate('pinned-default-change');
+      await configureFakeSf({
+        orgInfo: {
+          json: {
+            status: 0,
+            result: {
+              alias: 'different-default',
+              username: 'different.default@example.invalid',
+            },
+          },
+        },
+      });
+      await releaseFakeSfGate('pinned-default-change');
+      await refresh;
+
+      const [invocation] = getFakeSfInvocations();
+      assert.strictEqual(getFakeSfInvocations().length, 1);
+      assert.strictEqual(invocation.operation, 'apexClasses');
+      assertPinnedTarget(invocation.args, pinnedOrg);
+      assert.strictEqual(contextManager.targetOrg, pinnedOrg);
+    } finally {
+      await releaseFakeSfGate('pinned-default-change');
+      await refresh;
+    }
+  });
+
+  it('B1.4 stops a cycle with an actionable error when no username can be resolved', async () => {
+    await clearFakeSfInvocations();
+    await configureFakeSf({
+      orgInfo: { json: { status: 0, result: { username: '' } } },
+    });
+    const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+    const contextManager = getNewContextManager();
+
+    try {
+      await contextManager.init();
+
+      assert.deepStrictEqual(
+        getFakeSfInvocations().map(({ operation }) => operation),
+        ['orgInfo']
+      );
+      assert.strictEqual(contextManager.targetOrg, undefined);
+      assert.deepStrictEqual(contextManager.apexTestsData.testClasses, []);
+      assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, []);
+      assert.ok(
+        errorMessage
+          .getCalls()
+          .some(
+            ({ args }) =>
+              args[0]
+              === 'Unable to resolve the Salesforce org. Check authentication or run Refresh Org.'
+          )
+      );
+    } finally {
+      errorMessage.restore();
+    }
+  });
+
+  it('B1.5 stops an inaccessible pinned org without fallback or argument disclosure', async () => {
+    await clearFakeSfInvocations();
+    await configureFakeSf({
+      apexClasses: {
+        stdout: '',
+        stderr: 'sensitive synthetic failure for pinned.user@example.invalid',
+        exitCode: 7,
+      },
+      orgInfo: {
+        json: {
+          status: 0,
+          result: {
+            alias: 'pinned-org',
+            username: 'pinned.user@example.invalid',
+            instanceUrl: 'https://pinned.example.invalid',
+          },
+        },
+      },
+    });
+    const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+    const contextManager = getNewContextManager();
+
+    try {
+      await contextManager.init();
+
+      const invocations = getFakeSfInvocations();
+      assert.deepStrictEqual(
+        invocations.map(({ operation }) => operation),
+        ['orgInfo', 'apexClasses']
+      );
+      assertPinnedTarget(invocations[1].args, 'pinned.user@example.invalid');
+      assert.deepStrictEqual(contextManager.apexTestsData.testClasses, []);
+      assert.deepStrictEqual(contextManager.codeCoverageData.apexClasses, []);
+      assert.strictEqual(
+        errorMessage.lastCall.args[0],
+        'Unable to use the selected Salesforce org. Check authentication or run Refresh Org.'
+      );
+      assert.doesNotMatch(
+        errorMessage
+          .getCalls()
+          .map(({ args }) => String(args[0]))
+          .join('\n'),
+        /sensitive synthetic failure|pinned\.user|--target-org|data query/i
+      );
     } finally {
       errorMessage.restore();
     }
@@ -173,6 +342,11 @@ describe('B. Active org and general state', () => {
 
     try {
       await vscode.commands.executeCommand('salesforce-tests.refreshOrg');
+      await waitForFakeSfGate(gate);
+      assert.deepStrictEqual(
+        getFakeSfInvocations().map(({ operation }) => operation),
+        ['orgInfo']
+      );
       const { context: newContext, refreshes } = await waitForReload(oldContext, gate);
 
       assert.strictEqual(wasCancelled(), true);
@@ -193,6 +367,11 @@ describe('B. Active org and general state', () => {
 
     try {
       await writeWorkspaceSfConfig({ revision: 'context-change' });
+      await waitForFakeSfGate(gate);
+      assert.deepStrictEqual(
+        getFakeSfInvocations().map(({ operation }) => operation),
+        ['orgInfo']
+      );
       const { context: newContext, refreshes } = await waitForReload(oldContext, gate);
 
       assert.strictEqual(wasCancelled(), true);
@@ -268,6 +447,7 @@ async function waitForReload(
 
 function assertLoadedDefaultOrg(contextManager: ReturnType<typeof getContextManager>): void {
   const defaults = defaultFakeSfPlan();
+  assert.strictEqual(contextManager.targetOrg, defaults.expectedUsername);
   assert.strictEqual(contextManager.statusData.alias, defaults.expectedAlias);
   assert.strictEqual(contextManager.statusData.username, defaults.expectedUsername);
   assert.deepStrictEqual(
@@ -310,4 +490,13 @@ async function configureReloadGate(gate: string): Promise<void> {
       gate,
     },
   });
+}
+
+function assertPinnedTarget(args: string[], expectedTarget: string): void {
+  const targetIndexes = args.reduce<number[]>((indexes, argument, index) => {
+    if (argument === '--target-org') indexes.push(index);
+    return indexes;
+  }, []);
+  assert.deepStrictEqual(targetIndexes.length, 1);
+  assert.strictEqual(args[targetIndexes[0] + 1], expectedTarget);
 }

@@ -17,6 +17,8 @@ import {
   type FakeSfResponse,
 } from './support/extensionHarness';
 
+const targetOrg = 'fixture.user@example.invalid';
+
 describe('Apex discovery and views', () => {
   before(async () => {
     await resetFakeSf();
@@ -38,7 +40,7 @@ describe('Apex discovery and views', () => {
       ]),
     });
 
-    const result = await retrieveApexClasses();
+    const result = await retrieveApexClasses(targetOrg);
 
     assert.deepStrictEqual(
       result.apexClasses.map(({ id, name }) => ({ id, name })),
@@ -82,7 +84,7 @@ describe('Apex discovery and views', () => {
       ]),
     });
 
-    const result = await retrieveApexClasses();
+    const result = await retrieveApexClasses(targetOrg);
 
     assert.deepStrictEqual(
       result.testClasses.map((item) => item.name),
@@ -97,7 +99,7 @@ describe('Apex discovery and views', () => {
   it('C2.1 accepts an explicit empty Apex records collection', async () => {
     await configureFakeSf({ apexClasses: recordsResponse([]) });
 
-    const result = await retrieveApexClasses();
+    const result = await retrieveApexClasses(targetOrg);
 
     assert.deepStrictEqual(result, { testClasses: [], apexClasses: [] });
   });
@@ -124,7 +126,7 @@ describe('Apex discovery and views', () => {
         warning.resetHistory();
         await configureFakeSf({ apexClasses: recordsResponse(scenario.records) });
 
-        const result = await retrieveApexClasses();
+        const result = await retrieveApexClasses(targetOrg);
 
         assert.deepStrictEqual(
           result.apexClasses.map(({ name }) => name),
@@ -155,7 +157,7 @@ describe('Apex discovery and views', () => {
     const errorMessage = sinon.stub(vscode.window, 'showErrorMessage').resolves(undefined);
 
     try {
-      await assert.rejects(retrieveApexClasses(), /incompatible Apex inventory response/);
+      await assert.rejects(retrieveApexClasses(targetOrg), /incompatible Apex inventory response/);
       assert.strictEqual(
         errorMessage.firstCall.args[0],
         'Salesforce CLI returned an incompatible Apex inventory response.'
@@ -213,6 +215,7 @@ describe('Apex discovery and views', () => {
 
   it('C5 clears and replaces only Apex Tests while a focused refresh is pending', async () => {
     const contextManager = ContextManager.resetInstance();
+    contextManager.targetOrg = targetOrg;
     const oldProductionClass = coveredClass('01p-old', 'ExistingProduction', 90, 9, 10);
     contextManager.apexTestsData.testClasses = [new ApexTestClass('01p-test-old', 'OldTest')];
     contextManager.codeCoverageData.apexClasses = [oldProductionClass];
@@ -268,6 +271,7 @@ describe('Apex discovery and views', () => {
 
   it('C6 replaces production classes first and refreshes their coverage asynchronously', async () => {
     const contextManager = ContextManager.resetInstance();
+    contextManager.targetOrg = targetOrg;
     const existingTest = new ApexTestClass('01p-existing-test', 'ExistingTest');
     contextManager.apexTestsData.testClasses = [existingTest];
     contextManager.codeCoverageData.apexClasses = [new ApexClass('01p-old', 'OldProduction')];
