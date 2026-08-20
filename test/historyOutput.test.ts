@@ -40,6 +40,39 @@ describe('History, timing, states, and output', () => {
     );
   });
 
+  it('F1.1 keeps command-palette history availability in sync across push, clear, and reset', () => {
+    const setContext = sinon.stub(vscode.commands, 'executeCommand').resolves(undefined);
+
+    try {
+      const provider = new StatusTreeViewProvider();
+      provider.pushTestRun(
+        new TestRun('AvailableRun', 'Test Class', true, new Date(2026, 0, 1), 100)
+      );
+      const clearableProvider = provider as StatusTreeViewProvider & {
+        clearTestRuns(): void;
+      };
+      clearableProvider.clearTestRuns();
+      provider.pushTestRun(new TestRun('ResetRun', 'Test Class', true, new Date(2026, 0, 2), 100));
+      provider.reset();
+
+      assert.deepStrictEqual(
+        setContext
+          .getCalls()
+          .filter(({ args }) => args[0] === 'setContext' && args[1] === 'hasLastTestRuns')
+          .map(({ args }) => args),
+        [
+          ['setContext', 'hasLastTestRuns', false],
+          ['setContext', 'hasLastTestRuns', true],
+          ['setContext', 'hasLastTestRuns', false],
+          ['setContext', 'hasLastTestRuns', true],
+          ['setContext', 'hasLastTestRuns', false],
+        ]
+      );
+    } finally {
+      setContext.restore();
+    }
+  });
+
   it('F2 distinguishes Passed and Failed history entries with name, start, and duration', () => {
     const start = new Date(2026, 0, 2, 3, 4, 5);
     const passed = new TestRun('PassingTest', 'Test Class', true, start, 1250).getTreeItem();

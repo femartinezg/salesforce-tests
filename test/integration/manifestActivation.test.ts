@@ -16,12 +16,21 @@ import {
 
 interface CommandContribution {
   command: string;
+  title?: string;
   enablement?: string;
+  icon?: string;
+}
+
+interface MenuContribution {
+  command: string;
+  when?: string;
+  group?: string;
 }
 
 interface ExtensionManifest {
   contributes: {
     commands: CommandContribution[];
+    menus: Record<string, MenuContribution[]>;
     viewsContainers: {
       activitybar: { id: string; title: string }[];
     };
@@ -64,13 +73,16 @@ describe('A. VS Code integration and navigation', () => {
     assert.deepStrictEqual(Object.keys(manifest.contributes.views), ['sfTests']);
   });
 
-  it('A2 activates all three providers, registers the six commands, and starts initial loading', async () => {
+  it('A2 activates all three providers, registers the commands, and starts initial loading', async () => {
     const expectedCommands = [
+      'salesforce-tests.clearTestRuns',
       'salesforce-tests.findClass',
       'salesforce-tests.findTest',
       'salesforce-tests.refreshApexTests',
       'salesforce-tests.refreshCodeCoverage',
       'salesforce-tests.refreshOrg',
+      'salesforce-tests.rerunLastTest',
+      'salesforce-tests.rerunTest',
       'salesforce-tests.runTestClass',
     ];
     const registeredCommands = await vscode.commands.getCommands(true);
@@ -99,7 +111,57 @@ describe('A. VS Code integration and navigation', () => {
     assert.strictEqual(registerProvider.thirdCall.args[1], isolatedContext.codeCoverageData);
   });
 
-  it('A2.1 converts a synchronous activation failure into a rejected promise', async () => {
+  it('A2.1 contributes history actions with official icons and gates the palette command', () => {
+    const manifest = readManifest();
+    const commandById = new Map(
+      manifest.contributes.commands.map((command) => [command.command, command])
+    );
+
+    assert.deepStrictEqual(commandById.get('salesforce-tests.clearTestRuns'), {
+      command: 'salesforce-tests.clearTestRuns',
+      title: 'Clear Test Runs',
+      category: 'Salesforce Tests',
+      icon: '$(clear-all)',
+    });
+    assert.deepStrictEqual(commandById.get('salesforce-tests.rerunTest'), {
+      command: 'salesforce-tests.rerunTest',
+      title: 'Rerun Test',
+      category: 'Salesforce Tests',
+      icon: commandById.get('salesforce-tests.runTestClass')?.icon,
+    });
+    assert.deepStrictEqual(commandById.get('salesforce-tests.rerunLastTest'), {
+      command: 'salesforce-tests.rerunLastTest',
+      title: 'Rerun Last Test',
+      category: 'Salesforce Tests',
+      enablement: 'hasLastTestRuns',
+    });
+
+    const itemActions = manifest.contributes.menus['view/item/context'];
+    assert.ok(
+      itemActions.some(
+        (item) =>
+          item.command === 'salesforce-tests.clearTestRuns'
+          && item.when === 'view == statusTreeView && viewItem == statusLastTestRuns'
+          && item.group === 'inline'
+      )
+    );
+    assert.ok(
+      itemActions.some(
+        (item) =>
+          item.command === 'salesforce-tests.rerunTest'
+          && item.when === 'view == statusTreeView && viewItem == statusTestRun'
+          && item.group === 'inline'
+      )
+    );
+    assert.deepStrictEqual(
+      manifest.contributes.menus.commandPalette.filter(
+        ({ command }) => command === 'salesforce-tests.rerunLastTest'
+      ),
+      [{ command: 'salesforce-tests.rerunLastTest', when: 'hasLastTestRuns' }]
+    );
+  });
+
+  it('A2.2 converts a synchronous activation failure into a rejected promise', async () => {
     const failure = new Error('synthetic activation failure');
     sandbox.stub(vscode.workspace, 'createFileSystemWatcher').throws(failure);
 
@@ -125,6 +187,7 @@ describe('A. VS Code integration and navigation', () => {
       setContext.getCalls().map(({ args }) => args),
       [
         ['setContext', 'statusLoading', true],
+        ['setContext', 'hasLastTestRuns', false],
         ['setContext', 'apexTestsLoading', true],
         ['setContext', 'codeCoverageLoading', true],
       ]
@@ -171,7 +234,7 @@ describe('A. VS Code integration and navigation', () => {
     assert.deepStrictEqual(
       setContext
         .getCalls()
-        .slice(3)
+        .slice(4)
         .map(({ args }) => args),
       [
         ['setContext', 'statusLoading', false],
