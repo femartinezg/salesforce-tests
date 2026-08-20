@@ -23,6 +23,8 @@ import {
 import { mochaGlobalTeardown } from './support/rootHooks';
 
 describe('Synthetic Salesforce CLI contract', () => {
+  const targetOrg = 'fixture.user@example.invalid';
+
   beforeEach(async () => {
     await resetFakeSf();
   });
@@ -123,22 +125,22 @@ describe('Synthetic Salesforce CLI contract', () => {
       { operation: 'orgInfo', invocation: getOrgInfoInvocation(), stdout: 'org-info-route' },
       {
         operation: 'apexClasses',
-        invocation: getApexClassesInvocation(),
+        invocation: getApexClassesInvocation(targetOrg),
         stdout: 'apex-classes-route',
       },
       {
         operation: 'codeCoverage',
-        invocation: getCodeCoverageInvocation(),
+        invocation: getCodeCoverageInvocation(targetOrg),
         stdout: 'code-coverage-route',
       },
       {
         operation: 'orgCoverage',
-        invocation: getOrgCoverageInvocation(),
+        invocation: getOrgCoverageInvocation(targetOrg),
         stdout: 'org-coverage-route',
       },
       {
         operation: 'runTest',
-        invocation: getTestClassInvocation('RoutedTest'),
+        invocation: getTestClassInvocation('RoutedTest', targetOrg),
         stdout: 'test-run-route',
       },
     ];
@@ -158,7 +160,7 @@ describe('Synthetic Salesforce CLI contract', () => {
   it('fails closed for unknown operations and unconfigured test classes', async () => {
     const unknownArgs = ['data', 'query', '--query', 'SELECT Id FROM UnknownObject', '--json'];
     const unknown = await runSf(unknownArgs);
-    const unconfiguredInvocation = getTestClassInvocation('UnconfiguredTest');
+    const unconfiguredInvocation = getTestClassInvocation('UnconfiguredTest', targetOrg);
     const unconfigured = await runSf(unconfiguredInvocation.args, unconfiguredInvocation.options);
 
     assert.strictEqual(unknown.stdout, '');

@@ -1,5 +1,10 @@
+import * as vscode from 'vscode';
 import { getContextManager, getNewContextManager } from '../common';
-import { retrieveApexClasses, retrieveCodeCoverage } from '../common/sfActions';
+import {
+  ORG_TARGET_ERROR_MESSAGE,
+  retrieveApexClasses,
+  retrieveCodeCoverage,
+} from '../common/sfActions';
 
 export function refreshOrg(): Promise<void> {
   try {
@@ -17,19 +22,31 @@ export function refreshOrg(): Promise<void> {
 
 export async function refreshApexTests() {
   const contextManager = getContextManager();
+  const targetOrg = contextManager.targetOrg;
+  if (!targetOrg) {
+    void vscode.window.showErrorMessage(ORG_TARGET_ERROR_MESSAGE);
+    return;
+  }
   contextManager.apexTestsData.reset();
   contextManager.apexTestsData.refresh();
-  const { testClasses } = await retrieveApexClasses();
+  const { testClasses } = await retrieveApexClasses(targetOrg);
   contextManager.apexTestsData.testClasses = testClasses;
   contextManager.apexTestsData.refresh();
 }
 
 export async function refreshCodeCoverage() {
   const contextManager = getContextManager();
+  const targetOrg = contextManager.targetOrg;
+  if (!targetOrg) {
+    void vscode.window.showErrorMessage(ORG_TARGET_ERROR_MESSAGE);
+    return;
+  }
   contextManager.codeCoverageData.reset();
   contextManager.codeCoverageData.refresh();
-  const { apexClasses } = await retrieveApexClasses();
+  const { apexClasses } = await retrieveApexClasses(targetOrg);
   contextManager.codeCoverageData.apexClasses = apexClasses;
   contextManager.codeCoverageData.refresh();
-  void retrieveCodeCoverage().then(() => contextManager.codeCoverageData.refresh());
+  void retrieveCodeCoverage(contextManager, targetOrg)
+    .then(() => contextManager.codeCoverageData.refresh())
+    .catch(() => undefined);
 }

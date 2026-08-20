@@ -15,7 +15,8 @@ export function getOrgInfoInvocation(): SfInvocation {
   };
 }
 
-export function getApexClassesInvocation(): SfInvocation {
+export function getApexClassesInvocation(targetOrg: string): SfInvocation {
+  const validatedTargetOrg = validateTargetOrg(targetOrg);
   return {
     args: [
       'data',
@@ -23,13 +24,16 @@ export function getApexClassesInvocation(): SfInvocation {
       '--query',
       "SELECT Id, Name, Body FROM ApexClass WHERE ManageableState = 'unmanaged' ORDER BY Name ASC",
       '--use-tooling-api',
+      '--target-org',
+      validatedTargetOrg,
       '--json',
     ],
     options: LARGE_OUTPUT_OPTIONS,
   };
 }
 
-export function getCodeCoverageInvocation(): SfInvocation {
+export function getCodeCoverageInvocation(targetOrg: string): SfInvocation {
+  const validatedTargetOrg = validateTargetOrg(targetOrg);
   return {
     args: [
       'data',
@@ -37,16 +41,19 @@ export function getCodeCoverageInvocation(): SfInvocation {
       '--query',
       'SELECT Id, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate',
       '--use-tooling-api',
+      '--target-org',
+      validatedTargetOrg,
       '--json',
     ],
     options: LARGE_OUTPUT_OPTIONS,
   };
 }
 
-export function getTestClassInvocation(testClassName: string): SfInvocation {
+export function getTestClassInvocation(testClassName: string, targetOrg: string): SfInvocation {
   if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(testClassName)) {
     throw new Error('Invalid Salesforce test class name');
   }
+  const validatedTargetOrg = validateTargetOrg(targetOrg);
 
   return {
     args: [
@@ -57,13 +64,16 @@ export function getTestClassInvocation(testClassName: string): SfInvocation {
       testClassName,
       '--synchronous',
       '--code-coverage',
+      '--target-org',
+      validatedTargetOrg,
       '--json',
     ],
     options: LARGE_OUTPUT_OPTIONS,
   };
 }
 
-export function getOrgCoverageInvocation(): SfInvocation {
+export function getOrgCoverageInvocation(targetOrg: string): SfInvocation {
+  const validatedTargetOrg = validateTargetOrg(targetOrg);
   return {
     args: [
       'data',
@@ -71,7 +81,16 @@ export function getOrgCoverageInvocation(): SfInvocation {
       '--query',
       'SELECT Id, PercentCovered FROM ApexOrgWideCoverage',
       '--use-tooling-api',
+      '--target-org',
+      validatedTargetOrg,
       '--json',
     ],
   };
+}
+
+function validateTargetOrg(targetOrg: string): string {
+  if (typeof targetOrg !== 'string' || targetOrg.trim().length === 0) {
+    throw new Error('Salesforce target org must be non-empty');
+  }
+  return targetOrg.trim();
 }

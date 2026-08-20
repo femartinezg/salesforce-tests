@@ -9,6 +9,9 @@ import {
   retrieveOrgInfo,
 } from './sfActions';
 
+const ORG_RESOLUTION_ERROR_MESSAGE =
+  'Unable to resolve the Salesforce org. Check authentication or run Refresh Org.';
+
 export class ContextManager {
   private static instance: ContextManager;
 
@@ -19,6 +22,7 @@ export class ContextManager {
   public apexTestsData: ApexTestsTreeViewProvider;
   public codeCoverageData: CodeCoverageTreeViewProvider;
   public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
+  public targetOrg?: string;
 
   public static getInstance(): ContextManager {
     if (!this.instance) {
@@ -46,30 +50,49 @@ export class ContextManager {
       return;
     }
 
+    this.targetOrg = undefined;
     const { status, alias, username, orgName } = await retrieveOrgInfo();
-    this.statusData.isAuthenticated = status;
+    this.statusData.isAuthenticated = status && username !== undefined;
     this.statusData.alias = alias;
     this.statusData.username = username;
     this.statusData.refresh();
-    this.printOutput(`Connected to org: ${orgName}`);
 
-    if (!this.statusData.isAuthenticated) {
+    if (!this.statusData.isAuthenticated || username === undefined) {
       this.apexTestsData.testClasses = [];
       this.codeCoverageData.apexClasses = [];
-    } else {
-      const { testClasses, apexClasses } = await retrieveApexClasses();
+      this.apexTestsData.refresh();
+      this.codeCoverageData.refresh();
+      void vscode.window.showErrorMessage(ORG_RESOLUTION_ERROR_MESSAGE);
+      return;
+    }
+
+    this.targetOrg = username;
+    this.printOutput(`Connected to org: ${orgName}`);
+
+    try {
+      const { testClasses, apexClasses } = await retrieveApexClasses(username);
       this.apexTestsData.testClasses = testClasses;
       this.codeCoverageData.apexClasses = apexClasses;
+    } catch {
+      this.apexTestsData.testClasses = [];
+      this.codeCoverageData.apexClasses = [];
+      this.apexTestsData.refresh();
+      this.codeCoverageData.refresh();
+      return;
     }
 
     this.apexTestsData.refresh();
     this.codeCoverageData.refresh();
 
-    void retrieveOrgCoverage().then((orgWideCoverage) => {
-      this.statusData.orgWideCoverage = orgWideCoverage;
-      this.statusData.refresh();
-    });
-    void retrieveCodeCoverage().then(() => this.codeCoverageData.refresh());
+    void retrieveOrgCoverage(username)
+      .then((orgWideCoverage) => {
+        this.statusData.orgWideCoverage = orgWideCoverage;
+        this.statusData.refresh();
+      })
+      .catch(() => undefined);
+    void retrieveCodeCoverage(this, username)
+      .then(() => this.codeCoverageData.refresh())
+      .catch(() => undefined);
   }
 
   public async reset() {
