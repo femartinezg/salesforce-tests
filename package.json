@@ -64,6 +64,21 @@
         "icon": "$(debug-rerun)"
       },
       {
+        "command": "salesforce-tests.pinClass",
+        "title": "Pin Class",
+        "category": "Salesforce Tests",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "salesforce-tests.unpinClass",
+        "title": "Unpin Class",
+        "category": "Salesforce Tests",
+        "icon": {
+          "light": "./images/unpin-light.svg",
+          "dark": "./images/unpin-dark.svg"
+        }
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -152,6 +167,28 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "salesforce-tests.pinClass",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.unpinClass",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.clearTestRuns",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.rerunTest",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.rerunLastTest",
+          "when": "hasLastTestRuns"
+        }
+      ],
       "view/title": [
         {
           "command": "salesforce-tests.refreshOrg",
@@ -196,9 +233,29 @@
           "group": "inline"
         },
         {
+          "command": "salesforce-tests.pinClass",
+          "when": "view == apexTestsTreeView && viewItem == apexTestClass",
+          "group": "inline@1"
+        },
+        {
+          "command": "salesforce-tests.unpinClass",
+          "when": "view == apexTestsTreeView && viewItem == pinnedApexTestClass",
+          "group": "inline@1"
+        },
+        {
+          "command": "salesforce-tests.pinClass",
+          "when": "view == codeCoverageTreeView && viewItem == apexCoverageClass",
+          "group": "inline@1"
+        },
+        {
+          "command": "salesforce-tests.unpinClass",
+          "when": "view == codeCoverageTreeView && viewItem == pinnedApexCoverageClass",
+          "group": "inline@1"
+        },
+        {
           "command": "salesforce-tests.runTestClass",
           "when": "view == apexTestsTreeView",
-          "group": "inline"
+          "group": "inline@2"
         },
         {
           "command": "salesforce-tests.clearTestRuns",
@@ -209,20 +266,6 @@
           "command": "salesforce-tests.rerunTest",
           "when": "view == statusTreeView && viewItem == statusTestRun",
           "group": "inline"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "salesforce-tests.clearTestRuns",
-          "when": "false"
-        },
-        {
-          "command": "salesforce-tests.rerunTest",
-          "when": "false"
-        },
-        {
-          "command": "salesforce-tests.rerunLastTest",
-          "when": "hasLastTestRuns"
         }
       ]
     }

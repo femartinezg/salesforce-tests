@@ -4,6 +4,10 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 
 ## [Unreleased]
 
+### Added
+
+- Apex test and code coverage classes can now be pinned independently per workspace and remain pinned when switching Salesforce orgs.
+
 ### Changed
 
 - Salesforce CLI commands are now executed directly without a shell and with validated arguments.
