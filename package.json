@@ -29,6 +29,12 @@
   "main": "./out/src/extension.js",
   "icon": "images/icon128bg.png",
   "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The extension executes Salesforce CLI commands using workspace configuration."
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -191,7 +197,6 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@salesforce/core": "^8.11.0",
     "cross-spawn": "7.0.6"
   }
 }
