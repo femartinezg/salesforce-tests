@@ -45,6 +45,12 @@
         "icon": "$(run)"
       },
       {
+        "command": "salesforce-tests.clearTestRuns",
+        "title": "Clear Test Runs",
+        "category": "Salesforce Tests",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -162,6 +168,11 @@
         {
           "command": "salesforce-tests.runTestClass",
           "when": "view == apexTestsTreeView",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.clearTestRuns",
+          "when": "view == statusTreeView && viewItem == statusLastTestRuns",
           "group": "inline"
         }
       ]
