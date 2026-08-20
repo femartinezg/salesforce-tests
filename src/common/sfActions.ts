@@ -224,7 +224,7 @@ export async function runTestClass(
   try {
     const invocation = getTestClassInvocation(testClass.name, targetOrg);
     const execution = await runSf(invocation.args, invocation.options);
-    if (execution.error || !execution.stdout) {
+    if (!execution.stdout) {
       throw new OrgTargetError(ORG_TARGET_ERROR_MESSAGE);
     }
     const stdout = execution.stdout;
