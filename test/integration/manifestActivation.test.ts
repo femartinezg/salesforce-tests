@@ -111,7 +111,7 @@ describe('A. VS Code integration and navigation', () => {
     assert.strictEqual(registerProvider.thirdCall.args[1], isolatedContext.codeCoverageData);
   });
 
-  it('A2.1 contributes history actions with official icons and gates the palette command', () => {
+  it('A2.1 contributes history actions with official icons and gates the global rerun action', () => {
     const manifest = readManifest();
     const commandById = new Map(
       manifest.contributes.commands.map((command) => [command.command, command])
@@ -127,13 +127,14 @@ describe('A. VS Code integration and navigation', () => {
       command: 'salesforce-tests.rerunTest',
       title: 'Rerun Test',
       category: 'Salesforce Tests',
-      icon: commandById.get('salesforce-tests.runTestClass')?.icon,
+      icon: '$(debug-rerun)',
     });
     assert.deepStrictEqual(commandById.get('salesforce-tests.rerunLastTest'), {
       command: 'salesforce-tests.rerunLastTest',
       title: 'Rerun Last Test',
       category: 'Salesforce Tests',
-      enablement: 'hasLastTestRuns',
+      enablement: 'hasLastTestRuns && !apexTestsLoading',
+      icon: '$(debug-rerun)',
     });
 
     const itemActions = manifest.contributes.menus['view/item/context'];
@@ -158,6 +159,18 @@ describe('A. VS Code integration and navigation', () => {
         ({ command }) => command === 'salesforce-tests.rerunLastTest'
       ),
       [{ command: 'salesforce-tests.rerunLastTest', when: 'hasLastTestRuns' }]
+    );
+    assert.deepStrictEqual(
+      manifest.contributes.menus['view/title'].filter(
+        ({ command }) => command === 'salesforce-tests.rerunLastTest'
+      ),
+      [
+        {
+          command: 'salesforce-tests.rerunLastTest',
+          when: 'view == apexTestsTreeView && hasLastTestRuns',
+          group: 'navigation',
+        },
+      ]
     );
   });
 
@@ -198,6 +211,10 @@ describe('A. VS Code integration and navigation', () => {
     assert.strictEqual(
       enablementByCommand.get('salesforce-tests.runTestClass'),
       '!apexTestsLoading'
+    );
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.rerunLastTest'),
+      'hasLastTestRuns && !apexTestsLoading'
     );
     assert.strictEqual(enablementByCommand.get('salesforce-tests.refreshOrg'), '!statusLoading');
     assert.strictEqual(
