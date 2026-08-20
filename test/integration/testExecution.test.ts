@@ -247,11 +247,14 @@ describe('D. Running an Apex test class', () => {
     }
   });
 
-  it('D5 stores a Failed result and reports only failed methods with message and stack trace', async () => {
+  it('D5 stores a Failed result returned with exit code 100 and reports only failed methods', async () => {
     const { contextManager, testClass } = createExecutionContext(failingClassName);
     await configureFakeSf({
       testRuns: {
-        [failingClassName]: { stdout: JSON.stringify(failedResult(failingClassName)) },
+        [failingClassName]: {
+          stdout: JSON.stringify(failedResult(failingClassName)),
+          exitCode: 100,
+        },
       },
     });
     const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
@@ -295,7 +298,7 @@ describe('D. Running an Apex test class', () => {
     });
   });
 
-  it('D6 restores the previous state and marks a rejected execution as blocked', async () => {
+  it('D6 preserves a JSON rejection returned with a non-zero exit as a blocked execution', async () => {
     const { contextManager, testClass } = createExecutionContext(passingClassName);
     testClass.status = 'Passed';
     testClass.startTime = new Date('2026-01-01T00:00:00.000Z');
@@ -312,6 +315,7 @@ describe('D. Running an Apex test class', () => {
             name: 'SyntheticOperationError',
             message: 'Fixture execution rejected',
           }),
+          exitCode: 1,
         },
       },
     });
@@ -353,7 +357,7 @@ describe('D. Running an Apex test class', () => {
     }
   });
 
-  it('D6.1 uses a generic safe error when rejection details are absent or incompatible', async () => {
+  it('D6.1 safely degrades incompatible rejection details returned with a non-zero exit', async () => {
     const { contextManager, testClass } = createExecutionContext(passingClassName);
     await configureFakeSf({
       testRuns: {
@@ -363,6 +367,7 @@ describe('D. Running an Apex test class', () => {
             name: 42,
             message: { secret: 'rejection-response-secret' },
           },
+          exitCode: 1,
         },
       },
     });
