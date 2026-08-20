@@ -18,6 +18,7 @@ export class TestRun {
 
   getTreeItem(): vscode.TreeItem {
     const treeItem = new vscode.TreeItem(`${this.name}`);
+    treeItem.contextValue = 'statusTestRun';
 
     treeItem.iconPath = new vscode.ThemeIcon(this.success ? 'check' : 'x');
     const startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;

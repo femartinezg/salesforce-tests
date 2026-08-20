@@ -51,6 +51,18 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "salesforce-tests.rerunTest",
+        "title": "Rerun Test",
+        "category": "Salesforce Tests",
+        "icon": "$(run)"
+      },
+      {
+        "command": "salesforce-tests.rerunLastTest",
+        "title": "Rerun Last Test",
+        "category": "Salesforce Tests",
+        "enablement": "hasLastTestRuns"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -174,6 +186,17 @@
           "command": "salesforce-tests.clearTestRuns",
           "when": "view == statusTreeView && viewItem == statusLastTestRuns",
           "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.rerunTest",
+          "when": "view == statusTreeView && viewItem == statusTestRun",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "salesforce-tests.rerunLastTest",
+          "when": "hasLastTestRuns"
         }
       ]
     }

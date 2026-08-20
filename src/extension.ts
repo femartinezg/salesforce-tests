@@ -4,6 +4,7 @@ import { getContextManager, getNewContextManager } from './common';
 import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/refresh';
 import { findClass, findTest } from './commands/find';
 import { clearTestRuns } from './commands/clearTestRuns';
+import { rerunLastTest, rerunTest } from './commands/rerunTest';
 
 export function activate(context: vscode.ExtensionContext): Promise<void> {
   try {
@@ -44,6 +45,12 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.clearTestRuns', () => clearTestRuns())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.rerunTest', (testRun) => rerunTest(testRun))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.rerunLastTest', () => rerunLastTest())
   );
 
   context.subscriptions.push(
