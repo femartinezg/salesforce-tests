@@ -83,8 +83,11 @@ describe('F. Clearing org code coverage', () => {
       'orgCoverageRecordIds',
       'updateOrgCoverage',
     ]);
-    assert.strictEqual(operations[8], 'apexClasses');
-    assert.deepStrictEqual(operations.slice(9).sort(), ['codeCoverage', 'orgCoverage']);
+    assert.deepStrictEqual(operations.slice(8).sort(), [
+      'apexClasses',
+      'codeCoverage',
+      'orgCoverage',
+    ]);
     for (const invocation of invocations) assertTargetOrg(invocation.args, targetOrg);
     assertUpdateValues('715000000000001AAA', 'PercentCovered=0');
     assert.strictEqual(contextManager.statusData.orgWideCoverage, 0);
@@ -111,13 +114,16 @@ describe('F. Clearing org code coverage', () => {
     await vscode.commands.executeCommand('salesforce-tests.clearCodeCoverage');
 
     const operations = getFakeSfInvocations().map(({ operation }) => operation);
-    assert.deepStrictEqual(operations.slice(0, 4), [
+    assert.deepStrictEqual(operations.slice(0, 3), [
       'codeCoverageRecordIds',
       'coveredAggregateRecordIds',
       'orgCoverageRecordIds',
-      'apexClasses',
     ]);
-    assert.deepStrictEqual(operations.slice(4).sort(), ['codeCoverage', 'orgCoverage']);
+    assert.deepStrictEqual(operations.slice(3).sort(), [
+      'apexClasses',
+      'codeCoverage',
+      'orgCoverage',
+    ]);
     assert.strictEqual(contextManager.statusData.orgWideCoverage, 0);
     assert.strictEqual(contextManager.codeCoverageData.apexClasses?.[0]?.codeCoverage, -1);
     assert.strictEqual(error.callCount, 0);
