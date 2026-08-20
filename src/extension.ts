@@ -6,9 +6,12 @@ import { findClass, findTest } from './commands/find';
 import { clearTestRuns } from './commands/clearTestRuns';
 import { rerunLastTest, rerunTest } from './commands/rerunTest';
 import { clearCodeCoverageCommandHandler } from './commands/clearCodeCoverage';
+import { pinClass, unpinClass } from './commands/pinClass';
+import { ContextManager } from './common/ContextManager';
 
 export function activate(context: vscode.ExtensionContext): Promise<void> {
   try {
+    ContextManager.useWorkspaceState(context.workspaceState);
     registerFileSystemWatchers();
     registerCommands(context);
     const contextManager = getContextManager();
@@ -76,5 +79,11 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.findClass', () => findClass())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.pinClass', (item) => pinClass(item))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.unpinClass', (item) => unpinClass(item))
   );
 }
