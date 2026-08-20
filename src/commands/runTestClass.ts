@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { getContextManager } from '../common';
 import { ApexTestClass } from '../classes/Apex';
-import { runTestClass } from '../common/sfActions';
+import { ORG_TARGET_ERROR_MESSAGE, runTestClass } from '../common/sfActions';
 import { sleep } from '../common/utils';
 
 export async function runTestClassCommandHandler(runTestInput?: unknown) {
@@ -34,6 +34,11 @@ export async function runTestClassCommandHandler(runTestInput?: unknown) {
   if (!testClass || testClass.status === 'Running') {
     return;
   }
+  const targetOrg = contextManager.targetOrg;
+  if (!targetOrg) {
+    void vscode.window.showErrorMessage(ORG_TARGET_ERROR_MESSAGE);
+    return;
+  }
 
   contextManager.printOutput(`Running test: ${testClass.name}`);
 
@@ -53,15 +58,17 @@ export async function runTestClassCommandHandler(runTestInput?: unknown) {
         cancellationToken?.dispose();
       });
 
-      void runTestClass(testClass, contextManager, cancellationToken.token).then((message) => {
-        if (message) contextManager.printOutput(message);
-        isFinished = true;
-        cancellationToken?.dispose();
-        contextManager.runTestCancelTokens.splice(
-          contextManager.runTestCancelTokens.indexOf(cancellationToken),
-          1
-        );
-      });
+      void runTestClass(testClass, contextManager, targetOrg, cancellationToken.token).then(
+        (message) => {
+          if (message) contextManager.printOutput(message);
+          isFinished = true;
+          cancellationToken?.dispose();
+          contextManager.runTestCancelTokens.splice(
+            contextManager.runTestCancelTokens.indexOf(cancellationToken),
+            1
+          );
+        }
+      );
 
       while (!isFinished) {
         await sleep(200);

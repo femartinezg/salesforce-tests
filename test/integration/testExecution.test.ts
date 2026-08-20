@@ -20,6 +20,7 @@ import {
 const passingClassName = 'FixturePassingTest';
 const failingClassName = 'FixtureFailingTest';
 const pendingClassName = 'FixturePendingTest';
+const targetOrg = 'fixture.user@example.invalid';
 
 describe('D. Running an Apex test class', () => {
   let sandbox: sinon.SinonSandbox;
@@ -76,6 +77,14 @@ describe('D. Running an Apex test class', () => {
     assert.deepStrictEqual(outputMessages[1], expectedResult);
     assert.strictEqual(outputMessages[2], `Running test: ${passingClassName}`);
     assert.deepStrictEqual(outputMessages[3], expectedResult);
+    for (const invocation of testRunInvocations()) {
+      assert.strictEqual(
+        invocation.args.filter((argument) => argument === '--target-org').length,
+        1
+      );
+      const targetIndex = invocation.args.indexOf('--target-org');
+      assert.strictEqual(invocation.args[targetIndex + 1], targetOrg);
+    }
   });
 
   it('D2 does not start execution after cancelling, choosing an unknown class, or selecting Running', async () => {
@@ -102,6 +111,23 @@ describe('D. Running an Apex test class', () => {
     ]);
     assert.strictEqual(output.callCount, 0);
     assert.deepStrictEqual(testRunInvocations(), []);
+  });
+
+  it('D2.1 refuses to run a test when the active cycle has no pinned org', async () => {
+    const { contextManager, testClass } = createExecutionContext(passingClassName);
+    contextManager.targetOrg = undefined;
+    const errorMessage = sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+
+    await vscode.commands.executeCommand('salesforce-tests.runTestClass', {
+      label: passingClassName,
+    });
+
+    assert.deepStrictEqual(testRunInvocations(), []);
+    assert.strictEqual(testClass.status, undefined);
+    assert.strictEqual(
+      errorMessage.firstCall.args[0],
+      'Unable to use the selected Salesforce org. Check authentication or run Refresh Org.'
+    );
   });
 
   it('D3 exposes Running state and notification progress with the class name while pending', async () => {
@@ -155,7 +181,7 @@ describe('D. Running an Apex test class', () => {
     ];
 
     try {
-      const message = await runTestClass(testClass, contextManager, cancellation.token);
+      const message = await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
 
       assert.strictEqual(testClass.status, 'Passed');
       assert.strictEqual(testClass.executionBlocked, false);
@@ -207,7 +233,7 @@ describe('D. Running an Apex test class', () => {
       const cancellation = new vscode.CancellationTokenSource();
 
       try {
-        await runTestClass(testClass, contextManager, cancellation.token);
+        await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
 
         assert.strictEqual(testClass.status, 'Passed');
         assert.strictEqual(contextManager.statusData.testRuns.length, 1);
@@ -301,7 +327,7 @@ describe('D. Running an Apex test class', () => {
     ];
 
     try {
-      const message = await runTestClass(testClass, contextManager, cancellation.token);
+      const message = await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
 
       assert.strictEqual(testClass.status, 'Passed');
       assert.strictEqual(testClass.executionBlocked, true);
@@ -344,7 +370,7 @@ describe('D. Running an Apex test class', () => {
     const cancellation = new vscode.CancellationTokenSource();
 
     try {
-      const message = await runTestClass(testClass, contextManager, cancellation.token);
+      const message = await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
 
       assert.strictEqual(testClass.executionBlocked, true);
       assert.ok(message?.includes('Unexpected error'));
@@ -377,7 +403,7 @@ describe('D. Running an Apex test class', () => {
       await configureFakeSf({ testRuns: { [passingClassName]: response } });
       const cancellation = new vscode.CancellationTokenSource();
       try {
-        await runTestClass(testClass, contextManager, cancellation.token);
+        await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
         assert.notStrictEqual(testClass.status, 'Running');
         assert.strictEqual(testClass.status, undefined);
         assert.strictEqual(contextManager.statusData.testRuns.length, 0);
@@ -433,7 +459,7 @@ describe('D. Running an Apex test class', () => {
     const cancellation = new vscode.CancellationTokenSource();
 
     try {
-      await runTestClass(testClass, contextManager, cancellation.token);
+      await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
 
       assert.strictEqual(testClass.status, undefined);
       assert.deepStrictEqual(testClass.startTime, new Date('2026-01-01T00:00:00.000Z'));
@@ -461,7 +487,7 @@ describe('D. Running an Apex test class', () => {
     const cancellation = new vscode.CancellationTokenSource();
 
     try {
-      await runTestClass(testClass, contextManager, cancellation.token);
+      await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
 
       assert.strictEqual(testClass.status, undefined);
       assert.strictEqual(
@@ -533,6 +559,7 @@ function createExecutionContext(testClassName: string): {
   apexClass: ApexClass;
 } {
   const contextManager = getNewContextManager();
+  contextManager.targetOrg = targetOrg;
   const testClass = new ApexTestClass('fixture-test-id', testClassName);
   const apexClass = new ApexClass('fixture-class-id', 'FixtureService');
   contextManager.statusData.isAuthenticated = true;
