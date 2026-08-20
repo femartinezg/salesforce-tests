@@ -2,6 +2,24 @@
 
 All notable changes to the "Salesforce Tests" extension will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Salesforce CLI commands are now executed directly without a shell and with validated arguments.
+- All Salesforce CLI operations are now pinned to the org displayed by the extension for the current lifecycle.
+- The extension now requires a trusted workspace and remains disabled in VS Code Restricted Mode.
+- Removed the unused `@salesforce/core` runtime dependency, eliminating known production dependency vulnerabilities.
+
+### Fixed
+
+- Salesforce CLI JSON responses are now validated before updating extension state.
+- Malformed or incompatible Salesforce CLI responses now fail safely without partially updating views or test results.
+- Partial Apex inventories now keep valid classes and show a single warning for discarded invalid records.
+- If the displayed org becomes unavailable, operations now fail explicitly instead of silently falling back to another default org.
+
+---
+
 ## [0.2.1] - 2025-06-15
 
 ### Added
