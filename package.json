@@ -45,6 +45,25 @@
         "icon": "$(run)"
       },
       {
+        "command": "salesforce-tests.clearTestRuns",
+        "title": "Clear Test Runs",
+        "category": "Salesforce Tests",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "salesforce-tests.rerunTest",
+        "title": "Rerun Test",
+        "category": "Salesforce Tests",
+        "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "salesforce-tests.rerunLastTest",
+        "title": "Rerun Last Test",
+        "category": "Salesforce Tests",
+        "enablement": "hasLastTestRuns && !apexTestsLoading",
+        "icon": "$(debug-rerun)"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -133,9 +152,14 @@
           "group": "navigation"
         },
         {
+          "command": "salesforce-tests.rerunLastTest",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation@1"
+        },
+        {
           "command": "salesforce-tests.refreshApexTests",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",
@@ -145,7 +169,7 @@
         {
           "command": "salesforce-tests.findTest",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "salesforce-tests.findClass",
@@ -163,6 +187,30 @@
           "command": "salesforce-tests.runTestClass",
           "when": "view == apexTestsTreeView",
           "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.clearTestRuns",
+          "when": "view == statusTreeView && viewItem == statusLastTestRuns",
+          "group": "inline"
+        },
+        {
+          "command": "salesforce-tests.rerunTest",
+          "when": "view == statusTreeView && viewItem == statusTestRun",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "salesforce-tests.clearTestRuns",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.rerunTest",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.rerunLastTest",
+          "when": "hasLastTestRuns"
         }
       ]
     }

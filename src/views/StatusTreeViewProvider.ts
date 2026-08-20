@@ -28,6 +28,7 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
 
   constructor() {
     this.isAuthenticated = undefined;
+    this.updateHistoryAvailability();
   }
 
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -128,6 +129,13 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
       this.testRuns.pop();
     }
     this.testRuns.unshift(testRun);
+    this.updateHistoryAvailability();
+  }
+
+  clearTestRuns(): void {
+    this.testRuns = [];
+    this.updateHistoryAvailability();
+    this.refresh();
   }
 
   refresh(): void {
@@ -140,5 +148,10 @@ export class StatusTreeViewProvider implements vscode.TreeDataProvider<vscode.Tr
     this.username = undefined;
     this.orgWideCoverage = undefined;
     this.testRuns = [];
+    this.updateHistoryAvailability();
+  }
+
+  private updateHistoryAvailability(): void {
+    void vscode.commands.executeCommand('setContext', 'hasLastTestRuns', this.testRuns.length > 0);
   }
 }
