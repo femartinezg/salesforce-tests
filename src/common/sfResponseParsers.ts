@@ -28,6 +28,11 @@ export interface CodeCoverageDto {
   discardedRecords: number;
 }
 
+export interface CoverageRecordIdsDto {
+  ids: string[];
+  discardedRecords: number;
+}
+
 export interface FailedTestDto {
   fullName: string;
   message: string;
@@ -70,6 +75,7 @@ const RESPONSE_ERRORS = {
   org: 'Salesforce CLI returned an incompatible org response.',
   apexInventory: 'Salesforce CLI returned an incompatible Apex inventory response.',
   codeCoverage: 'Salesforce CLI returned an incompatible code coverage response.',
+  coverageRecords: 'Salesforce CLI returned an incompatible coverage record response.',
   orgCoverage: 'Salesforce CLI returned an incompatible org coverage response.',
   testExecution: 'Salesforce CLI returned an incompatible test execution response.',
 } as const;
@@ -128,11 +134,29 @@ export function parseCodeCoverageResponse(response: unknown): CodeCoverageDto {
   return { records, discardedRecords };
 }
 
+export function parseCoverageRecordIdsResponse(response: unknown): CoverageRecordIdsDto {
+  const result = getRequiredResult(response, RESPONSE_ERRORS.coverageRecords);
+  if (!Array.isArray(result.records)) incompatible(RESPONSE_ERRORS.coverageRecords);
+
+  const ids: string[] = [];
+  let discardedRecords = 0;
+  for (const candidate of result.records) {
+    const record = asRecord(candidate);
+    const id = record?.Id;
+    if (typeof id !== 'string' || !/^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/.test(id)) {
+      discardedRecords++;
+      continue;
+    }
+    ids.push(id);
+  }
+
+  return { ids, discardedRecords };
+}
+
 export function parseOrgCoverageResponse(response: unknown): number {
   const result = getRequiredResult(response, RESPONSE_ERRORS.orgCoverage);
-  if (!Array.isArray(result.records) || result.records.length === 0) {
-    incompatible(RESPONSE_ERRORS.orgCoverage);
-  }
+  if (!Array.isArray(result.records)) incompatible(RESPONSE_ERRORS.orgCoverage);
+  if (result.records.length === 0) return 0;
 
   const firstRecord = asRecord(result.records[0]);
   const percentCovered = firstRecord?.PercentCovered;

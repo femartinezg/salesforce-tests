@@ -5,6 +5,7 @@ import { refreshApexTests, refreshCodeCoverage, refreshOrg } from './commands/re
 import { findClass, findTest } from './commands/find';
 import { clearTestRuns } from './commands/clearTestRuns';
 import { rerunLastTest, rerunTest } from './commands/rerunTest';
+import { clearCodeCoverageCommandHandler } from './commands/clearCodeCoverage';
 
 export function activate(context: vscode.ExtensionContext): Promise<void> {
   try {
@@ -62,6 +63,11 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.refreshCodeCoverage', () =>
       refreshCodeCoverage()
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.clearCodeCoverage', () =>
+      clearCodeCoverageCommandHandler()
     )
   );
 

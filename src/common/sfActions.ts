@@ -6,14 +6,20 @@ import { MessageType, showTestResultMessage } from './messaging';
 import {
   getApexClassesInvocation,
   getCodeCoverageInvocation,
+  getCoverageRecordIdsInvocation,
+  getDeleteCoverageRecordInvocation,
   getOrgCoverageInvocation,
   getOrgInfoInvocation,
   getTestClassInvocation,
+  getUpdateOrgCoverageInvocation,
+  type CoverageDeleteObject,
+  type CoverageQueryObject,
 } from './sfCommands';
 import {
   incompatibleResponseError,
   parseApexInventoryResponse,
   parseCodeCoverageResponse,
+  parseCoverageRecordIdsResponse,
   parseOrgCoverageResponse,
   parseOrgInfoResponse,
   parseTestExecutionResponse,
@@ -208,6 +214,113 @@ export async function retrieveCodeCoverage(contextManager: ContextManager, targe
     if (e instanceof Error) throw e;
     throw new Error('Unexpected error');
   }
+}
+
+export async function clearCodeCoverageRecords(targetOrg: string): Promise<{
+  failedRecords: number;
+  failedQueries: number;
+}> {
+  const result = { failedRecords: 0, failedQueries: 0 };
+
+  const sources = await deleteCoveragePhase('ApexCodeCoverage', targetOrg);
+  addPhaseResult(result, sources);
+  if (!sources.succeeded) return result;
+
+  const aggregates = await deleteCoveragePhase('ApexCodeCoverageAggregate', targetOrg);
+  addPhaseResult(result, aggregates);
+  if (!aggregates.succeeded) return result;
+
+  const orgCoverage = await updateOrgCoveragePhase(targetOrg);
+  addPhaseResult(result, orgCoverage);
+  return result;
+}
+
+interface CoveragePhaseResult {
+  failedRecords: number;
+  failedQueries: number;
+  succeeded: boolean;
+}
+
+async function deleteCoveragePhase(
+  coverageObject: CoverageDeleteObject,
+  targetOrg: string
+): Promise<CoveragePhaseResult> {
+  const query = await queryCoverageRecordIds(coverageObject, targetOrg);
+  if (query.failedQueries > 0) return query;
+
+  let failedRecords = query.failedRecords;
+  for (const id of query.ids) {
+    try {
+      const invocation = getDeleteCoverageRecordInvocation(coverageObject, id, targetOrg);
+      const deletion = await runSf(invocation.args, invocation.options);
+      if (deletion.error) failedRecords++;
+    } catch {
+      failedRecords++;
+    }
+  }
+
+  return {
+    failedRecords,
+    failedQueries: 0,
+    succeeded: failedRecords === 0,
+  };
+}
+
+async function updateOrgCoveragePhase(targetOrg: string): Promise<CoveragePhaseResult> {
+  const query = await queryCoverageRecordIds('ApexOrgWideCoverage', targetOrg);
+  if (query.failedQueries > 0) return query;
+
+  let failedRecords = query.failedRecords;
+  for (const id of query.ids) {
+    try {
+      const invocation = getUpdateOrgCoverageInvocation(id, targetOrg);
+      const update = await runSf(invocation.args, invocation.options);
+      if (update.error) failedRecords++;
+    } catch {
+      failedRecords++;
+    }
+  }
+
+  return {
+    failedRecords,
+    failedQueries: 0,
+    succeeded: failedRecords === 0,
+  };
+}
+
+async function queryCoverageRecordIds(
+  coverageObject: CoverageQueryObject,
+  targetOrg: string
+): Promise<CoveragePhaseResult & { ids: string[] }> {
+  const invocation = getCoverageRecordIdsInvocation(coverageObject, targetOrg);
+  const query = await runSf(invocation.args, invocation.options);
+  if (query.error) {
+    return { ids: [], failedRecords: 0, failedQueries: 1, succeeded: false };
+  }
+
+  try {
+    const parsed = parseJsonResponse(
+      query.stdout,
+      'coverageRecords',
+      parseCoverageRecordIdsResponse
+    );
+    return {
+      ids: parsed.ids,
+      failedRecords: parsed.discardedRecords,
+      failedQueries: 0,
+      succeeded: parsed.discardedRecords === 0,
+    };
+  } catch {
+    return { ids: [], failedRecords: 0, failedQueries: 1, succeeded: false };
+  }
+}
+
+function addPhaseResult(
+  result: { failedRecords: number; failedQueries: number },
+  phase: CoveragePhaseResult
+): void {
+  result.failedRecords += phase.failedRecords;
+  result.failedQueries += phase.failedQueries;
 }
 
 export async function runTestClass(

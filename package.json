@@ -85,6 +85,13 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "salesforce-tests.clearCodeCoverage",
+        "title": "Clear Code Coverage",
+        "enablement": "!codeCoverageLoading && !codeCoverageClearing",
+        "category": "Salesforce Tests",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "salesforce-tests.findTest",
         "title": "Find",
         "enablement": "view == apexTestsTreeView && !apexTestsLoading",
@@ -163,6 +170,11 @@
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",
+          "when": "view == codeCoverageTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "salesforce-tests.clearCodeCoverage",
           "when": "view == codeCoverageTreeView",
           "group": "navigation"
         },
