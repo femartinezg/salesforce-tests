@@ -4,9 +4,12 @@ import * as path from 'path';
 import {
   getApexClassesInvocation,
   getCodeCoverageInvocation,
+  getCoverageRecordIdsInvocation,
+  getDeleteCoverageRecordInvocation,
   getOrgCoverageInvocation,
   getOrgInfoInvocation,
   getTestClassInvocation,
+  getUpdateOrgCoverageInvocation,
   type SfInvocation,
 } from '../src/common/sfCommands';
 import { runSf } from '../src/common/sfRunner';
@@ -118,6 +121,18 @@ describe('Synthetic Salesforce CLI contract', () => {
       orgInfo: { stdout: 'org-info-route' },
       apexClasses: { stdout: 'apex-classes-route' },
       codeCoverage: { stdout: 'code-coverage-route' },
+      codeCoverageRecordIds: { stdout: 'code-coverage-record-ids-route' },
+      coveredAggregateRecordIds: { stdout: 'covered-aggregate-record-ids-route' },
+      orgCoverageRecordIds: { stdout: 'org-coverage-record-ids-route' },
+      codeCoverageDeletes: {
+        '714000000000001AAA': { stdout: 'delete-code-coverage-route' },
+      },
+      coveredAggregateDeletes: {
+        '716000000000001AAA': { stdout: 'delete-covered-aggregate-route' },
+      },
+      orgCoverageUpdates: {
+        '715000000000001AAA': { stdout: 'update-org-coverage-route' },
+      },
       orgCoverage: { stdout: 'org-coverage-route' },
       testRuns: { RoutedTest: { stdout: 'test-run-route' } },
     });
@@ -132,6 +147,44 @@ describe('Synthetic Salesforce CLI contract', () => {
         operation: 'codeCoverage',
         invocation: getCodeCoverageInvocation(targetOrg),
         stdout: 'code-coverage-route',
+      },
+      {
+        operation: 'codeCoverageRecordIds',
+        invocation: getCoverageRecordIdsInvocation('ApexCodeCoverage', targetOrg),
+        stdout: 'code-coverage-record-ids-route',
+      },
+      {
+        operation: 'coveredAggregateRecordIds',
+        invocation: getCoverageRecordIdsInvocation('ApexCodeCoverageAggregate', targetOrg),
+        stdout: 'covered-aggregate-record-ids-route',
+      },
+      {
+        operation: 'orgCoverageRecordIds',
+        invocation: getCoverageRecordIdsInvocation('ApexOrgWideCoverage', targetOrg),
+        stdout: 'org-coverage-record-ids-route',
+      },
+      {
+        operation: 'deleteCodeCoverage',
+        invocation: getDeleteCoverageRecordInvocation(
+          'ApexCodeCoverage',
+          '714000000000001AAA',
+          targetOrg
+        ),
+        stdout: 'delete-code-coverage-route',
+      },
+      {
+        operation: 'deleteCoveredAggregate',
+        invocation: getDeleteCoverageRecordInvocation(
+          'ApexCodeCoverageAggregate',
+          '716000000000001AAA',
+          targetOrg
+        ),
+        stdout: 'delete-covered-aggregate-route',
+      },
+      {
+        operation: 'updateOrgCoverage',
+        invocation: getUpdateOrgCoverageInvocation('715000000000001AAA', targetOrg),
+        stdout: 'update-org-coverage-route',
       },
       {
         operation: 'orgCoverage',

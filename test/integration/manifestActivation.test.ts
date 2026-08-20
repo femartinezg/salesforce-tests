@@ -75,6 +75,7 @@ describe('A. VS Code integration and navigation', () => {
 
   it('A2 activates all three providers, registers the commands, and starts initial loading', async () => {
     const expectedCommands = [
+      'salesforce-tests.clearCodeCoverage',
       'salesforce-tests.clearTestRuns',
       'salesforce-tests.findClass',
       'salesforce-tests.findTest',
@@ -206,6 +207,18 @@ describe('A. VS Code integration and navigation', () => {
     await assert.rejects(activation, (error: unknown) => error === failure);
   });
 
+  it('A2.3 exposes clear code coverage in the Code Coverage title bar', () => {
+    const contribution = readManifest().contributes.menus['view/title'].find(
+      ({ command }) => command === 'salesforce-tests.clearCodeCoverage'
+    );
+
+    assert.deepStrictEqual(contribution, {
+      command: 'salesforce-tests.clearCodeCoverage',
+      when: 'view == codeCoverageTreeView',
+      group: 'navigation',
+    });
+  });
+
   it('A3 keeps data-dependent actions disabled and all three views empty while loading', async () => {
     const manifest = readManifest();
     const enablementByCommand = new Map(
@@ -250,6 +263,10 @@ describe('A. VS Code integration and navigation', () => {
     assert.strictEqual(
       enablementByCommand.get('salesforce-tests.refreshCodeCoverage'),
       'view == codeCoverageTreeView && !codeCoverageLoading'
+    );
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.clearCodeCoverage'),
+      '!codeCoverageLoading && !codeCoverageClearing'
     );
     assert.strictEqual(
       enablementByCommand.get('salesforce-tests.findClass'),

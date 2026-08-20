@@ -43,8 +43,32 @@ function identifyOperation(invocationArgs) {
     const queryIndex = invocationArgs.indexOf('--query');
     const query = queryIndex >= 0 ? invocationArgs[queryIndex + 1] || '' : '';
     if (query.includes('FROM ApexClass')) return 'apexClasses';
+    if (query === 'SELECT Id FROM ApexCodeCoverage') return 'codeCoverageRecordIds';
+    if (query === 'SELECT Id FROM ApexCodeCoverageAggregate WHERE NumLinesCovered > 0') {
+      return 'coveredAggregateRecordIds';
+    }
+    if (query === 'SELECT Id FROM ApexOrgWideCoverage') return 'orgCoverageRecordIds';
     if (query.includes('FROM ApexCodeCoverageAggregate')) return 'codeCoverage';
     if (query.includes('FROM ApexOrgWideCoverage')) return 'orgCoverage';
+  }
+  if (
+    invocationArgs[0] === 'data'
+    && invocationArgs[1] === 'delete'
+    && invocationArgs[2] === 'record'
+  ) {
+    const sobjectIndex = invocationArgs.indexOf('--sobject');
+    const sobject = sobjectIndex >= 0 ? invocationArgs[sobjectIndex + 1] : undefined;
+    if (sobject === 'ApexCodeCoverage') return 'deleteCodeCoverage';
+    if (sobject === 'ApexCodeCoverageAggregate') return 'deleteCoveredAggregate';
+  }
+  if (
+    invocationArgs[0] === 'data'
+    && invocationArgs[1] === 'update'
+    && invocationArgs[2] === 'record'
+  ) {
+    const sobjectIndex = invocationArgs.indexOf('--sobject');
+    const sobject = sobjectIndex >= 0 ? invocationArgs[sobjectIndex + 1] : undefined;
+    if (sobject === 'ApexOrgWideCoverage') return 'updateOrgCoverage';
   }
   return 'unknown';
 }
@@ -54,6 +78,19 @@ function selectResponse(currentPlan, currentOperation, invocationArgs) {
     const testsIndex = invocationArgs.indexOf('--tests');
     const testClassName = testsIndex >= 0 ? invocationArgs[testsIndex + 1] : undefined;
     return testClassName ? currentPlan.testRuns?.[testClassName] : undefined;
+  }
+  if (
+    currentOperation === 'deleteCodeCoverage'
+    || currentOperation === 'deleteCoveredAggregate'
+    || currentOperation === 'updateOrgCoverage'
+  ) {
+    const idIndex = invocationArgs.indexOf('--record-id');
+    const recordId = idIndex >= 0 ? invocationArgs[idIndex + 1] : undefined;
+    const responses =
+      currentOperation === 'deleteCodeCoverage' ? currentPlan.codeCoverageDeletes
+      : currentOperation === 'deleteCoveredAggregate' ? currentPlan.coveredAggregateDeletes
+      : currentPlan.orgCoverageUpdates;
+    return recordId ? responses?.[recordId] : undefined;
   }
   return currentPlan[currentOperation];
 }

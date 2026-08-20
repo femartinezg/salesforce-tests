@@ -50,6 +50,72 @@
       }
     }
   },
+  "codeCoverageRecordIds": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "Id": "714000000000001AAA"
+          }
+        ]
+      }
+    }
+  },
+  "coveredAggregateRecordIds": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "Id": "716000000000001AAA"
+          }
+        ]
+      }
+    }
+  },
+  "orgCoverageRecordIds": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "Id": "715000000000001AAA"
+          }
+        ]
+      }
+    }
+  },
+  "codeCoverageDeletes": {
+    "714000000000001AAA": {
+      "json": {
+        "status": 0,
+        "result": {
+          "id": "714000000000001AAA"
+        }
+      }
+    }
+  },
+  "coveredAggregateDeletes": {
+    "716000000000001AAA": {
+      "json": {
+        "status": 0,
+        "result": {
+          "id": "716000000000001AAA"
+        }
+      }
+    }
+  },
+  "orgCoverageUpdates": {
+    "715000000000001AAA": {
+      "json": {
+        "status": 0,
+        "result": {
+          "id": "715000000000001AAA"
+        }
+      }
+    }
+  },
   "orgCoverage": {
     "json": {
       "status": 0,
