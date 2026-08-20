@@ -24,7 +24,7 @@
     "url": "https://github.com/femartinezg/salesforce-tests"
   },
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.122.0"
   },
   "main": "./out/src/extension.js",
   "icon": "images/icon128bg.png",
@@ -73,10 +73,7 @@
         "command": "salesforce-tests.unpinClass",
         "title": "Unpin Class",
         "category": "Salesforce Tests",
-        "icon": {
-          "light": "./images/unpin-light.svg",
-          "dark": "./images/unpin-dark.svg"
-        }
+        "icon": "$(unpin)"
       },
       {
         "command": "salesforce-tests.refreshOrg",
@@ -288,7 +285,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/sinon": "^22.0.0",
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "^1.122.0",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",

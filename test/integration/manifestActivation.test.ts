@@ -18,7 +18,7 @@ interface CommandContribution {
   command: string;
   title?: string;
   enablement?: string;
-  icon?: string | { light: string; dark: string };
+  icon?: string;
 }
 
 interface MenuContribution {
@@ -347,14 +347,8 @@ describe('A. VS Code integration and navigation', () => {
       command: 'salesforce-tests.unpinClass',
       title: 'Unpin Class',
       category: 'Salesforce Tests',
-      icon: {
-        light: './images/unpin-light.svg',
-        dark: './images/unpin-dark.svg',
-      },
+      icon: '$(unpin)',
     });
-    for (const iconPath of ['./images/unpin-light.svg', './images/unpin-dark.svg']) {
-      assert.strictEqual(fs.existsSync(path.join(extensionRoot, iconPath)), true);
-    }
     assert.deepStrictEqual(
       manifest.contributes.menus.commandPalette.filter(({ command }) =>
         ['salesforce-tests.pinClass', 'salesforce-tests.unpinClass'].includes(command)
