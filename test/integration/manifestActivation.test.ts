@@ -111,7 +111,7 @@ describe('A. VS Code integration and navigation', () => {
     assert.strictEqual(registerProvider.thirdCall.args[1], isolatedContext.codeCoverageData);
   });
 
-  it('A2.1 contributes history actions with official icons and gates the global rerun action', () => {
+  it('A2.1 contributes history actions only in their intended surfaces', () => {
     const manifest = readManifest();
     const commandById = new Map(
       manifest.contributes.commands.map((command) => [command.command, command])
@@ -155,20 +155,42 @@ describe('A. VS Code integration and navigation', () => {
       )
     );
     assert.deepStrictEqual(
-      manifest.contributes.menus.commandPalette.filter(
-        ({ command }) => command === 'salesforce-tests.rerunLastTest'
+      manifest.contributes.menus.commandPalette.filter(({ command }) =>
+        [
+          'salesforce-tests.clearTestRuns',
+          'salesforce-tests.rerunTest',
+          'salesforce-tests.rerunLastTest',
+        ].includes(command)
       ),
-      [{ command: 'salesforce-tests.rerunLastTest', when: 'hasLastTestRuns' }]
+      [
+        { command: 'salesforce-tests.clearTestRuns', when: 'false' },
+        { command: 'salesforce-tests.rerunTest', when: 'false' },
+        { command: 'salesforce-tests.rerunLastTest', when: 'hasLastTestRuns' },
+      ]
     );
     assert.deepStrictEqual(
-      manifest.contributes.menus['view/title'].filter(
-        ({ command }) => command === 'salesforce-tests.rerunLastTest'
+      manifest.contributes.menus['view/title'].filter(({ command }) =>
+        [
+          'salesforce-tests.rerunLastTest',
+          'salesforce-tests.refreshApexTests',
+          'salesforce-tests.findTest',
+        ].includes(command)
       ),
       [
         {
           command: 'salesforce-tests.rerunLastTest',
-          when: 'view == apexTestsTreeView && hasLastTestRuns',
-          group: 'navigation',
+          when: 'view == apexTestsTreeView',
+          group: 'navigation@1',
+        },
+        {
+          command: 'salesforce-tests.refreshApexTests',
+          when: 'view == apexTestsTreeView',
+          group: 'navigation@2',
+        },
+        {
+          command: 'salesforce-tests.findTest',
+          when: 'view == apexTestsTreeView',
+          group: 'navigation@3',
         },
       ]
     );
