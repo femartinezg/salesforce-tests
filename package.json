@@ -152,14 +152,14 @@
           "group": "navigation"
         },
         {
-          "command": "salesforce-tests.refreshApexTests",
+          "command": "salesforce-tests.rerunLastTest",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
-          "command": "salesforce-tests.rerunLastTest",
-          "when": "view == apexTestsTreeView && hasLastTestRuns",
-          "group": "navigation"
+          "command": "salesforce-tests.refreshApexTests",
+          "when": "view == apexTestsTreeView",
+          "group": "navigation@2"
         },
         {
           "command": "salesforce-tests.refreshCodeCoverage",
@@ -169,7 +169,7 @@
         {
           "command": "salesforce-tests.findTest",
           "when": "view == apexTestsTreeView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "salesforce-tests.findClass",
@@ -200,6 +200,14 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "salesforce-tests.clearTestRuns",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.rerunTest",
+          "when": "false"
+        },
         {
           "command": "salesforce-tests.rerunLastTest",
           "when": "hasLastTestRuns"
