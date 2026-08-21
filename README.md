@@ -37,22 +37,14 @@ Install the extension from the [Visual Studio Marketplace](https://marketplace.v
 code --install-extension femartinezg.salesforce-tests
 ```
 
-## Command Reference
+## Actions
 
-| Action                      | What it does                                                        |
-| --------------------------- | ------------------------------------------------------------------- |
-| **Run Test Class**          | Runs one discovered Apex test class.                                |
-| **Rerun Test**              | Runs a class again from an item in test history.                    |
-| **Rerun Last Test**         | Repeats the most recent test class run.                             |
-| **Clear Test Runs**         | Clears the current in-memory test history.                          |
-| **Pin Class / Unpin Class** | Keeps or removes a class at the top of the current view.            |
-| **Refresh Org**             | Resolves the default org again and reloads extension data.          |
-| **Refresh Apex Tests**      | Reloads discovered unmanaged Apex test classes.                     |
-| **Refresh Code Coverage**   | Reloads class-level coverage data.                                  |
-| **Clear Code Coverage**     | Clears coverage records in the selected org and refreshes the view. |
-| **Find**                    | Filters classes in the focused Apex Tests or Code Coverage view.    |
+Actions are available from view toolbars, row menus, and the Command Palette where applicable.
 
-> **Caution:** Clearing code coverage changes Tooling API coverage records in the selected org. It does not delete Apex classes or tests, but it should only be used when resetting coverage is intentional.
+- Run or rerun Apex test classes.
+- Pin or unpin classes in the Apex Tests and Code Coverage views.
+- Find classes, refresh extension data, and clear recent test runs.
+- Clear code coverage data from the selected org.
 
 ## Org and Privacy Model
 
