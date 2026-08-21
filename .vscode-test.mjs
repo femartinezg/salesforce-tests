@@ -90,7 +90,7 @@ export default defineConfig({
     {
       label: 'extension',
       files: 'out/test/**/*.test.js',
-      version: '1.122.0',
+      version: '1.100.0',
       workspaceFolder: workspaceRoot,
       launchArgs: [
         `--user-data-dir=${path.join(runtimeRoot, 'user-data')}`,
