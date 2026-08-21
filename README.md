@@ -18,22 +18,16 @@ A lightweight, standalone Visual Studio Code extension for running Apex tests an
 
 ## Features
 
-- **Discover Apex tests:** Browse unmanaged Apex test classes from the authenticated Salesforce org.
-- **Run and rerun quickly:** Run a class from the sidebar, rerun a previous class, or repeat the latest run.
-- **Follow test results:** See running, passed, failed, and blocked states, together with start time and duration.
-- **Inspect code coverage:** Review org-wide coverage and class-level percentages, including covered and total lines.
-- **Keep important classes visible:** Pin classes independently in the Apex Tests and Code Coverage views for each VS Code workspace.
-- **Manage stale data:** Refresh org, test, and coverage data; clear test history or org coverage records when needed.
-- **Stay lightweight:** Work through the local Salesforce CLI without installing the Salesforce Extension Pack.
+- **Run Apex tests:** Browse unmanaged Apex test classes and run them directly from the sidebar.
+- **Track test results:** Follow execution states and timings, then rerun recent tests when needed.
+- **Inspect code coverage:** Review org-wide and class-level coverage, including covered and total lines.
+- **Stay lightweight:** Use your existing Salesforce CLI authentication and org configuration. The Salesforce Extension Pack is not required.
 
 ## Requirements
 
 1. [Visual Studio Code](https://code.visualstudio.com/) 1.100.0 or later.
 2. [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) available as `sf` in the environment's `PATH`.
 3. An authenticated default Salesforce org.
-4. A trusted VS Code workspace. The extension is disabled in Restricted Mode because it executes the local Salesforce CLI.
-
-The extension runs in the same environment as the VS Code workspace. When using SSH, Dev Containers, or Codespaces, install and authenticate Salesforce CLI in that remote environment.
 
 ## Installation
 
