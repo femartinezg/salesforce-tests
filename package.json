@@ -64,6 +64,16 @@
         "icon": "$(debug-rerun)"
       },
       {
+        "command": "salesforce-tests.pinClass",
+        "title": "Pin Class",
+        "category": "Salesforce Tests"
+      },
+      {
+        "command": "salesforce-tests.unpinClass",
+        "title": "Unpin Class",
+        "category": "Salesforce Tests"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -152,6 +162,28 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "salesforce-tests.pinClass",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.unpinClass",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.clearTestRuns",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.rerunTest",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.rerunLastTest",
+          "when": "hasLastTestRuns"
+        }
+      ],
       "view/title": [
         {
           "command": "salesforce-tests.refreshOrg",
@@ -196,6 +228,26 @@
           "group": "inline"
         },
         {
+          "command": "salesforce-tests.pinClass",
+          "when": "view == apexTestsTreeView && viewItem == apexTestClass",
+          "group": "navigation@1"
+        },
+        {
+          "command": "salesforce-tests.unpinClass",
+          "when": "view == apexTestsTreeView && viewItem == pinnedApexTestClass",
+          "group": "navigation@1"
+        },
+        {
+          "command": "salesforce-tests.pinClass",
+          "when": "view == codeCoverageTreeView && viewItem == apexCoverageClass",
+          "group": "navigation@1"
+        },
+        {
+          "command": "salesforce-tests.unpinClass",
+          "when": "view == codeCoverageTreeView && viewItem == pinnedApexCoverageClass",
+          "group": "navigation@1"
+        },
+        {
           "command": "salesforce-tests.runTestClass",
           "when": "view == apexTestsTreeView",
           "group": "inline"
@@ -209,20 +261,6 @@
           "command": "salesforce-tests.rerunTest",
           "when": "view == statusTreeView && viewItem == statusTestRun",
           "group": "inline"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "salesforce-tests.clearTestRuns",
-          "when": "false"
-        },
-        {
-          "command": "salesforce-tests.rerunTest",
-          "when": "false"
-        },
-        {
-          "command": "salesforce-tests.rerunLastTest",
-          "when": "hasLastTestRuns"
         }
       ]
     }

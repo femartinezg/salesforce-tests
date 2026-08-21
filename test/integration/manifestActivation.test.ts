@@ -79,12 +79,14 @@ describe('A. VS Code integration and navigation', () => {
       'salesforce-tests.clearTestRuns',
       'salesforce-tests.findClass',
       'salesforce-tests.findTest',
+      'salesforce-tests.pinClass',
       'salesforce-tests.refreshApexTests',
       'salesforce-tests.refreshCodeCoverage',
       'salesforce-tests.refreshOrg',
       'salesforce-tests.rerunLastTest',
       'salesforce-tests.rerunTest',
       'salesforce-tests.runTestClass',
+      'salesforce-tests.unpinClass',
     ];
     const registeredCommands = await vscode.commands.getCommands(true);
     const contextManager = getContextManager();
@@ -328,6 +330,70 @@ describe('A. VS Code integration and navigation', () => {
       assert.deepStrictEqual(delegatedCommands, [scenario.focusCommand, 'list.find']);
     });
   }
+
+  it('A5 exposes text-only pin and unpin actions only in each class context menu', () => {
+    const manifest = readManifest();
+    const commands = new Map(
+      manifest.contributes.commands.map((command) => [command.command, command])
+    );
+
+    assert.deepStrictEqual(commands.get('salesforce-tests.pinClass'), {
+      command: 'salesforce-tests.pinClass',
+      title: 'Pin Class',
+      category: 'Salesforce Tests',
+    });
+    assert.deepStrictEqual(commands.get('salesforce-tests.unpinClass'), {
+      command: 'salesforce-tests.unpinClass',
+      title: 'Unpin Class',
+      category: 'Salesforce Tests',
+    });
+    assert.deepStrictEqual(
+      manifest.contributes.menus.commandPalette.filter(({ command }) =>
+        ['salesforce-tests.pinClass', 'salesforce-tests.unpinClass'].includes(command)
+      ),
+      [
+        { command: 'salesforce-tests.pinClass', when: 'false' },
+        { command: 'salesforce-tests.unpinClass', when: 'false' },
+      ]
+    );
+
+    const classActions = manifest.contributes.menus['view/item/context'].filter(({ command }) =>
+      ['salesforce-tests.pinClass', 'salesforce-tests.unpinClass'].includes(command)
+    );
+    assert.deepStrictEqual(classActions, [
+      {
+        command: 'salesforce-tests.pinClass',
+        when: 'view == apexTestsTreeView && viewItem == apexTestClass',
+        group: 'navigation@1',
+      },
+      {
+        command: 'salesforce-tests.unpinClass',
+        when: 'view == apexTestsTreeView && viewItem == pinnedApexTestClass',
+        group: 'navigation@1',
+      },
+      {
+        command: 'salesforce-tests.pinClass',
+        when: 'view == codeCoverageTreeView && viewItem == apexCoverageClass',
+        group: 'navigation@1',
+      },
+      {
+        command: 'salesforce-tests.unpinClass',
+        when: 'view == codeCoverageTreeView && viewItem == pinnedApexCoverageClass',
+        group: 'navigation@1',
+      },
+    ]);
+    assert.deepStrictEqual(
+      manifest.contributes.menus['view/item/context'].find(
+        ({ command }) => command === 'salesforce-tests.runTestClass'
+      ),
+      {
+        command: 'salesforce-tests.runTestClass',
+        when: 'view == apexTestsTreeView',
+        group: 'inline',
+      }
+    );
+    assert.ok(classActions.every(({ group }) => !group?.startsWith('inline')));
+  });
 });
 
 function readManifest(): ExtensionManifest {

@@ -8,12 +8,14 @@ import {
   retrieveOrgCoverage,
   retrieveOrgInfo,
 } from './sfActions';
+import { PinnedClasses } from './PinnedClasses';
 
 const ORG_RESOLUTION_ERROR_MESSAGE =
   'Unable to resolve the Salesforce org. Check authentication or run Refresh Org.';
 
 export class ContextManager {
   private static instance: ContextManager;
+  private static workspaceState?: vscode.Memento;
 
   public static outputChannel: vscode.OutputChannel =
     vscode.window.createOutputChannel('Salesforce Tests');
@@ -21,6 +23,7 @@ export class ContextManager {
   public statusData: StatusTreeViewProvider;
   public apexTestsData: ApexTestsTreeViewProvider;
   public codeCoverageData: CodeCoverageTreeViewProvider;
+  public pinnedClasses: PinnedClasses;
   public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
   public targetOrg?: string;
   public targetOrgApiVersion?: string;
@@ -37,12 +40,19 @@ export class ContextManager {
     return this.instance;
   }
 
+  public static useWorkspaceState(workspaceState: vscode.Memento | undefined): void {
+    if (!workspaceState) return;
+    this.workspaceState = workspaceState;
+    this.instance?.pinnedClasses.useWorkspaceState(workspaceState);
+  }
+
   private constructor() {
+    this.pinnedClasses = new PinnedClasses(ContextManager.workspaceState);
     this.statusData = new StatusTreeViewProvider();
     vscode.window.registerTreeDataProvider('statusTreeView', this.statusData);
-    this.apexTestsData = new ApexTestsTreeViewProvider();
+    this.apexTestsData = new ApexTestsTreeViewProvider(this.pinnedClasses);
     vscode.window.registerTreeDataProvider('apexTestsTreeView', this.apexTestsData);
-    this.codeCoverageData = new CodeCoverageTreeViewProvider();
+    this.codeCoverageData = new CodeCoverageTreeViewProvider(this.pinnedClasses);
     vscode.window.registerTreeDataProvider('codeCoverageTreeView', this.codeCoverageData);
   }
 

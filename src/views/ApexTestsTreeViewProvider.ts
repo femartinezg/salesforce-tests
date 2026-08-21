@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { ApexTestClass } from '../classes/Apex';
+import { PinnedClasses } from '../common/PinnedClasses';
+import { usePinnedClassIcon } from './pinnedClassTreeItem';
 
 export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> =
@@ -8,6 +10,7 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
     this._onDidChangeTreeData.event;
 
   private _testClasses: ApexTestClass[] | undefined = undefined;
+  private readonly pinnedClasses: PinnedClasses;
 
   get testClasses(): ApexTestClass[] | undefined {
     return this._testClasses;
@@ -21,7 +24,8 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
     }
   }
 
-  constructor() {
+  constructor(pinnedClasses = new PinnedClasses()) {
+    this.pinnedClasses = pinnedClasses;
     this.testClasses = undefined;
   }
 
@@ -53,8 +57,12 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
       return children;
     }
 
-    this.testClasses.map((testClass) => {
-      children.push(testClass.getTreeItem());
+    this.pinnedClasses.order('apexTests', this.testClasses).map((testClass) => {
+      const item = testClass.getTreeItem();
+      const isPinned = this.pinnedClasses.isPinned('apexTests', testClass.name);
+      item.contextValue = isPinned ? 'pinnedApexTestClass' : 'apexTestClass';
+      if (isPinned) usePinnedClassIcon(item);
+      children.push(item);
     });
 
     return children;
