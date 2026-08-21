@@ -7,11 +7,12 @@ import {
   getApexClassesInvocation,
   getCodeCoverageInvocation,
   getCoverageRecordIdsInvocation,
-  getDeleteCoverageRecordInvocation,
+  getDeleteCoverageBatchInvocation,
   getOrgCoverageInvocation,
   getOrgInfoInvocation,
   getTestClassInvocation,
   getUpdateOrgCoverageInvocation,
+  TOOLING_COMPOSITE_BATCH_SIZE,
   type CoverageDeleteObject,
   type CoverageQueryObject,
 } from './sfCommands';
@@ -19,6 +20,7 @@ import {
   incompatibleResponseError,
   parseApexInventoryResponse,
   parseCodeCoverageResponse,
+  parseCompositeDeleteResponse,
   parseCoverageRecordIdsResponse,
   parseOrgCoverageResponse,
   parseOrgInfoResponse,
@@ -30,6 +32,7 @@ import { runSf } from './sfRunner';
 
 export const ORG_TARGET_ERROR_MESSAGE =
   'Unable to use the selected Salesforce org. Check authentication or run Refresh Org.';
+export const COVERAGE_COMPOSITE_CONCURRENCY = 4;
 
 class OrgTargetError extends Error {}
 
@@ -37,6 +40,7 @@ export async function retrieveOrgInfo(): Promise<{
   status: boolean;
   alias?: string;
   username?: string;
+  apiVersion?: string;
   orgName?: string;
 }> {
   const invocation = getOrgInfoInvocation();
@@ -44,8 +48,12 @@ export async function retrieveOrgInfo(): Promise<{
   if (error) return { status: false };
 
   try {
-    const { alias, username, orgName } = parseJsonResponse(stdout, 'org', parseOrgInfoResponse);
-    return { status: true, alias, username, orgName };
+    const { alias, username, apiVersion, orgName } = parseJsonResponse(
+      stdout,
+      'org',
+      parseOrgInfoResponse
+    );
+    return { status: true, alias, username, ...(apiVersion ? { apiVersion } : {}), orgName };
   } catch (error) {
     reportOperationError(error);
     return { status: false };
@@ -216,17 +224,20 @@ export async function retrieveCodeCoverage(contextManager: ContextManager, targe
   }
 }
 
-export async function clearCodeCoverageRecords(targetOrg: string): Promise<{
+export async function clearCodeCoverageRecords(
+  targetOrg: string,
+  apiVersion: string
+): Promise<{
   failedRecords: number;
   failedQueries: number;
 }> {
   const result = { failedRecords: 0, failedQueries: 0 };
 
-  const sources = await deleteCoveragePhase('ApexCodeCoverage', targetOrg);
+  const sources = await deleteCoveragePhase('ApexCodeCoverage', targetOrg, apiVersion);
   addPhaseResult(result, sources);
   if (!sources.succeeded) return result;
 
-  const aggregates = await deleteCoveragePhase('ApexCodeCoverageAggregate', targetOrg);
+  const aggregates = await deleteCoveragePhase('ApexCodeCoverageAggregate', targetOrg, apiVersion);
   addPhaseResult(result, aggregates);
   if (!aggregates.succeeded) return result;
 
@@ -243,27 +254,68 @@ interface CoveragePhaseResult {
 
 async function deleteCoveragePhase(
   coverageObject: CoverageDeleteObject,
-  targetOrg: string
+  targetOrg: string,
+  apiVersion: string
 ): Promise<CoveragePhaseResult> {
   const query = await queryCoverageRecordIds(coverageObject, targetOrg);
   if (query.failedQueries > 0) return query;
 
-  let failedRecords = query.failedRecords;
-  for (const id of query.ids) {
-    try {
-      const invocation = getDeleteCoverageRecordInvocation(coverageObject, id, targetOrg);
-      const deletion = await runSf(invocation.args, invocation.options);
-      if (deletion.error) failedRecords++;
-    } catch {
-      failedRecords++;
-    }
-  }
+  const batches = chunk(query.ids, TOOLING_COMPOSITE_BATCH_SIZE);
+  const batchFailures = await runWithConcurrency(batches, COVERAGE_COMPOSITE_CONCURRENCY, (ids) =>
+    deleteCoverageBatch(coverageObject, ids, targetOrg, apiVersion)
+  );
+  const failedRecords =
+    query.failedRecords + batchFailures.reduce((total, failures) => total + failures, 0);
 
   return {
     failedRecords,
     failedQueries: 0,
     succeeded: failedRecords === 0,
   };
+}
+
+async function deleteCoverageBatch(
+  coverageObject: CoverageDeleteObject,
+  ids: string[],
+  targetOrg: string,
+  apiVersion: string
+): Promise<number> {
+  try {
+    const invocation = getDeleteCoverageBatchInvocation(coverageObject, ids, targetOrg, apiVersion);
+    const deletion = await runSf(invocation.args, invocation.options);
+    if (deletion.error) return ids.length;
+    return parseJsonResponse(deletion.stdout, 'compositeMutation', (response) =>
+      parseCompositeDeleteResponse(response, ids.length)
+    ).failedRecords;
+  } catch {
+    return ids.length;
+  }
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  operation: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  const worker = async (): Promise<void> => {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await operation(items[index]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
+  return results;
 }
 
 async function updateOrgCoveragePhase(targetOrg: string): Promise<CoveragePhaseResult> {

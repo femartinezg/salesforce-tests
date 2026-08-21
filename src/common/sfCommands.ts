@@ -14,6 +14,7 @@ export type CoverageQueryObject =
   | 'ApexCodeCoverageAggregate'
   | 'ApexOrgWideCoverage';
 export type CoverageDeleteObject = 'ApexCodeCoverage' | 'ApexCodeCoverageAggregate';
+export const TOOLING_COMPOSITE_BATCH_SIZE = 25;
 
 export function getOrgInfoInvocation(): SfInvocation {
   return {
@@ -78,27 +79,45 @@ export function getCoverageRecordIdsInvocation(
   };
 }
 
-export function getDeleteCoverageRecordInvocation(
+export function getDeleteCoverageBatchInvocation(
   coverageObject: CoverageDeleteObject,
-  coverageRecordId: string,
-  targetOrg: string
+  coverageRecordIds: string[],
+  targetOrg: string,
+  apiVersion: string
 ): SfInvocation {
   const validatedCoverageObject = validateCoverageDeleteObject(coverageObject);
-  const validatedCoverageRecordId = validateCoverageRecordId(coverageRecordId);
+  if (
+    !Array.isArray(coverageRecordIds)
+    || coverageRecordIds.length === 0
+    || coverageRecordIds.length > TOOLING_COMPOSITE_BATCH_SIZE
+  ) {
+    throw new Error(
+      `Coverage Composite batch must contain between 1 and ${String(TOOLING_COMPOSITE_BATCH_SIZE)} records`
+    );
+  }
+  const validatedCoverageRecordIds = coverageRecordIds.map(validateCoverageRecordId);
   const validatedTargetOrg = validateTargetOrg(targetOrg);
+  const validatedApiVersion = validateApiVersion(apiVersion);
+  const apiRoot = `/services/data/v${validatedApiVersion}`;
   return {
     args: [
-      'data',
-      'delete',
-      'record',
-      '--sobject',
-      validatedCoverageObject,
-      '--record-id',
-      validatedCoverageRecordId,
-      '--use-tooling-api',
+      'api',
+      'request',
+      'rest',
+      `${apiRoot}/tooling/composite`,
+      '--method',
+      'POST',
+      '--body',
+      JSON.stringify({
+        allOrNone: false,
+        compositeRequest: validatedCoverageRecordIds.map((id, index) => ({
+          method: 'DELETE',
+          url: `${apiRoot}/tooling/sobjects/${validatedCoverageObject}/${id}`,
+          referenceId: `delete${String(index)}`,
+        })),
+      }),
       '--target-org',
       validatedTargetOrg,
-      '--json',
     ],
   };
 }
@@ -190,6 +209,13 @@ function validateCoverageRecordId(coverageRecordId: string): string {
     throw new Error('Invalid Salesforce coverage record ID');
   }
   return coverageRecordId;
+}
+
+function validateApiVersion(apiVersion: string): string {
+  if (typeof apiVersion !== 'string' || !/^[1-9]\d*\.\d+$/.test(apiVersion)) {
+    throw new Error('Salesforce API version must use numeric major.minor notation');
+  }
+  return apiVersion;
 }
 
 function validateTargetOrg(targetOrg: string): string {

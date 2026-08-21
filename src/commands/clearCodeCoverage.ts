@@ -15,7 +15,8 @@ export async function clearCodeCoverageCommandHandler(): Promise<void> {
 
   const contextManager = getContextManager();
   const targetOrg = contextManager.targetOrg;
-  if (!targetOrg) {
+  const apiVersion = contextManager.targetOrgApiVersion;
+  if (!targetOrg || !apiVersion) {
     void vscode.window.showErrorMessage(ORG_TARGET_ERROR_MESSAGE);
     return;
   }
@@ -33,7 +34,7 @@ export async function clearCodeCoverageCommandHandler(): Promise<void> {
         let failedRecords: number | undefined;
         let failedQueries = 0;
         try {
-          const result = await clearCodeCoverageRecords(targetOrg);
+          const result = await clearCodeCoverageRecords(targetOrg, apiVersion);
           failedRecords = result.failedRecords;
           failedQueries = result.failedQueries;
         } catch {
