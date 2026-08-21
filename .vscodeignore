@@ -19,5 +19,4 @@ node_modules/**
 .env
 test/
 **/*.test.*
-images/icon.svg
-images/icon128.png
+images/icon-master.png

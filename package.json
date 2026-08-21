@@ -27,7 +27,7 @@
     "vscode": "^1.100.0"
   },
   "main": "./out/src/extension.js",
-  "icon": "images/icon128bg.png",
+  "icon": "images/icon.png",
   "activationEvents": [],
   "capabilities": {
     "untrustedWorkspaces": {

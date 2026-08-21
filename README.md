@@ -1,4 +1,4 @@
-<!-- TODO(public-docs): Add the final extension icon above the title. -->
+![Salesforce Tests icon](images/icon.png)
 
 # Salesforce Tests
 
