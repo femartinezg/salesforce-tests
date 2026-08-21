@@ -331,7 +331,7 @@ describe('A. VS Code integration and navigation', () => {
     });
   }
 
-  it('A5 exposes iconized pin and unpin actions only in each class context menu', () => {
+  it('A5 exposes text-only pin and unpin actions only in each class context menu', () => {
     const manifest = readManifest();
     const commands = new Map(
       manifest.contributes.commands.map((command) => [command.command, command])
@@ -341,13 +341,11 @@ describe('A. VS Code integration and navigation', () => {
       command: 'salesforce-tests.pinClass',
       title: 'Pin Class',
       category: 'Salesforce Tests',
-      icon: '$(pin)',
     });
     assert.deepStrictEqual(commands.get('salesforce-tests.unpinClass'), {
       command: 'salesforce-tests.unpinClass',
       title: 'Unpin Class',
       category: 'Salesforce Tests',
-      icon: '$(unpin)',
     });
     assert.deepStrictEqual(
       manifest.contributes.menus.commandPalette.filter(({ command }) =>
