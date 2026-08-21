@@ -41,10 +41,10 @@ code --install-extension femartinezg.salesforce-tests
 
 Actions are available from view toolbars, row menus, and the Command Palette where applicable.
 
-- Run or rerun Apex test classes.
-- Pin or unpin classes in the Apex Tests and Code Coverage views.
-- Find classes, refresh extension data, and clear recent test runs.
-- Clear code coverage data from the selected org.
+- **Run or rerun** Apex test classes.
+- **Pin or unpin** classes in the Apex Tests and Code Coverage views.
+- **Find classes**, **refresh extension data**, and **clear recent test runs**.
+- **Clear code coverage data** from the selected org.
 
 ## Privacy
 
