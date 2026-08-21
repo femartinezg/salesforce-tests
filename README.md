@@ -60,30 +60,11 @@ Salesforce Tests does not add telemetry. Commands and data stay between VS Code,
 - **The wrong or stale org is shown:** Use **Salesforce Tests: Refresh Org** after changing the Salesforce CLI default org.
 - **A test or coverage operation fails:** Open **View → Output**, select **Salesforce Tests**, and inspect the Salesforce CLI error.
 
-## Contributing
-
-Bug reports, feature requests, and pull requests are welcome. Start with the [GitHub Issues](https://github.com/femartinezg/salesforce-tests/issues) page and keep changes focused and tested.
-
-Run the maintained checks before opening a pull request:
-
-```sh
-npm ci
-npm run compile
-npm run lint
-npm test
-```
-
-`npm test` launches a graphical VS Code Extension Host. In a headless environment, run it through Xvfb:
-
-```sh
-xvfb-run -a npm test
-```
-
 ## Resources
 
 - [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=femartinezg.salesforce-tests)
-- [Change Log](CHANGELOG.md)
-- [Issue Tracker](https://github.com/femartinezg/salesforce-tests/issues)
+- [Changelog](CHANGELOG.md)
+- [Report an issue](https://github.com/femartinezg/salesforce-tests/issues)
 
 ## Author
 
