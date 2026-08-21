@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ApexClass } from '../classes/Apex';
 import { PinnedClasses } from '../common/PinnedClasses';
+import { usePinnedClassIcon } from './pinnedClassTreeItem';
 
 export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> =
@@ -58,10 +59,9 @@ export class CodeCoverageTreeViewProvider implements vscode.TreeDataProvider<vsc
 
     this.pinnedClasses.order('codeCoverage', this.apexClasses).map((apexClass) => {
       const item = apexClass.getTreeItem();
-      item.contextValue =
-        this.pinnedClasses.isPinned('codeCoverage', apexClass.name) ?
-          'pinnedApexCoverageClass'
-        : 'apexCoverageClass';
+      const isPinned = this.pinnedClasses.isPinned('codeCoverage', apexClass.name);
+      item.contextValue = isPinned ? 'pinnedApexCoverageClass' : 'apexCoverageClass';
+      if (isPinned) usePinnedClassIcon(item);
       children.push(item);
     });
 

@@ -6,7 +6,7 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 
 ### Added
 
-- Apex test and code coverage classes can now be pinned independently per workspace and remain pinned when switching Salesforce orgs.
+- Apex test and code coverage classes can now be pinned from their context menus; pinned rows use a status-colored pin icon and remain independently pinned per workspace when switching Salesforce orgs.
 
 ### Changed
 

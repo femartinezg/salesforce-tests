@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ApexTestClass } from '../classes/Apex';
 import { PinnedClasses } from '../common/PinnedClasses';
+import { usePinnedClassIcon } from './pinnedClassTreeItem';
 
 export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> =
@@ -58,10 +59,9 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
 
     this.pinnedClasses.order('apexTests', this.testClasses).map((testClass) => {
       const item = testClass.getTreeItem();
-      item.contextValue =
-        this.pinnedClasses.isPinned('apexTests', testClass.name) ?
-          'pinnedApexTestClass'
-        : 'apexTestClass';
+      const isPinned = this.pinnedClasses.isPinned('apexTests', testClass.name);
+      item.contextValue = isPinned ? 'pinnedApexTestClass' : 'apexTestClass';
+      if (isPinned) usePinnedClassIcon(item);
       children.push(item);
     });
 

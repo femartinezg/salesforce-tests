@@ -232,27 +232,27 @@
         {
           "command": "salesforce-tests.pinClass",
           "when": "view == apexTestsTreeView && viewItem == apexTestClass",
-          "group": "inline@1"
+          "group": "navigation@1"
         },
         {
           "command": "salesforce-tests.unpinClass",
           "when": "view == apexTestsTreeView && viewItem == pinnedApexTestClass",
-          "group": "inline@1"
+          "group": "navigation@1"
         },
         {
           "command": "salesforce-tests.pinClass",
           "when": "view == codeCoverageTreeView && viewItem == apexCoverageClass",
-          "group": "inline@1"
+          "group": "navigation@1"
         },
         {
           "command": "salesforce-tests.unpinClass",
           "when": "view == codeCoverageTreeView && viewItem == pinnedApexCoverageClass",
-          "group": "inline@1"
+          "group": "navigation@1"
         },
         {
           "command": "salesforce-tests.runTestClass",
           "when": "view == apexTestsTreeView",
-          "group": "inline@2"
+          "group": "inline"
         },
         {
           "command": "salesforce-tests.clearTestRuns",
