@@ -13,6 +13,7 @@
       "result": {
         "alias": "fixture-org",
         "username": "fixture.user@example.invalid",
+        "apiVersion": "67.0",
         "instanceUrl": "https://fixture.example.invalid"
       }
     }
@@ -47,6 +48,74 @@
             "NumLinesUncovered": 2
           }
         ]
+      }
+    }
+  },
+  "codeCoverageRecordIds": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "Id": "714000000000001AAA"
+          }
+        ]
+      }
+    }
+  },
+  "coveredAggregateRecordIds": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "Id": "716000000000001AAA"
+          }
+        ]
+      }
+    }
+  },
+  "orgCoverageRecordIds": {
+    "json": {
+      "status": 0,
+      "result": {
+        "records": [
+          {
+            "Id": "715000000000001AAA"
+          }
+        ]
+      }
+    }
+  },
+  "codeCoverageDeletes": {
+    "714000000000001AAA": {
+      "json": {
+        "status": 0,
+        "result": {
+          "id": "714000000000001AAA"
+        }
+      }
+    }
+  },
+  "codeCoverageDeleteBatches": {},
+  "coveredAggregateDeletes": {
+    "716000000000001AAA": {
+      "json": {
+        "status": 0,
+        "result": {
+          "id": "716000000000001AAA"
+        }
+      }
+    }
+  },
+  "coveredAggregateDeleteBatches": {},
+  "orgCoverageUpdates": {
+    "715000000000001AAA": {
+      "json": {
+        "status": 0,
+        "result": {
+          "id": "715000000000001AAA"
+        }
       }
     }
   },

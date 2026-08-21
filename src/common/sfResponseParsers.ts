@@ -3,6 +3,7 @@ export class SfResponseError extends Error {}
 export interface OrgInfoDto {
   alias: string;
   username: string;
+  apiVersion?: string;
   orgName?: string;
 }
 
@@ -26,6 +27,15 @@ export interface CodeCoverageRecordDto {
 export interface CodeCoverageDto {
   records: CodeCoverageRecordDto[];
   discardedRecords: number;
+}
+
+export interface CoverageRecordIdsDto {
+  ids: string[];
+  discardedRecords: number;
+}
+
+export interface CompositeDeleteDto {
+  failedRecords: number;
 }
 
 export interface FailedTestDto {
@@ -70,6 +80,8 @@ const RESPONSE_ERRORS = {
   org: 'Salesforce CLI returned an incompatible org response.',
   apexInventory: 'Salesforce CLI returned an incompatible Apex inventory response.',
   codeCoverage: 'Salesforce CLI returned an incompatible code coverage response.',
+  coverageRecords: 'Salesforce CLI returned an incompatible coverage record response.',
+  compositeMutation: 'Salesforce CLI returned an incompatible composite mutation response.',
   orgCoverage: 'Salesforce CLI returned an incompatible org coverage response.',
   testExecution: 'Salesforce CLI returned an incompatible test execution response.',
 } as const;
@@ -78,10 +90,13 @@ export function parseOrgInfoResponse(response: unknown): OrgInfoDto {
   const result = getRequiredResult(response, RESPONSE_ERRORS.org);
   const username = nonEmptyString(result.username);
   if (username === undefined) incompatible(RESPONSE_ERRORS.org);
+  const apiVersion = parseApiVersion(result.apiVersion);
+  if (result.apiVersion !== undefined && apiVersion === undefined)
+    incompatible(RESPONSE_ERRORS.org);
 
   const alias = nonEmptyString(result.alias) ?? username;
   const orgName = parseOrgName(result.instanceUrl);
-  return { alias, username, orgName };
+  return { alias, username, ...(apiVersion ? { apiVersion } : {}), orgName };
 }
 
 export function parseApexInventoryResponse(response: unknown): ApexInventoryDto {
@@ -128,11 +143,65 @@ export function parseCodeCoverageResponse(response: unknown): CodeCoverageDto {
   return { records, discardedRecords };
 }
 
+export function parseCoverageRecordIdsResponse(response: unknown): CoverageRecordIdsDto {
+  const result = getRequiredResult(response, RESPONSE_ERRORS.coverageRecords);
+  if (!Array.isArray(result.records)) incompatible(RESPONSE_ERRORS.coverageRecords);
+
+  const ids: string[] = [];
+  let discardedRecords = 0;
+  for (const candidate of result.records) {
+    const record = asRecord(candidate);
+    const id = record?.Id;
+    if (typeof id !== 'string' || !/^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/.test(id)) {
+      discardedRecords++;
+      continue;
+    }
+    ids.push(id);
+  }
+
+  return { ids, discardedRecords };
+}
+
+export function parseCompositeDeleteResponse(
+  response: unknown,
+  expectedRecords: number
+): CompositeDeleteDto {
+  if (!Number.isSafeInteger(expectedRecords) || expectedRecords <= 0) {
+    incompatible(RESPONSE_ERRORS.compositeMutation);
+  }
+  const envelope = asRecord(response);
+  const compositeResponse = envelope?.compositeResponse;
+  if (!Array.isArray(compositeResponse) || compositeResponse.length !== expectedRecords) {
+    incompatible(RESPONSE_ERRORS.compositeMutation);
+  }
+
+  const remainingReferences = new Set(
+    Array.from({ length: expectedRecords }, (_, index) => `delete${String(index)}`)
+  );
+  let failedRecords = 0;
+  for (const candidate of compositeResponse) {
+    const record = asRecord(candidate);
+    const referenceId = optionalString(record?.referenceId);
+    const httpStatusCode = record?.httpStatusCode;
+    if (
+      referenceId === undefined
+      || !remainingReferences.delete(referenceId)
+      || typeof httpStatusCode !== 'number'
+      || !Number.isSafeInteger(httpStatusCode)
+    ) {
+      incompatible(RESPONSE_ERRORS.compositeMutation);
+    }
+    if (httpStatusCode < 200 || httpStatusCode >= 300) failedRecords++;
+  }
+  if (remainingReferences.size > 0) incompatible(RESPONSE_ERRORS.compositeMutation);
+
+  return { failedRecords };
+}
+
 export function parseOrgCoverageResponse(response: unknown): number {
   const result = getRequiredResult(response, RESPONSE_ERRORS.orgCoverage);
-  if (!Array.isArray(result.records) || result.records.length === 0) {
-    incompatible(RESPONSE_ERRORS.orgCoverage);
-  }
+  if (!Array.isArray(result.records)) incompatible(RESPONSE_ERRORS.orgCoverage);
+  if (result.records.length === 0) return 0;
 
   const firstRecord = asRecord(result.records[0]);
   const percentCovered = firstRecord?.PercentCovered;
@@ -226,6 +295,10 @@ function parseOrgName(value: unknown): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function parseApiVersion(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[1-9]\d*\.\d+$/.test(value) ? value : undefined;
 }
 
 function parseDuration(value: unknown): { value: number; label: string } | undefined {

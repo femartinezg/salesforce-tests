@@ -4,6 +4,8 @@ import * as path from 'path';
 import {
   parseApexInventoryResponse,
   parseCodeCoverageResponse,
+  parseCompositeDeleteResponse,
+  parseCoverageRecordIdsResponse,
   parseOrgCoverageResponse,
   parseOrgInfoResponse,
   parseTestExecutionResponse,
@@ -25,6 +27,7 @@ describe('Salesforce CLI response parsers', () => {
         {
           alias: 'fixture-org',
           username: 'fixture.user@example.invalid',
+          apiVersion: '67.0',
           orgName: 'fixture',
         }
       );
@@ -36,12 +39,14 @@ describe('Salesforce CLI response parsers', () => {
           result: {
             alias: 42,
             username: 'fixture.user@example.invalid',
+            apiVersion: '66.0',
             instanceUrl: 'not a URL',
           },
         }),
         {
           alias: 'fixture.user@example.invalid',
           username: 'fixture.user@example.invalid',
+          apiVersion: '66.0',
           orgName: undefined,
         }
       );
@@ -53,7 +58,8 @@ describe('Salesforce CLI response parsers', () => {
         {},
         { result: {} },
         { result: { username: '' } },
-        { result: { username: 42, secret: 'org-response-secret' } },
+        { result: { username: 42, apiVersion: '67.0', secret: 'org-response-secret' } },
+        { result: { username: 'fixture.user@example.invalid', apiVersion: 'v67.0' } },
       ]) {
         assertSafeFailure(
           () => parseOrgInfoResponse(response),
@@ -187,6 +193,94 @@ describe('Salesforce CLI response parsers', () => {
     });
   });
 
+  describe('coverage record identifiers', () => {
+    it('accepts Salesforce IDs and discards malformed records', () => {
+      assert.deepStrictEqual(
+        parseCoverageRecordIdsResponse({
+          result: {
+            records: [
+              { Id: '715000000000001AAA' },
+              { Id: '' },
+              { Id: 'not an id' },
+              { Name: 'missing' },
+            ],
+          },
+        }),
+        { ids: ['715000000000001AAA'], discardedRecords: 3 }
+      );
+    });
+
+    it('rejects incompatible collection envelopes', () => {
+      for (const response of [undefined, {}, { result: {} }, { result: { records: 'none' } }]) {
+        assertSafeFailure(
+          () => parseCoverageRecordIdsResponse(response),
+          'Salesforce CLI returned an incompatible coverage record response.'
+        );
+      }
+    });
+  });
+
+  describe('Tooling Composite deletes', () => {
+    it('counts every non-2xx subresponse while accepting successful deletes', () => {
+      assert.deepStrictEqual(
+        parseCompositeDeleteResponse(
+          {
+            compositeResponse: [
+              {
+                body: null,
+                httpHeaders: {},
+                httpStatusCode: 204,
+                referenceId: 'delete0',
+              },
+              {
+                body: [{ errorCode: 'SYNTHETIC_FAILURE', message: 'failed' }],
+                httpHeaders: {},
+                httpStatusCode: 400,
+                referenceId: 'delete1',
+              },
+            ],
+          },
+          2
+        ),
+        { failedRecords: 1 }
+      );
+    });
+
+    it('rejects missing, duplicate, unexpected, and malformed subresponses safely', () => {
+      const invalidResponses = [
+        undefined,
+        {},
+        { compositeResponse: {} },
+        { compositeResponse: [] },
+        {
+          compositeResponse: [
+            { httpStatusCode: 204, referenceId: 'delete0' },
+            { httpStatusCode: 204, referenceId: 'delete0' },
+          ],
+        },
+        {
+          compositeResponse: [
+            { httpStatusCode: 204, referenceId: 'delete0' },
+            { httpStatusCode: 204, referenceId: 'unexpected' },
+          ],
+        },
+        {
+          compositeResponse: [
+            { httpStatusCode: 204, referenceId: 'delete0' },
+            { httpStatusCode: '400', referenceId: 'delete1', secret: 'composite-secret' },
+          ],
+        },
+      ];
+
+      for (const response of invalidResponses) {
+        assertSafeFailure(
+          () => parseCompositeDeleteResponse(response, 2),
+          'Salesforce CLI returned an incompatible composite mutation response.'
+        );
+      }
+    });
+  });
+
   describe('org-wide coverage', () => {
     it('accepts a sanitized percentage and both valid boundaries', () => {
       assert.strictEqual(parseOrgCoverageResponse(fixtures.orgCoverage), 84);
@@ -198,18 +292,23 @@ describe('Salesforce CLI response parsers', () => {
         parseOrgCoverageResponse({ result: { records: [{ PercentCovered: 100 }] } }),
         100
       );
+      assert.strictEqual(parseOrgCoverageResponse({ result: { records: [] } }), 0);
     });
 
     it('rejects absent, non-finite, non-numeric, and out-of-range percentages', () => {
-      for (const percent of [undefined, '84', Number.NaN, Number.POSITIVE_INFINITY, -1, 101]) {
+      for (const percent of ['84', Number.NaN, Number.POSITIVE_INFINITY, -1, 101]) {
         assertSafeFailure(
           () =>
             parseOrgCoverageResponse({
-              result: { records: percent === undefined ? [] : [{ PercentCovered: percent }] },
+              result: { records: [{ PercentCovered: percent }] },
             }),
           'Salesforce CLI returned an incompatible org coverage response.'
         );
       }
+      assertSafeFailure(
+        () => parseOrgCoverageResponse({ result: {} }),
+        'Salesforce CLI returned an incompatible org coverage response.'
+      );
     });
   });
 

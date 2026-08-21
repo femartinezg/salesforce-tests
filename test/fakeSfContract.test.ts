@@ -4,9 +4,12 @@ import * as path from 'path';
 import {
   getApexClassesInvocation,
   getCodeCoverageInvocation,
+  getCoverageRecordIdsInvocation,
+  getDeleteCoverageBatchInvocation,
   getOrgCoverageInvocation,
   getOrgInfoInvocation,
   getTestClassInvocation,
+  getUpdateOrgCoverageInvocation,
   type SfInvocation,
 } from '../src/common/sfCommands';
 import { runSf } from '../src/common/sfRunner';
@@ -59,7 +62,7 @@ describe('Synthetic Salesforce CLI contract', () => {
     const fixturePath = path.join(extensionRoot, 'test', 'fixtures', 'fake-sf-plan.json');
     const fixtureText = fs.readFileSync(fixturePath, 'utf8');
     const fixture = JSON.parse(fixtureText) as {
-      orgInfo: { json: { result: { alias: string; username: string } } };
+      orgInfo: { json: { result: { alias: string; username: string; apiVersion: string } } };
       apexClasses: { json: { result: { records: { Id: string; Name: string }[] } } };
       codeCoverage: {
         json: {
@@ -86,6 +89,7 @@ describe('Synthetic Salesforce CLI contract', () => {
     assert.deepStrictEqual(defaultFakeSfPlan(), expected);
     assert.strictEqual(fixture.orgInfo.json.result.alias, expected.expectedAlias);
     assert.strictEqual(fixture.orgInfo.json.result.username, expected.expectedUsername);
+    assert.strictEqual(fixture.orgInfo.json.result.apiVersion, '67.0');
     const records = fixture.apexClasses.json.result.records;
     assert.ok(
       records.some(({ Name }) => Name === expected.expectedTestClass),
@@ -118,6 +122,18 @@ describe('Synthetic Salesforce CLI contract', () => {
       orgInfo: { stdout: 'org-info-route' },
       apexClasses: { stdout: 'apex-classes-route' },
       codeCoverage: { stdout: 'code-coverage-route' },
+      codeCoverageRecordIds: { stdout: 'code-coverage-record-ids-route' },
+      coveredAggregateRecordIds: { stdout: 'covered-aggregate-record-ids-route' },
+      orgCoverageRecordIds: { stdout: 'org-coverage-record-ids-route' },
+      codeCoverageDeleteBatches: {
+        '714000000000001AAA': { stdout: 'delete-code-coverage-route' },
+      },
+      coveredAggregateDeleteBatches: {
+        '716000000000001AAA': { stdout: 'delete-covered-aggregate-route' },
+      },
+      orgCoverageUpdates: {
+        '715000000000001AAA': { stdout: 'update-org-coverage-route' },
+      },
       orgCoverage: { stdout: 'org-coverage-route' },
       testRuns: { RoutedTest: { stdout: 'test-run-route' } },
     });
@@ -132,6 +148,46 @@ describe('Synthetic Salesforce CLI contract', () => {
         operation: 'codeCoverage',
         invocation: getCodeCoverageInvocation(targetOrg),
         stdout: 'code-coverage-route',
+      },
+      {
+        operation: 'codeCoverageRecordIds',
+        invocation: getCoverageRecordIdsInvocation('ApexCodeCoverage', targetOrg),
+        stdout: 'code-coverage-record-ids-route',
+      },
+      {
+        operation: 'coveredAggregateRecordIds',
+        invocation: getCoverageRecordIdsInvocation('ApexCodeCoverageAggregate', targetOrg),
+        stdout: 'covered-aggregate-record-ids-route',
+      },
+      {
+        operation: 'orgCoverageRecordIds',
+        invocation: getCoverageRecordIdsInvocation('ApexOrgWideCoverage', targetOrg),
+        stdout: 'org-coverage-record-ids-route',
+      },
+      {
+        operation: 'deleteCodeCoverageBatch',
+        invocation: getDeleteCoverageBatchInvocation(
+          'ApexCodeCoverage',
+          ['714000000000001AAA'],
+          targetOrg,
+          '67.0'
+        ),
+        stdout: 'delete-code-coverage-route',
+      },
+      {
+        operation: 'deleteCoveredAggregateBatch',
+        invocation: getDeleteCoverageBatchInvocation(
+          'ApexCodeCoverageAggregate',
+          ['716000000000001AAA'],
+          targetOrg,
+          '67.0'
+        ),
+        stdout: 'delete-covered-aggregate-route',
+      },
+      {
+        operation: 'updateOrgCoverage',
+        invocation: getUpdateOrgCoverageInvocation('715000000000001AAA', targetOrg),
+        stdout: 'update-org-coverage-route',
       },
       {
         operation: 'orgCoverage',

@@ -14,7 +14,21 @@ export interface FakeSfResponse {
 }
 
 export interface FakeSfInvocation {
-  operation: 'orgInfo' | 'apexClasses' | 'codeCoverage' | 'orgCoverage' | 'runTest' | 'unknown';
+  operation:
+    | 'orgInfo'
+    | 'apexClasses'
+    | 'codeCoverage'
+    | 'codeCoverageRecordIds'
+    | 'coveredAggregateRecordIds'
+    | 'orgCoverageRecordIds'
+    | 'deleteCodeCoverage'
+    | 'deleteCodeCoverageBatch'
+    | 'deleteCoveredAggregate'
+    | 'deleteCoveredAggregateBatch'
+    | 'updateOrgCoverage'
+    | 'orgCoverage'
+    | 'runTest'
+    | 'unknown';
   args: string[];
 }
 
@@ -32,13 +46,35 @@ interface FakeSfPlan {
   orgInfo: FakeSfResponse;
   apexClasses: FakeSfResponse;
   codeCoverage: FakeSfResponse;
+  codeCoverageRecordIds: FakeSfResponse;
+  coveredAggregateRecordIds: FakeSfResponse;
+  orgCoverageRecordIds: FakeSfResponse;
+  codeCoverageDeletes: Record<string, FakeSfResponse>;
+  codeCoverageDeleteBatches: Record<string, FakeSfResponse>;
+  coveredAggregateDeletes: Record<string, FakeSfResponse>;
+  coveredAggregateDeleteBatches: Record<string, FakeSfResponse>;
+  orgCoverageUpdates: Record<string, FakeSfResponse>;
   orgCoverage: FakeSfResponse;
   testRuns: Record<string, FakeSfResponse>;
 }
 
 export type FakeSfPlanOverrides = Partial<
-  Omit<FakeSfPlan, 'expected' | 'testRuns'> & {
+  Omit<
+    FakeSfPlan,
+    | 'expected'
+    | 'testRuns'
+    | 'codeCoverageDeletes'
+    | 'codeCoverageDeleteBatches'
+    | 'coveredAggregateDeletes'
+    | 'coveredAggregateDeleteBatches'
+    | 'orgCoverageUpdates'
+  > & {
     testRuns: Record<string, FakeSfResponse>;
+    codeCoverageDeletes: Record<string, FakeSfResponse>;
+    codeCoverageDeleteBatches: Record<string, FakeSfResponse>;
+    coveredAggregateDeletes: Record<string, FakeSfResponse>;
+    coveredAggregateDeleteBatches: Record<string, FakeSfResponse>;
+    orgCoverageUpdates: Record<string, FakeSfResponse>;
   }
 >;
 
@@ -125,6 +161,26 @@ export function configureFakeSf(overrides: FakeSfPlanOverrides): Promise<void> {
     testRuns: {
       ...defaults.testRuns,
       ...(overrides.testRuns ?? {}),
+    },
+    codeCoverageDeletes: {
+      ...defaults.codeCoverageDeletes,
+      ...(overrides.codeCoverageDeletes ?? {}),
+    },
+    codeCoverageDeleteBatches: {
+      ...defaults.codeCoverageDeleteBatches,
+      ...(overrides.codeCoverageDeleteBatches ?? {}),
+    },
+    coveredAggregateDeletes: {
+      ...defaults.coveredAggregateDeletes,
+      ...(overrides.coveredAggregateDeletes ?? {}),
+    },
+    coveredAggregateDeleteBatches: {
+      ...defaults.coveredAggregateDeleteBatches,
+      ...(overrides.coveredAggregateDeleteBatches ?? {}),
+    },
+    orgCoverageUpdates: {
+      ...defaults.orgCoverageUpdates,
+      ...(overrides.orgCoverageUpdates ?? {}),
     },
   });
   return Promise.resolve();

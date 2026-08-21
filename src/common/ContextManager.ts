@@ -23,6 +23,7 @@ export class ContextManager {
   public codeCoverageData: CodeCoverageTreeViewProvider;
   public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
   public targetOrg?: string;
+  public targetOrgApiVersion?: string;
 
   public static getInstance(): ContextManager {
     if (!this.instance) {
@@ -51,7 +52,8 @@ export class ContextManager {
     }
 
     this.targetOrg = undefined;
-    const { status, alias, username, orgName } = await retrieveOrgInfo();
+    this.targetOrgApiVersion = undefined;
+    const { status, alias, username, apiVersion, orgName } = await retrieveOrgInfo();
     this.statusData.isAuthenticated = status && username !== undefined;
     this.statusData.alias = alias;
     this.statusData.username = username;
@@ -67,6 +69,7 @@ export class ContextManager {
     }
 
     this.targetOrg = username;
+    this.targetOrgApiVersion = apiVersion;
     this.printOutput(`Connected to org: ${orgName}`);
 
     try {
