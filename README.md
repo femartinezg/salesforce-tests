@@ -10,8 +10,6 @@ A lightweight, standalone Visual Studio Code extension for running Apex tests an
 
 **[Install Salesforce Tests from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=femartinezg.salesforce-tests)**
 
-Salesforce Tests brings the Apex test and coverage workflows you use most into one focused Activity Bar view, while keeping Salesforce CLI as the source of truth for authentication and org access.
-
 ## Preview
 
 <!-- TODO(public-docs): Replace this placeholder with a screenshot or short GIF showing the Status, Apex Tests, and Code Coverage views in a real Salesforce project. -->
