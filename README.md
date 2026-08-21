@@ -46,16 +46,13 @@ Actions are available from view toolbars, row menus, and the Command Palette whe
 - Find classes, refresh extension data, and clear recent test runs.
 - Clear code coverage data from the selected org.
 
-## Org and Privacy Model
+## Privacy
 
-- Salesforce CLI's default org is the source of truth; the extension does not maintain a separate org selector.
-- After resolving the org, the extension pins subsequent queries, test runs, and coverage operations to the username shown in **Status** until the org is refreshed.
-- Commands and data stay between VS Code, the local Salesforce CLI, and the authenticated Salesforce org. The extension does not add telemetry or send data to another service.
-- Pinned class names are stored in local VS Code workspace state.
-- The extension is disabled for untrusted workspaces because activation executes Salesforce CLI commands.
+Salesforce Tests does not add telemetry. Commands and data stay between VS Code, the local Salesforce CLI, and the authenticated Salesforce org.
 
 ## Troubleshooting
 
+- **The extension is unavailable in Restricted Mode:** Trust the workspace because Salesforce Tests runs local Salesforce CLI commands.
 - **`sf` is not found:** Run `sf --version` in VS Code's integrated terminal. Install the CLI in the same local or remote environment if it fails.
 - **No default org appears:** Run `sf org list`, set one with `sf config set target-org <alias-or-username>`, then refresh the org in the extension.
 - **Authentication has expired:** Authenticate the org again with `sf org login web`, then refresh the org.
