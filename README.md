@@ -1,6 +1,6 @@
 # Salesforce Tests
 
-A Visual Studio Code extension that provides an integrated environment for running and managing Salesforce Apex test classes directly from your editor.
+A lightweight, standalone Visual Studio Code extension for running Apex tests and inspecting org-wide and class-level code coverage through Salesforce CLI. It does not require the Salesforce Extension Pack.
 
 ## Table of Contents
 
