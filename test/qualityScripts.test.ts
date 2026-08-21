@@ -11,6 +11,8 @@ interface PackageManifest {
     };
   };
   dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  engines?: Record<string, string>;
   scripts: Record<string, string>;
 }
 
@@ -49,5 +51,16 @@ describe('Local quality checks', () => {
       supported: false,
       description: 'The extension executes Salesforce CLI commands using workspace configuration.',
     });
+  });
+
+  it('keeps the supported VS Code and test-host baseline aligned', () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(extensionRoot, 'package.json'), 'utf8')
+    ) as PackageManifest;
+    const testConfig = fs.readFileSync(path.join(extensionRoot, '.vscode-test.mjs'), 'utf8');
+
+    assert.strictEqual(manifest.engines?.vscode, '^1.100.0');
+    assert.strictEqual(manifest.devDependencies?.['@types/vscode'], '^1.100.0');
+    assert.match(testConfig, /version: '1\.100\.0'/);
   });
 });
