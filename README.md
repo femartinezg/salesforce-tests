@@ -37,31 +37,6 @@ Install the extension from the [Visual Studio Marketplace](https://marketplace.v
 code --install-extension femartinezg.salesforce-tests
 ```
 
-## Usage
-
-### Run and rerun Apex tests
-
-- Select the run action beside a class in **Apex Tests**, or use **Salesforce Tests: Run Test Class** from the Command Palette.
-- Use a run under **Last Test Runs** to execute that class again.
-- Use **Rerun Last Test** from the Apex Tests toolbar or Command Palette to repeat the latest run.
-- Clear the in-memory list of up to five recent runs from the **Last Test Runs** row when it is no longer useful.
-
-### Inspect and clear code coverage
-
-- Expand the org shown in **Status** to see org-wide coverage.
-- Browse **Code Coverage** for class percentages, covered lines, and total lines.
-- Refresh the view after tests or external org changes to retrieve current coverage.
-- Use **Clear Code Coverage** when you intentionally need to remove existing coverage data from the selected org.
-
-> **Caution:** Clearing code coverage changes Tooling API coverage records in the selected org. It does not delete Apex classes or tests, but it should only be used when resetting coverage is intentional.
-
-### Pin, find, and refresh classes
-
-- Open a class context menu to pin or unpin it at the top of the current view.
-- Pins are stored in VS Code workspace state and are maintained separately for Apex Tests and Code Coverage.
-- Use each view's find action to filter the visible list.
-- Refresh the org or either class view independently from its toolbar.
-
 ## Command Reference
 
 | Action                      | What it does                                                        |
@@ -76,6 +51,8 @@ code --install-extension femartinezg.salesforce-tests
 | **Refresh Code Coverage**   | Reloads class-level coverage data.                                  |
 | **Clear Code Coverage**     | Clears coverage records in the selected org and refreshes the view. |
 | **Find**                    | Filters classes in the focused Apex Tests or Code Coverage view.    |
+
+> **Caution:** Clearing code coverage changes Tooling API coverage records in the selected org. It does not delete Apex classes or tests, but it should only be used when resetting coverage is intentional.
 
 ## Org and Privacy Model
 
