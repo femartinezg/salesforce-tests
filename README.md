@@ -4,7 +4,7 @@
 
 A lightweight, standalone Visual Studio Code extension for running Apex tests and inspecting org-wide and class-level code coverage through Salesforce CLI. It does not require the Salesforce Extension Pack.
 
-[![Visual Studio Marketplace Version](https://vsmarketplacebadges.dev/version/femartinezg.salesforce-tests.svg)](https://marketplace.visualstudio.com/items?itemName=femartinezg.salesforce-tests)
+[![Version](https://img.shields.io/github/v/release/femartinezg/salesforce-tests?sort=semver&label=version)](https://github.com/femartinezg/salesforce-tests/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **[Install Salesforce Tests from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=femartinezg.salesforce-tests)**
