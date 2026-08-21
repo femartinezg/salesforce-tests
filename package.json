@@ -66,14 +66,12 @@
       {
         "command": "salesforce-tests.pinClass",
         "title": "Pin Class",
-        "category": "Salesforce Tests",
-        "icon": "$(pin)"
+        "category": "Salesforce Tests"
       },
       {
         "command": "salesforce-tests.unpinClass",
         "title": "Unpin Class",
-        "category": "Salesforce Tests",
-        "icon": "$(unpin)"
+        "category": "Salesforce Tests"
       },
       {
         "command": "salesforce-tests.refreshOrg",
