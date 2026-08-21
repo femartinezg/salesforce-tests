@@ -37,23 +37,6 @@ Install the extension from the [Visual Studio Marketplace](https://marketplace.v
 code --install-extension femartinezg.salesforce-tests
 ```
 
-## Quick Start
-
-1. From your Salesforce project, authenticate an org and set it as the default:
-
-   ```sh
-   sf org login web --alias my-org
-   sf config set target-org my-org
-   ```
-
-2. Open the project in VS Code and trust the workspace.
-3. Select the Salesforce Tests beaker in the Activity Bar.
-4. Confirm the expected org in the **Status** view.
-5. Find a class in **Apex Tests** and select its run action.
-6. Review the result under **Last Test Runs** and updated values under **Code Coverage**.
-
-If you change the default org, run **Salesforce Tests: Refresh Org** before starting another operation.
-
 ## Usage
 
 ### Run and rerun Apex tests
