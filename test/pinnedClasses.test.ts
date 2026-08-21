@@ -122,7 +122,7 @@ describe('Pinned classes', () => {
     assert.deepStrictEqual(getFakeSfInvocations(), []);
   });
 
-  it('G3 marks visible rows with the context needed to swap their inline action immediately', async () => {
+  it('G3 marks visible rows with the context needed to swap their contextual action immediately', async () => {
     const contextManager = getNewContextManager();
     contextManager.apexTestsData.testClasses = testClasses('AlphaTest', 'BetaTest');
     contextManager.codeCoverageData.apexClasses = apexClasses('AlphaService', 'BetaService');
@@ -157,6 +157,40 @@ describe('Pinned classes', () => {
       'apexCoverageClass',
       'apexCoverageClass',
     ]);
+    assert.deepStrictEqual(getFakeSfInvocations(), []);
+  });
+
+  it('G4 replaces every pinned row glyph while preserving its status or coverage color', async () => {
+    const contextManager = getNewContextManager();
+    const passingTest = new ApexTestClass('passing-test', 'PassingTest', 'Passed');
+    const failingTest = new ApexTestClass('failing-test', 'FailingTest', 'Failed');
+    const uncoveredClass = apexClassWithCoverage('UncoveredService', 50);
+    const coveredClass = apexClassWithCoverage('CoveredService', 90);
+    contextManager.apexTestsData.testClasses = [passingTest, failingTest];
+    contextManager.codeCoverageData.apexClasses = [uncoveredClass, coveredClass];
+
+    const testColors = iconColorsByLabel(contextManager.apexTestsData.getRootChildren());
+    const coverageColors = iconColorsByLabel(contextManager.codeCoverageData.getRootChildren());
+    await pin(contextManager.apexTestsData.getRootChildren(), 'PassingTest');
+    await pin(contextManager.apexTestsData.getRootChildren(), 'FailingTest');
+    await pin(contextManager.codeCoverageData.getRootChildren(), 'UncoveredService');
+    await pin(contextManager.codeCoverageData.getRootChildren(), 'CoveredService');
+
+    for (const item of contextManager.apexTestsData.getRootChildren()) {
+      assertPinnedIcon(item, testColors.get(item.label as string));
+    }
+    for (const item of contextManager.codeCoverageData.getRootChildren()) {
+      assertPinnedIcon(item, coverageColors.get(item.label as string));
+    }
+
+    await unpin(contextManager.apexTestsData.getRootChildren(), 'PassingTest');
+    const unpinnedTest = itemWithLabel(
+      contextManager.apexTestsData.getRootChildren(),
+      'PassingTest'
+    );
+    const unpinnedIcon = getThemeIcon(unpinnedTest);
+    assert.strictEqual(unpinnedIcon.id, 'pass');
+    assert.strictEqual(unpinnedIcon.color?.id, testColors.get('PassingTest'));
     assert.deepStrictEqual(getFakeSfInvocations(), []);
   });
 });
@@ -199,10 +233,35 @@ function contextValues(items: vscode.TreeItem[]): (string | undefined)[] {
   return items.map((item) => item.contextValue);
 }
 
+function iconColorsByLabel(items: vscode.TreeItem[]): Map<string, string | undefined> {
+  return new Map(
+    items.map((item) => [item.label as string, getThemeIcon(item).color?.id] as const)
+  );
+}
+
+function assertPinnedIcon(item: vscode.TreeItem, expectedColor: string | undefined): void {
+  const icon = getThemeIcon(item);
+  assert.strictEqual(icon.id, 'pinned');
+  assert.strictEqual(icon.color?.id, expectedColor);
+}
+
+function getThemeIcon(item: vscode.TreeItem): vscode.ThemeIcon {
+  assert.ok(item.iconPath instanceof vscode.ThemeIcon);
+  return item.iconPath;
+}
+
 function testClasses(...names: string[]): ApexTestClass[] {
   return names.map((name, index) => new ApexTestClass(`test-${index}`, name));
 }
 
 function apexClasses(...names: string[]): ApexClass[] {
   return names.map((name, index) => new ApexClass(`class-${index}`, name));
+}
+
+function apexClassWithCoverage(name: string, coverage: number): ApexClass {
+  const apexClass = new ApexClass(`class-${name}`, name);
+  apexClass.codeCoverage = coverage;
+  apexClass.coveredLines = coverage;
+  apexClass.totalLines = 100;
+  return apexClass;
 }

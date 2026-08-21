@@ -331,7 +331,7 @@ describe('A. VS Code integration and navigation', () => {
     });
   }
 
-  it('A5 exposes pin and unpin only as ordered inline class actions', () => {
+  it('A5 exposes iconized pin and unpin actions only in each class context menu', () => {
     const manifest = readManifest();
     const commands = new Map(
       manifest.contributes.commands.map((command) => [command.command, command])
@@ -366,22 +366,22 @@ describe('A. VS Code integration and navigation', () => {
       {
         command: 'salesforce-tests.pinClass',
         when: 'view == apexTestsTreeView && viewItem == apexTestClass',
-        group: 'inline@1',
+        group: 'navigation@1',
       },
       {
         command: 'salesforce-tests.unpinClass',
         when: 'view == apexTestsTreeView && viewItem == pinnedApexTestClass',
-        group: 'inline@1',
+        group: 'navigation@1',
       },
       {
         command: 'salesforce-tests.pinClass',
         when: 'view == codeCoverageTreeView && viewItem == apexCoverageClass',
-        group: 'inline@1',
+        group: 'navigation@1',
       },
       {
         command: 'salesforce-tests.unpinClass',
         when: 'view == codeCoverageTreeView && viewItem == pinnedApexCoverageClass',
-        group: 'inline@1',
+        group: 'navigation@1',
       },
     ]);
     assert.deepStrictEqual(
@@ -391,9 +391,10 @@ describe('A. VS Code integration and navigation', () => {
       {
         command: 'salesforce-tests.runTestClass',
         when: 'view == apexTestsTreeView',
-        group: 'inline@2',
+        group: 'inline',
       }
     );
+    assert.ok(classActions.every(({ group }) => !group?.startsWith('inline')));
   });
 });
 
