@@ -22,7 +22,9 @@ export interface FakeSfInvocation {
     | 'coveredAggregateRecordIds'
     | 'orgCoverageRecordIds'
     | 'deleteCodeCoverage'
+    | 'deleteCodeCoverageBatch'
     | 'deleteCoveredAggregate'
+    | 'deleteCoveredAggregateBatch'
     | 'updateOrgCoverage'
     | 'orgCoverage'
     | 'runTest'
@@ -48,7 +50,9 @@ interface FakeSfPlan {
   coveredAggregateRecordIds: FakeSfResponse;
   orgCoverageRecordIds: FakeSfResponse;
   codeCoverageDeletes: Record<string, FakeSfResponse>;
+  codeCoverageDeleteBatches: Record<string, FakeSfResponse>;
   coveredAggregateDeletes: Record<string, FakeSfResponse>;
+  coveredAggregateDeleteBatches: Record<string, FakeSfResponse>;
   orgCoverageUpdates: Record<string, FakeSfResponse>;
   orgCoverage: FakeSfResponse;
   testRuns: Record<string, FakeSfResponse>;
@@ -60,12 +64,16 @@ export type FakeSfPlanOverrides = Partial<
     | 'expected'
     | 'testRuns'
     | 'codeCoverageDeletes'
+    | 'codeCoverageDeleteBatches'
     | 'coveredAggregateDeletes'
+    | 'coveredAggregateDeleteBatches'
     | 'orgCoverageUpdates'
   > & {
     testRuns: Record<string, FakeSfResponse>;
     codeCoverageDeletes: Record<string, FakeSfResponse>;
+    codeCoverageDeleteBatches: Record<string, FakeSfResponse>;
     coveredAggregateDeletes: Record<string, FakeSfResponse>;
+    coveredAggregateDeleteBatches: Record<string, FakeSfResponse>;
     orgCoverageUpdates: Record<string, FakeSfResponse>;
   }
 >;
@@ -158,9 +166,17 @@ export function configureFakeSf(overrides: FakeSfPlanOverrides): Promise<void> {
       ...defaults.codeCoverageDeletes,
       ...(overrides.codeCoverageDeletes ?? {}),
     },
+    codeCoverageDeleteBatches: {
+      ...defaults.codeCoverageDeleteBatches,
+      ...(overrides.codeCoverageDeleteBatches ?? {}),
+    },
     coveredAggregateDeletes: {
       ...defaults.coveredAggregateDeletes,
       ...(overrides.coveredAggregateDeletes ?? {}),
+    },
+    coveredAggregateDeleteBatches: {
+      ...defaults.coveredAggregateDeleteBatches,
+      ...(overrides.coveredAggregateDeleteBatches ?? {}),
     },
     orgCoverageUpdates: {
       ...defaults.orgCoverageUpdates,

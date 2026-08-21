@@ -4,6 +4,7 @@ import * as path from 'path';
 import {
   parseApexInventoryResponse,
   parseCodeCoverageResponse,
+  parseCompositeDeleteResponse,
   parseCoverageRecordIdsResponse,
   parseOrgCoverageResponse,
   parseOrgInfoResponse,
@@ -26,6 +27,7 @@ describe('Salesforce CLI response parsers', () => {
         {
           alias: 'fixture-org',
           username: 'fixture.user@example.invalid',
+          apiVersion: '67.0',
           orgName: 'fixture',
         }
       );
@@ -37,12 +39,14 @@ describe('Salesforce CLI response parsers', () => {
           result: {
             alias: 42,
             username: 'fixture.user@example.invalid',
+            apiVersion: '66.0',
             instanceUrl: 'not a URL',
           },
         }),
         {
           alias: 'fixture.user@example.invalid',
           username: 'fixture.user@example.invalid',
+          apiVersion: '66.0',
           orgName: undefined,
         }
       );
@@ -54,7 +58,8 @@ describe('Salesforce CLI response parsers', () => {
         {},
         { result: {} },
         { result: { username: '' } },
-        { result: { username: 42, secret: 'org-response-secret' } },
+        { result: { username: 42, apiVersion: '67.0', secret: 'org-response-secret' } },
+        { result: { username: 'fixture.user@example.invalid', apiVersion: 'v67.0' } },
       ]) {
         assertSafeFailure(
           () => parseOrgInfoResponse(response),
@@ -210,6 +215,67 @@ describe('Salesforce CLI response parsers', () => {
         assertSafeFailure(
           () => parseCoverageRecordIdsResponse(response),
           'Salesforce CLI returned an incompatible coverage record response.'
+        );
+      }
+    });
+  });
+
+  describe('Tooling Composite deletes', () => {
+    it('counts every non-2xx subresponse while accepting successful deletes', () => {
+      assert.deepStrictEqual(
+        parseCompositeDeleteResponse(
+          {
+            compositeResponse: [
+              {
+                body: null,
+                httpHeaders: {},
+                httpStatusCode: 204,
+                referenceId: 'delete0',
+              },
+              {
+                body: [{ errorCode: 'SYNTHETIC_FAILURE', message: 'failed' }],
+                httpHeaders: {},
+                httpStatusCode: 400,
+                referenceId: 'delete1',
+              },
+            ],
+          },
+          2
+        ),
+        { failedRecords: 1 }
+      );
+    });
+
+    it('rejects missing, duplicate, unexpected, and malformed subresponses safely', () => {
+      const invalidResponses = [
+        undefined,
+        {},
+        { compositeResponse: {} },
+        { compositeResponse: [] },
+        {
+          compositeResponse: [
+            { httpStatusCode: 204, referenceId: 'delete0' },
+            { httpStatusCode: 204, referenceId: 'delete0' },
+          ],
+        },
+        {
+          compositeResponse: [
+            { httpStatusCode: 204, referenceId: 'delete0' },
+            { httpStatusCode: 204, referenceId: 'unexpected' },
+          ],
+        },
+        {
+          compositeResponse: [
+            { httpStatusCode: 204, referenceId: 'delete0' },
+            { httpStatusCode: '400', referenceId: 'delete1', secret: 'composite-secret' },
+          ],
+        },
+      ];
+
+      for (const response of invalidResponses) {
+        assertSafeFailure(
+          () => parseCompositeDeleteResponse(response, 2),
+          'Salesforce CLI returned an incompatible composite mutation response.'
         );
       }
     });

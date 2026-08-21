@@ -13,6 +13,7 @@
       "result": {
         "alias": "fixture-org",
         "username": "fixture.user@example.invalid",
+        "apiVersion": "67.0",
         "instanceUrl": "https://fixture.example.invalid"
       }
     }
@@ -96,6 +97,7 @@
       }
     }
   },
+  "codeCoverageDeleteBatches": {},
   "coveredAggregateDeletes": {
     "716000000000001AAA": {
       "json": {
@@ -106,6 +108,7 @@
       }
     }
   },
+  "coveredAggregateDeleteBatches": {},
   "orgCoverageUpdates": {
     "715000000000001AAA": {
       "json": {

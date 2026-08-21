@@ -5,7 +5,7 @@ import {
   getApexClassesInvocation,
   getCodeCoverageInvocation,
   getCoverageRecordIdsInvocation,
-  getDeleteCoverageRecordInvocation,
+  getDeleteCoverageBatchInvocation,
   getOrgCoverageInvocation,
   getOrgInfoInvocation,
   getTestClassInvocation,
@@ -62,7 +62,7 @@ describe('Synthetic Salesforce CLI contract', () => {
     const fixturePath = path.join(extensionRoot, 'test', 'fixtures', 'fake-sf-plan.json');
     const fixtureText = fs.readFileSync(fixturePath, 'utf8');
     const fixture = JSON.parse(fixtureText) as {
-      orgInfo: { json: { result: { alias: string; username: string } } };
+      orgInfo: { json: { result: { alias: string; username: string; apiVersion: string } } };
       apexClasses: { json: { result: { records: { Id: string; Name: string }[] } } };
       codeCoverage: {
         json: {
@@ -89,6 +89,7 @@ describe('Synthetic Salesforce CLI contract', () => {
     assert.deepStrictEqual(defaultFakeSfPlan(), expected);
     assert.strictEqual(fixture.orgInfo.json.result.alias, expected.expectedAlias);
     assert.strictEqual(fixture.orgInfo.json.result.username, expected.expectedUsername);
+    assert.strictEqual(fixture.orgInfo.json.result.apiVersion, '67.0');
     const records = fixture.apexClasses.json.result.records;
     assert.ok(
       records.some(({ Name }) => Name === expected.expectedTestClass),
@@ -124,10 +125,10 @@ describe('Synthetic Salesforce CLI contract', () => {
       codeCoverageRecordIds: { stdout: 'code-coverage-record-ids-route' },
       coveredAggregateRecordIds: { stdout: 'covered-aggregate-record-ids-route' },
       orgCoverageRecordIds: { stdout: 'org-coverage-record-ids-route' },
-      codeCoverageDeletes: {
+      codeCoverageDeleteBatches: {
         '714000000000001AAA': { stdout: 'delete-code-coverage-route' },
       },
-      coveredAggregateDeletes: {
+      coveredAggregateDeleteBatches: {
         '716000000000001AAA': { stdout: 'delete-covered-aggregate-route' },
       },
       orgCoverageUpdates: {
@@ -164,20 +165,22 @@ describe('Synthetic Salesforce CLI contract', () => {
         stdout: 'org-coverage-record-ids-route',
       },
       {
-        operation: 'deleteCodeCoverage',
-        invocation: getDeleteCoverageRecordInvocation(
+        operation: 'deleteCodeCoverageBatch',
+        invocation: getDeleteCoverageBatchInvocation(
           'ApexCodeCoverage',
-          '714000000000001AAA',
-          targetOrg
+          ['714000000000001AAA'],
+          targetOrg,
+          '67.0'
         ),
         stdout: 'delete-code-coverage-route',
       },
       {
-        operation: 'deleteCoveredAggregate',
-        invocation: getDeleteCoverageRecordInvocation(
+        operation: 'deleteCoveredAggregateBatch',
+        invocation: getDeleteCoverageBatchInvocation(
           'ApexCodeCoverageAggregate',
-          '716000000000001AAA',
-          targetOrg
+          ['716000000000001AAA'],
+          targetOrg,
+          '67.0'
         ),
         stdout: 'delete-covered-aggregate-route',
       },
