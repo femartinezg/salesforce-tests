@@ -27,6 +27,7 @@ try {
     'extension/package.json',
     'extension/readme.md',
     'extension/images/icon.png',
+    'extension/images/preview.gif',
     'extension/out/src/extension.js',
   ];
   for (const requiredFile of requiredFiles) {
@@ -84,7 +85,33 @@ try {
   assert.strictEqual(icon.readUInt32BE(16), 256, 'Packaged icon width must be 256');
   assert.strictEqual(icon.readUInt32BE(20), 256, 'Packaged icon height must be 256');
 
-  console.log(`Verified VSIX: ${files.length} files, 256x256 icon, runtime-only contents.`);
+  const previewEntry = archive.file('extension/images/preview.gif');
+  assert.ok(previewEntry, 'VSIX is missing the README preview');
+  const preview = await previewEntry.async('nodebuffer');
+  assert.ok(
+    ['GIF87a', 'GIF89a'].includes(preview.toString('ascii', 0, 6)),
+    'Packaged preview is not a GIF'
+  );
+  assert.strictEqual(preview.readUInt16LE(6), 1200, 'Packaged preview width must be 1200');
+  assert.strictEqual(preview.readUInt16LE(8), 800, 'Packaged preview height must be 800');
+  assert.ok(preview.length <= 2 * 1024 * 1024, 'Packaged preview must not exceed 2 MiB');
+
+  const frameDelays = [];
+  for (let index = 0; index <= preview.length - 8; index++) {
+    if (preview[index] === 0x21 && preview[index + 1] === 0xf9 && preview[index + 2] === 0x04) {
+      frameDelays.push(preview.readUInt16LE(index + 4));
+    }
+  }
+  assert.ok(frameDelays.length >= 2, 'Packaged preview is not an animated GIF');
+  const previewDurationMs = frameDelays.reduce((total, delay) => total + delay, 0) * 10;
+  assert.ok(
+    previewDurationMs >= 5000 && previewDurationMs <= 20000,
+    'Packaged preview duration must stay between 5 and 20 seconds'
+  );
+
+  console.log(
+    `Verified VSIX: ${files.length} files, 256x256 icon, 1200x800 animated preview, runtime-only contents.`
+  );
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });
 }
