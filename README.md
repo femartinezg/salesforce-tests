@@ -11,8 +11,6 @@ A lightweight, standalone Visual Studio Code extension for running Apex tests an
 
 [![Salesforce Tests running an Apex test and updating code coverage in VS Code](images/preview.gif)](images/preview.gif)
 
-_Shown with synthetic demo data._
-
 ## Features
 
 - **Run Apex tests:** Browse unmanaged Apex test classes and run them directly from the sidebar.
