@@ -2,7 +2,7 @@
   "name": "salesforce-tests",
   "displayName": "Salesforce Tests",
   "version": "0.2.1",
-  "description": "Salesforce test suite integrated with your Salesforce org.",
+  "description": "Run Apex tests and inspect org-wide and class-level code coverage from VS Code using Salesforce CLI.",
   "categories": [
     "Testing",
     "Visualization"
@@ -10,29 +10,41 @@
   "keywords": [
     "salesforce",
     "apex",
-    "testing",
-    "development",
-    "debugging"
+    "apex tests",
+    "code coverage",
+    "sfdx"
   ],
   "publisher": "femartinezg",
   "author": {
     "name": "Fernando Martinez",
     "url": "https://github.com/femartinezg"
   },
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/femartinezg/salesforce-tests"
   },
+  "homepage": "https://github.com/femartinezg/salesforce-tests",
+  "bugs": {
+    "url": "https://github.com/femartinezg/salesforce-tests/issues"
+  },
   "engines": {
     "vscode": "^1.100.0"
   },
+  "extensionKind": [
+    "workspace"
+  ],
   "main": "./out/src/extension.js",
-  "icon": "images/icon128bg.png",
+  "icon": "images/icon.png",
   "activationEvents": [],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": false,
       "description": "The extension executes Salesforce CLI commands using workspace configuration."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Salesforce Tests requires a filesystem-backed workspace and Salesforce CLI in the same environment."
     }
   },
   "contributes": {
@@ -271,9 +283,14 @@
     "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint src test",
     "lint:tests": "eslint test",
-    "check": "npm run compile && npm run lint && npm run test:extension",
+    "package": "vsce package",
+    "package:check": "node scripts/check-vsix.mjs",
+    "audit:prod": "npm audit --omit=dev",
+    "check": "npm run format:check && npm run lint && npm test && npm run package:check",
     "test": "npm run test:extension",
     "test:extension": "vscode-test --jobs 1",
     "test:coverage": "npm run compile && vscode-test --jobs 1 --coverage"
@@ -283,13 +300,15 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/sinon": "^22.0.0",
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "3.9.2",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.5",
+    "jszip": "3.10.1",
     "prettier": "3.5.3",
     "sinon": "^22.1.0",
     "typescript": "^5.8.3"

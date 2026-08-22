@@ -1,9 +1,9 @@
 .vscode/**
 .vscode-test/**
 src/**
+scripts/**
 .gitignore
-.yarnrc
-vsc-extension-quickstart.md
+.prettierignore
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
@@ -18,6 +18,6 @@ node_modules/**
 !node_modules/which/**
 .env
 test/
+out/test/**
 **/*.test.*
-images/icon.svg
-images/icon128.png
+images/icon-master.png

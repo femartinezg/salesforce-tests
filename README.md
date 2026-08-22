@@ -1,98 +1,65 @@
 # Salesforce Tests
 
-A Visual Studio Code extension that provides an integrated environment for running and managing Salesforce Apex test classes directly from your editor.
+A lightweight, standalone Visual Studio Code extension for running Apex tests and inspecting org-wide and class-level code coverage through Salesforce CLI. It does not require the Salesforce Extension Pack.
 
-## Table of Contents
+[![Version](https://img.shields.io/github/v/release/femartinezg/salesforce-tests?sort=semver&label=version)](https://github.com/femartinezg/salesforce-tests/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Commands](#commands)
-- [Recent Changes](#recent-changes)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [Author](#author)
-- [License](#license)
+**[Install Salesforce Tests from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=femartinezg.salesforce-tests)**
+
+## Preview
+
+[![Salesforce Tests running an Apex test and updating code coverage in VS Code](images/preview.gif)](images/preview.gif)
 
 ## Features
 
-This extension adds a dedicated Salesforce Tests view to VS Code's Activity Bar, allowing you to:
-
-- **View all Apex test classes**: Browse and discover all test classes available in your connected Salesforce org.
-- **Run tests with a single click**: Execute Apex test classes directly from the sidebar with real-time feedback on test status.
-- **Visual test results**: Tests display with clear visual indicators showing their status (running, passed, or failed).
-- **View Code Coverage**: Instantly see code coverage metrics for your Apex classes, including total and covered lines, directly in the sidebar.
-- **Display info about test runs**: Check org-wide code coverage, last test runs, start time, duration, and more directly from the panel.
+- **Run Apex tests:** Browse unmanaged Apex test classes and run them directly from the sidebar.
+- **Track test results:** Follow execution states and timings, then rerun recent tests when needed.
+- **Inspect code coverage:** Review org-wide and class-level coverage, including covered and total lines.
+- **Stay lightweight:** Use your existing Salesforce CLI authentication and org configuration. The Salesforce Extension Pack is not required.
 
 ## Requirements
 
-To use this extension, you need:
-
-1. **Visual Studio Code**: Version 1.100.0 or higher
-2. **Salesforce CLI**: Must be installed and available in your PATH
-3. **Authenticated Salesforce org**: You must be authenticated to a Salesforce org using the Salesforce CLI
+1. [Visual Studio Code](https://code.visualstudio.com/) 1.100.0 or later.
+2. [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli) available as `sf` in the environment's `PATH`.
+3. An authenticated default Salesforce org.
 
 ## Installation
 
-1. Install the extension from the VS Code Marketplace.
-2. Ensure you have the Salesforce CLI installed.
+Install the extension from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=femartinezg.salesforce-tests), or use the VS Code command-line interface:
 
-## Usage
+```sh
+code --install-extension femartinezg.salesforce-tests
+```
 
-1. Open the Salesforce Tests view by clicking the test tube icon in the Activity Bar.
-2. View your authenticated org information in the Status section, including org-wide code coverage and last test runs.
-3. Browse available test classes in the Apex Tests section.
-4. Click on the run button for quick execution.
-5. View test results with visual indicators:
-   - ⏳ Running: Test is currently executing
-   - ✅ Passed: Test completed successfully
-   - ❌ Failed: Test failed
-6. See code coverage details, including total and covered lines, in the Code Coverage section.
-7. Hover over items for enhanced tooltips and additional information.
+## Actions
 
-## Commands
+Actions are available from view toolbars, row menus, and the Command Palette where applicable.
 
-The extension contributes the following commands:
+- **Run or rerun** Apex test classes.
+- **Pin or unpin** classes in the Apex Tests and Code Coverage views.
+- **Find classes**, **refresh extension data**, and **clear recent test runs**.
+- **Clear code coverage data** from the selected org.
 
-- `Salesforce Tests: Run Test Class`: Execute a specific Apex test class
-- `Salesforce Tests: Refresh Org`: Refresh the current Salesforce org connection and reload org data
+## Privacy
 
-## Recent Changes
+Salesforce Tests does not add telemetry. Commands and data stay between VS Code, the local Salesforce CLI, and the authenticated Salesforce org.
 
-**v0.2.1** – Added test run info to the output channel, improved test run duration readability, and fixed issues related to org connection and test runs.
+## Troubleshooting
 
-**v0.2.0** – Enhanced performance, added total and covered lines in code coverage, improved test run information, and various UI/UX enhancements.
+- **The extension is unavailable in Restricted Mode:** Trust the workspace because Salesforce Tests runs local Salesforce CLI commands.
+- **`sf` is not found:** Run `sf --version` in VS Code's integrated terminal. Install the CLI in the same local or remote environment if it fails.
+- **No default org appears:** Run `sf org list`, set one with `sf config set target-org <alias-or-username>`, then refresh the org in the extension.
+- **Authentication has expired:** Authenticate the org again with `sf org login web`, then refresh the org.
+- **Classes or coverage are missing:** Confirm that the authenticated user can access Apex classes, test results, and code coverage through the Tooling API. Managed-package classes are not listed.
+- **The wrong or stale org is shown:** Use **Salesforce Tests: Refresh Org** after changing the Salesforce CLI default org.
+- **A test or coverage operation fails:** Open **View → Output**, select **Salesforce Tests**, and inspect the Salesforce CLI error.
 
-**v0.1.0** – Initial release with test discovery, execution functionality, and code coverage visualization.
+## Resources
 
-For a complete history of changes, see the [CHANGELOG](CHANGELOG.md).
-
-## Roadmap
-
-This extension is actively being developed. Here's what we're planning:
-
-### Core Features
-
-- ✅ Add functionality to run Apex tests
-- ✅ Add code coverage visualization
-- ⏳ Add support to run individual Apex test methods
-- ⬜ Add test suite functionality (group test runs)
-- ⬜ Add rerun tests functionality
-
-_Legend: ✅ Completed | ⏳ In Progress | ⬜ Planned_
-
-## Contributing
-
-Contributions are welcome and appreciated! Here's how you can contribute:
-
-1. **Report Issues**: Found a bug or have a feature request? Open an issue on the [GitHub repository](https://github.com/femartinezg/salesforce-tests/issues).
-2. **Submit Pull Requests**: Have a fix or new feature to contribute? Submit a pull request with your changes.
-3. **Provide Feedback**: Use the extension and let us know how it works for you and what could be improved.
-
-Please follow the existing code style and include appropriate tests for your changes.
-
----
+- [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=femartinezg.salesforce-tests)
+- [Changelog](CHANGELOG.md)
+- [Report an issue](https://github.com/femartinezg/salesforce-tests/issues)
 
 ## Author
 
@@ -100,6 +67,4 @@ Please follow the existing code style and include appropriate tests for your cha
 
 ## License
 
-This extension is licensed under the [MIT License](LICENSE).
-
-**Enjoy testing your Salesforce code!**
+Salesforce Tests is available under the [MIT License](LICENSE).
