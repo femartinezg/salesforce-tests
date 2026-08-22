@@ -4,6 +4,10 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 
 ## [Unreleased]
 
+---
+
+## [0.3.0] - 2026-08-23
+
 ### Added
 
 - Apex test and code coverage classes can now be pinned from their context menus; pinned rows use a status-colored pin icon and remain independently pinned per workspace when switching Salesforce orgs.
