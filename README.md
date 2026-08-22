@@ -9,9 +9,9 @@ A lightweight, standalone Visual Studio Code extension for running Apex tests an
 
 ## Preview
 
-<!-- TODO(public-docs): Replace this placeholder with a screenshot or short GIF showing the Status, Apex Tests, and Code Coverage views in a real Salesforce project. -->
+[![Salesforce Tests running an Apex test and updating code coverage in VS Code](images/preview.gif)](images/preview.gif)
 
-> **Preview placeholder:** A screenshot or short GIF of the extension will be added here.
+_Shown with synthetic demo data._
 
 ## Features
 
