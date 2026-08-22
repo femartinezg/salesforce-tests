@@ -60,6 +60,22 @@ describe('Local quality checks', () => {
     assert.ok(vscodeIgnore.has('scripts/**'));
   });
 
+  it('keeps the public preview visible, full-size accessible, and packaged', () => {
+    const readme = fs.readFileSync(path.join(extensionRoot, 'README.md'), 'utf8');
+    const packageCheck = fs.readFileSync(
+      path.join(extensionRoot, 'scripts', 'check-vsix.mjs'),
+      'utf8'
+    );
+
+    assert.ok(fs.existsSync(path.join(extensionRoot, 'images', 'preview.gif')));
+    assert.match(
+      readme,
+      /\[!\[Salesforce Tests running an Apex test and updating code coverage in VS Code\]\(images\/preview\.gif\)\]\(images\/preview\.gif\)/
+    );
+    assert.doesNotMatch(readme, /TODO\(public-docs\)|Preview placeholder/);
+    assert.match(packageCheck, /extension\/images\/preview\.gif/);
+  });
+
   it('does not declare the unused Salesforce Core production dependency', () => {
     const manifest = JSON.parse(
       fs.readFileSync(path.join(extensionRoot, 'package.json'), 'utf8')
