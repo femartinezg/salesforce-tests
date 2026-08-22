@@ -11,9 +11,7 @@
     "salesforce",
     "apex",
     "apex tests",
-    "test runner",
     "code coverage",
-    "salesforce cli",
     "sfdx"
   ],
   "publisher": "femartinezg",
@@ -26,7 +24,7 @@
     "type": "git",
     "url": "https://github.com/femartinezg/salesforce-tests"
   },
-  "homepage": "https://github.com/femartinezg/salesforce-tests#readme",
+  "homepage": "https://github.com/femartinezg/salesforce-tests",
   "bugs": {
     "url": "https://github.com/femartinezg/salesforce-tests/issues"
   },
