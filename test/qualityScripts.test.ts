@@ -60,7 +60,7 @@ describe('Local quality checks', () => {
     const testConfig = fs.readFileSync(path.join(extensionRoot, '.vscode-test.mjs'), 'utf8');
 
     assert.strictEqual(manifest.engines?.vscode, '^1.100.0');
-    assert.strictEqual(manifest.devDependencies?.['@types/vscode'], '^1.100.0');
+    assert.strictEqual(manifest.devDependencies?.['@types/vscode'], '1.100.0');
     assert.match(testConfig, /version: '1\.100\.0'/);
   });
 });
