@@ -2,7 +2,7 @@
   "name": "salesforce-tests",
   "displayName": "Salesforce Tests",
   "version": "0.2.1",
-  "description": "Salesforce test suite integrated with your Salesforce org.",
+  "description": "Run Apex tests and inspect org-wide and class-level code coverage from VS Code using Salesforce CLI.",
   "categories": [
     "Testing",
     "Visualization"
@@ -10,22 +10,32 @@
   "keywords": [
     "salesforce",
     "apex",
-    "testing",
-    "development",
-    "debugging"
+    "apex tests",
+    "test runner",
+    "code coverage",
+    "salesforce cli",
+    "sfdx"
   ],
   "publisher": "femartinezg",
   "author": {
     "name": "Fernando Martinez",
     "url": "https://github.com/femartinezg"
   },
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/femartinezg/salesforce-tests"
   },
+  "homepage": "https://github.com/femartinezg/salesforce-tests#readme",
+  "bugs": {
+    "url": "https://github.com/femartinezg/salesforce-tests/issues"
+  },
   "engines": {
     "vscode": "^1.100.0"
   },
+  "extensionKind": [
+    "workspace"
+  ],
   "main": "./out/src/extension.js",
   "icon": "images/icon.png",
   "activationEvents": [],
@@ -33,6 +43,10 @@
     "untrustedWorkspaces": {
       "supported": false,
       "description": "The extension executes Salesforce CLI commands using workspace configuration."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Salesforce Tests requires a filesystem-backed workspace and Salesforce CLI in the same environment."
     }
   },
   "contributes": {
