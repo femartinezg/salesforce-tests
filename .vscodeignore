@@ -2,8 +2,7 @@
 .vscode-test/**
 src/**
 .gitignore
-.yarnrc
-vsc-extension-quickstart.md
+.prettierignore
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
@@ -18,5 +17,6 @@ node_modules/**
 !node_modules/which/**
 .env
 test/
+out/test/**
 **/*.test.*
 images/icon-master.png
