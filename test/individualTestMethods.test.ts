@@ -37,6 +37,8 @@ describe('G. Running individual Apex test methods', () => {
   afterEach(() => sandbox.restore());
 
   it('G1 discovers modern and legacy test methods in alphabetical order without extra queries', async () => {
+    const contextManager = getNewContextManager();
+    contextManager.targetOrg = targetOrg;
     await configureFakeSf({
       apexClasses: recordsResponse([
         {
@@ -66,7 +68,7 @@ describe('G. Running individual Apex test methods', () => {
 
     const result = await vscode.commands.executeCommand('salesforce-tests.refreshApexTests');
     assert.strictEqual(result, undefined);
-    const testClass = getContextManager().apexTestsData.testClasses?.[0];
+    const testClass = contextManager.apexTestsData.testClasses?.[0];
     assert.strictEqual(testClass?.name, 'ComplexTest');
     assert.deepStrictEqual(
       testClass?.methods.map(({ name }) => name),
@@ -85,6 +87,7 @@ describe('G. Running individual Apex test methods', () => {
 
     const classItem = provider.getRootChildren()[0];
     assert.strictEqual(classItem.label, 'TreeTest');
+    assert.strictEqual(classItem.id, 'apex-test-class:id-TreeTest');
     assert.strictEqual(classItem.collapsibleState, vscode.TreeItemCollapsibleState.Collapsed);
     const methods = await provider.getChildren(classItem);
     assert.deepStrictEqual(
@@ -92,6 +95,10 @@ describe('G. Running individual Apex test methods', () => {
       ['alpha', 'zeta']
     );
     assert.ok(methods.every(({ contextValue }) => contextValue === 'apexTestMethod'));
+    assert.deepStrictEqual(
+      methods.map(({ id }) => id),
+      ['apex-test-method:TreeTest.alpha', 'apex-test-method:TreeTest.zeta']
+    );
     assert.ok(
       methods.every(
         ({ iconPath }) =>

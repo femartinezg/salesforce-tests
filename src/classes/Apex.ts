@@ -60,50 +60,108 @@ export class ApexTestClass extends Apex {
   public startTime?: Date;
   public duration?: number; // ms
   public executionBlocked: boolean;
+  public methods: ApexTestMethod[];
 
   constructor(id: string, name: string, status?: string) {
     super(id, name);
     this.status = status;
     this.executionBlocked = false;
+    this.methods = [];
   }
 
   getTreeItem(): vscode.TreeItem {
     const item = super.getTreeItem();
-    item.iconPath = new vscode.ThemeIcon('circle-large-outline', undefined);
-    if (this.status === 'Running') {
-      item.iconPath = new vscode.ThemeIcon('sync', undefined);
-    } else if (this.status === 'Passed') {
-      item.iconPath = new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
-    } else if (this.status === 'Failed') {
-      item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
-    }
-
-    let tooltip = `${this.name}`;
-    let description = '';
-
-    if (this.status === 'Passed') {
-      tooltip = `✓ ${this.name}`;
-    } else if (this.status === 'Failed') {
-      tooltip = `✕ ${this.name}`;
-    } else if (this.status === 'Running') {
-      description = 'Running...';
-    }
-
-    if (this.startTime && this.duration && this.status !== 'Running' && this.status !== undefined) {
-      const startTimeString = `${this.startTime.getHours().toString().padStart(2, '0')}:${this.startTime.getMinutes().toString().padStart(2, '0')}:${this.startTime.getSeconds().toString().padStart(2, '0')}`;
-      const startDateString = `${this.startTime.getDate().toString().padStart(2, '0')}/${(this.startTime.getMonth() + 1).toString().padStart(2, '0')}/${this.startTime.getFullYear()}`;
-      const tooltipTimeString = `${startDateString} ${startTimeString}`;
-      tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${this.duration} ms`;
-      description = `${startTimeString} (${formatDuration(this.duration)})`;
-      if (this.executionBlocked) {
-        tooltip = `${tooltip}\n⚠ Last execution was blocked.`;
-        description = `⚠ ${description}`;
-      }
-    }
-
-    item.tooltip = tooltip;
-    item.description = description;
-
+    item.id = `apex-test-class:${this.id}`;
+    item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+    const actionableItem = item as ApexTestTreeItem;
+    actionableItem.testClassName = this.name;
+    applyTestPresentation(item, this);
     return item;
   }
+}
+
+export class ApexTestMethod {
+  public readonly className: string;
+  public readonly name: string;
+  public status: string | undefined;
+  public startTime?: Date;
+  public duration?: number;
+  public executionBlocked: boolean;
+
+  constructor(className: string, name: string, status?: string) {
+    this.className = className;
+    this.name = name;
+    this.status = status;
+    this.executionBlocked = false;
+  }
+
+  get fullName(): string {
+    return `${this.className}.${this.name}`;
+  }
+
+  getTreeItem(): vscode.TreeItem {
+    const item = new vscode.TreeItem(this.name);
+    item.id = `apex-test-method:${this.fullName}`;
+    item.contextValue = 'apexTestMethod';
+    const actionableItem = item as ApexTestTreeItem;
+    actionableItem.testClassName = this.className;
+    actionableItem.testMethodName = this.name;
+    applyTestPresentation(item, this);
+    return item;
+  }
+}
+
+export interface ApexTestTreeItem extends vscode.TreeItem {
+  testClassName?: string;
+  testMethodName?: string;
+}
+
+export interface ApexTestState {
+  name: string;
+  status: string | undefined;
+  startTime?: Date;
+  duration?: number;
+  executionBlocked: boolean;
+}
+
+function applyTestPresentation(item: vscode.TreeItem, test: ApexTestState): void {
+  item.iconPath = new vscode.ThemeIcon('circle-large-outline', undefined);
+  if (test.status === 'Running') {
+    item.iconPath = new vscode.ThemeIcon('sync', undefined);
+  } else if (test.status === 'Passed') {
+    item.iconPath = new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
+  } else if (test.status === 'Failed') {
+    item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
+  }
+
+  let tooltip = `${test.name}`;
+  let description = '';
+
+  if (test.status === 'Passed') {
+    tooltip = `✓ ${test.name}`;
+  } else if (test.status === 'Failed') {
+    tooltip = `✕ ${test.name}`;
+  } else if (test.status === 'Running') {
+    description = 'Running...';
+  }
+
+  if (
+    test.startTime
+    && test.duration !== undefined
+    && test.status !== 'Running'
+    && test.status !== undefined
+  ) {
+    const startTimeString = `${test.startTime.getHours().toString().padStart(2, '0')}:${test.startTime.getMinutes().toString().padStart(2, '0')}:${test.startTime.getSeconds().toString().padStart(2, '0')}`;
+    const startDateString = `${test.startTime.getDate().toString().padStart(2, '0')}/${(test.startTime.getMonth() + 1).toString().padStart(2, '0')}/${test.startTime.getFullYear()}`;
+    const tooltipTimeString = `${startDateString} ${startTimeString}`;
+    tooltip += `\nStart Time: ${tooltipTimeString}\nExecution Time: ${test.duration} ms`;
+    description = `${startTimeString} (${formatDuration(test.duration)})`;
+    if (test.executionBlocked) {
+      tooltip = `${tooltip}\n⚠ Last execution was blocked.`;
+      description = `⚠ ${description}`;
+    }
+  }
+
+  item.tooltip = tooltip;
+  item.description = description;
 }

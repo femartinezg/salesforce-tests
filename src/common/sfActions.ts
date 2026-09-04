@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ApexClass, ApexTestClass } from '../classes/Apex';
+import { ApexClass, ApexTestClass, ApexTestMethod, type ApexTestState } from '../classes/Apex';
 import { TestRun } from '../classes/TestRun';
 import { ContextManager } from './ContextManager';
 import { MessageType, showTestResultMessage } from './messaging';
@@ -11,6 +11,7 @@ import {
   getOrgCoverageInvocation,
   getOrgInfoInvocation,
   getTestClassInvocation,
+  getTestMethodInvocation,
   getUpdateOrgCoverageInvocation,
   TOOLING_COMPOSITE_BATCH_SIZE,
   type CoverageDeleteObject,
@@ -26,9 +27,11 @@ import {
   parseOrgInfoResponse,
   parseTestExecutionResponse,
   SfResponseError,
+  type CompletedTestExecutionDto,
   type TestClassCoverageDto,
 } from './sfResponseParsers';
 import { runSf } from './sfRunner';
+import { analyzeApexBody } from './apexBodyParser';
 
 export const ORG_TARGET_ERROR_MESSAGE =
   'Unable to use the selected Salesforce org. Check authentication or run Refresh Org.';
@@ -82,10 +85,14 @@ export async function retrieveApexClasses(targetOrg: string): Promise<{
     const apexClasses = [];
 
     for (const apex of records) {
-      const isTest = parseBody(apex.body);
-      if (isTest) {
-        testClasses.push(new ApexTestClass(apex.id, apex.name));
-      } else if (isTest === false) {
+      const analysis = analyzeApexBody(apex.body);
+      if (analysis.isTest) {
+        const testClass = new ApexTestClass(apex.id, apex.name);
+        testClass.methods = analysis.testMethodNames.map(
+          (methodName) => new ApexTestMethod(apex.name, methodName)
+        );
+        testClasses.push(testClass);
+      } else if (analysis.kind !== 'interface') {
         apexClasses.push(new ApexClass(apex.id, apex.name));
       }
     }
@@ -105,78 +112,6 @@ export async function retrieveApexClasses(targetOrg: string): Promise<{
     if (e instanceof Error) throw e;
     throw new Error('Unexpected error');
   }
-}
-
-function parseBody(body: string): boolean | undefined {
-  const length = body.length;
-  let i = 0;
-  let inSingleLineComment = false;
-  let inMultiLineComment = false;
-  let tokenChars: string[] = [];
-
-  const isWordChar = (ch: string) => {
-    const code = ch.charCodeAt(0);
-    return (
-      (code >= 65 && code <= 90) // A-Z
-      || (code >= 97 && code <= 122) // a-z
-      || (code >= 48 && code <= 57) // 0-9
-      || ch === '@'
-      || ch === '_'
-    );
-  };
-
-  while (i < length) {
-    const ch = body[i];
-    const next = body[i + 1];
-
-    // --- Handle comment entry ---
-    if (!inMultiLineComment && !inSingleLineComment && ch === '/' && next === '/') {
-      inSingleLineComment = true;
-      i += 2;
-      continue;
-    }
-    if (!inMultiLineComment && !inSingleLineComment && ch === '/' && next === '*') {
-      inMultiLineComment = true;
-      i += 2;
-      continue;
-    }
-
-    // --- Handle comment exit ---
-    if (inSingleLineComment && (ch === '\n' || ch === '\r')) {
-      inSingleLineComment = false;
-      i++;
-      continue;
-    }
-    if (inMultiLineComment && ch === '*' && next === '/') {
-      inMultiLineComment = false;
-      i += 2;
-      continue;
-    }
-
-    // --- Tokenization ---
-    if (!inSingleLineComment && !inMultiLineComment) {
-      if (isWordChar(ch)) {
-        tokenChars.push(ch);
-      } else if (tokenChars.length > 0) {
-        const lower = tokenChars.join('').toLowerCase();
-        if (lower === '@istest') return true;
-        if (lower === 'class') return false;
-        if (lower === 'interface') return undefined;
-        tokenChars = [];
-      }
-    }
-
-    i++;
-  }
-
-  if (tokenChars.length > 0) {
-    const lower = tokenChars.join('').toLowerCase();
-    if (lower === '@istest') return true;
-    if (lower === 'class') return false;
-    if (lower === 'interface') return undefined;
-  }
-
-  return false;
 }
 
 export async function retrieveCodeCoverage(contextManager: ContextManager, targetOrg: string) {
@@ -375,19 +310,57 @@ function addPhaseResult(
   result.failedQueries += phase.failedQueries;
 }
 
-export async function runTestClass(
+export function runTestClass(
   testClass: ApexTestClass,
   contextManager: ContextManager,
   targetOrg: string,
   cancellationToken: vscode.CancellationToken
 ): Promise<string[] | undefined> {
+  return runTestTarget(
+    testClass,
+    testClass.name,
+    'Test Class',
+    { className: testClass.name },
+    getTestClassInvocation(testClass.name, targetOrg),
+    contextManager,
+    cancellationToken,
+    (result) => applyClassMethodResults(testClass, result)
+  );
+}
+
+export function runTestMethod(
+  testMethod: ApexTestMethod,
+  contextManager: ContextManager,
+  targetOrg: string,
+  cancellationToken: vscode.CancellationToken
+): Promise<string[] | undefined> {
+  return runTestTarget(
+    testMethod,
+    testMethod.fullName,
+    'Test Method',
+    { className: testMethod.className, methodName: testMethod.name },
+    getTestMethodInvocation(testMethod.className, testMethod.name, targetOrg),
+    contextManager,
+    cancellationToken
+  );
+}
+
+async function runTestTarget(
+  testItem: ApexTestState,
+  targetName: string,
+  targetType: 'Test Class' | 'Test Method',
+  historyTarget: { className: string; methodName?: string },
+  invocation: ReturnType<typeof getTestClassInvocation>,
+  contextManager: ContextManager,
+  cancellationToken: vscode.CancellationToken,
+  applyRelatedResults?: (result: CompletedTestExecutionDto) => void
+): Promise<string[] | undefined> {
   const message: string[] = [];
-  const oldStatus = testClass.status;
-  testClass.status = 'Running';
+  const oldStatus = testItem.status;
+  testItem.status = 'Running';
   contextManager.apexTestsData.refresh();
 
   try {
-    const invocation = getTestClassInvocation(testClass.name, targetOrg);
     const execution = await runSf(invocation.args, invocation.options);
     if (!execution.stdout) {
       throw new OrgTargetError(ORG_TARGET_ERROR_MESSAGE);
@@ -400,55 +373,63 @@ export async function runTestClass(
       return;
     }
 
-    message.push(`${testClass.name} result`);
+    message.push(`${targetName} result`);
 
     if (result.kind === 'rejected') {
       message.push('✕ Error running test');
       if (result.name && result.message) {
         showTestResultMessage(
-          `Error running ${testClass.name}: ${result.name} - ${result.message}`,
+          `Error running ${targetName}: ${result.name} - ${result.message}`,
           MessageType.Error,
           contextManager
         );
         message.push(`${result.name}: ${result.message}`);
       } else {
         showTestResultMessage(
-          `Error running ${testClass.name}: Unexpected error`,
+          `Error running ${targetName}: Unexpected error`,
           MessageType.Error,
           contextManager
         );
         message.push(`Unexpected error`);
       }
 
-      testClass.status = oldStatus;
-      testClass.executionBlocked = true;
+      testItem.status = oldStatus;
+      testItem.executionBlocked = true;
       contextManager.apexTestsData.refresh();
 
       return message;
     }
 
-    testClass.executionBlocked = false;
-    const success = result.outcome === 'Passed';
+    testItem.executionBlocked = false;
+    const targetedMethodResult = result.methodResults.find(
+      ({ fullName }) => fullName === targetName
+    );
+    const success =
+      targetType === 'Test Method' && targetedMethodResult ?
+        targetedMethodResult.outcome === 'Pass'
+      : result.outcome === 'Passed';
 
     if (success) {
-      showTestResultMessage(`${testClass.name} passed.`, MessageType.Info, contextManager);
-      testClass.status = 'Passed';
+      showTestResultMessage(`${targetName} passed.`, MessageType.Info, contextManager);
+      testItem.status = 'Passed';
       message.push(`✓ Passed`);
     } else {
-      showTestResultMessage(`${testClass.name} failed.`, MessageType.Error, contextManager);
-      testClass.status = 'Failed';
+      showTestResultMessage(`${targetName} failed.`, MessageType.Error, contextManager);
+      testItem.status = 'Failed';
       message.push('✕ Failed');
     }
 
-    testClass.startTime = result.startTime;
-    testClass.duration = result.duration;
+    testItem.startTime = result.startTime;
+    testItem.duration = result.duration;
+    applyRelatedResults?.(result);
 
     const testRun = new TestRun(
-      testClass.name,
-      'Test Class',
+      targetName,
+      targetType,
       success,
       result.startTime,
-      result.duration
+      result.duration,
+      historyTarget
     );
 
     contextManager.statusData.pushTestRun(testRun);
@@ -481,12 +462,29 @@ export async function runTestClass(
     } else {
       errorMessage = error;
     }
-    vscode.window.showErrorMessage(`Error running ${testClass.name}: ${errorMessage as string}`);
-    testClass.status = undefined;
+    vscode.window.showErrorMessage(`Error running ${targetName}: ${errorMessage as string}`);
+    testItem.status = undefined;
     contextManager.apexTestsData.refresh();
     contextManager.statusData.refresh();
 
     return;
+  }
+}
+
+function applyClassMethodResults(
+  testClass: ApexTestClass,
+  result: CompletedTestExecutionDto
+): void {
+  const resultsByName = new Map(result.methodResults.map((method) => [method.fullName, method]));
+  for (const method of testClass.methods) {
+    const methodResult = resultsByName.get(method.fullName);
+    method.status =
+      methodResult?.outcome === 'Pass' ? 'Passed'
+      : methodResult?.outcome === 'Fail' ? 'Failed'
+      : undefined;
+    method.startTime = undefined;
+    method.duration = undefined;
+    method.executionBlocked = false;
   }
 }
 

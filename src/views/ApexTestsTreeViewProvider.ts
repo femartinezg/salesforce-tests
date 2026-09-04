@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ApexTestClass } from '../classes/Apex';
+import { ApexTestClass, type ApexTestTreeItem } from '../classes/Apex';
 import { PinnedClasses } from '../common/PinnedClasses';
 import { usePinnedClassIcon } from './pinnedClassTreeItem';
 
@@ -38,6 +38,12 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
 
     if (!element) {
       children = this.getRootChildren();
+    } else {
+      const testClassName = (element as ApexTestTreeItem).testClassName;
+      if (testClassName && !(element as ApexTestTreeItem).testMethodName) {
+        const testClass = this.testClasses?.find(({ name }) => name === testClassName);
+        children = testClass?.methods.map((method) => method.getTreeItem()) ?? [];
+      }
     }
 
     return Promise.resolve(children);

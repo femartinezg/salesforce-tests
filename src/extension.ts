@@ -8,6 +8,7 @@ import { rerunLastTest, rerunTest } from './commands/rerunTest';
 import { clearCodeCoverageCommandHandler } from './commands/clearCodeCoverage';
 import { pinClass, unpinClass } from './commands/pinClass';
 import { ContextManager } from './common/ContextManager';
+import { runTestMethodCommandHandler } from './commands/runTestMethod';
 
 export function activate(context: vscode.ExtensionContext): Promise<void> {
   try {
@@ -45,6 +46,11 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.runTestClass', (testClass) =>
       runTestClassCommandHandler(testClass)
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runTestMethod', (testMethod) =>
+      runTestMethodCommandHandler(testMethod)
     )
   );
   context.subscriptions.push(
