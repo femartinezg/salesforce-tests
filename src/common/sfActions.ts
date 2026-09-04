@@ -477,6 +477,7 @@ function applyClassMethodResults(
 ): void {
   const resultsByName = new Map(result.methodResults.map((method) => [method.fullName, method]));
   for (const method of testClass.methods) {
+    if (method.status === 'Running') continue;
     const methodResult = resultsByName.get(method.fullName);
     method.status =
       methodResult?.outcome === 'Pass' ? 'Passed'
