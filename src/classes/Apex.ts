@@ -34,8 +34,10 @@ export class ApexClass extends Apex {
       item.tooltip = `${item.label as string}`;
       return item;
     } else if (this.codeCoverage < 0) {
-      item.description = '';
-      item.tooltip = `${item.label as string}`;
+      item.iconPath = new vscode.ThemeIcon('file-code', undefined);
+      item.description = 'N/A';
+      item.tooltip = `${item.label as string}\nCode Coverage: N/A`;
+      return item;
     } else {
       item.description = `${this.codeCoverage.toFixed(2)}% (${this.coveredLines}/${this.totalLines})`;
       item.tooltip = `${item.label as string}\nCode Coverage: ${this.codeCoverage.toFixed(2)}%\nCovered Lines: ${this.coveredLines}/${this.totalLines}`;
