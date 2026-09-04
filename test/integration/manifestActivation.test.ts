@@ -86,6 +86,7 @@ describe('A. VS Code integration and navigation', () => {
       'salesforce-tests.rerunLastTest',
       'salesforce-tests.rerunTest',
       'salesforce-tests.runTestClass',
+      'salesforce-tests.runTestMethod',
       'salesforce-tests.unpinClass',
     ];
     const registeredCommands = await vscode.commands.getCommands(true);
@@ -221,6 +222,30 @@ describe('A. VS Code integration and navigation', () => {
     });
   });
 
+  it('A2.4 contributes method execution to the palette and Apex Tests method rows', () => {
+    const manifest = readManifest();
+    const command = manifest.contributes.commands.find(
+      ({ command }) => command === 'salesforce-tests.runTestMethod'
+    );
+    assert.deepStrictEqual(command, {
+      command: 'salesforce-tests.runTestMethod',
+      title: 'Run Test Method',
+      enablement: '!apexTestsLoading',
+      category: 'Salesforce Tests',
+      icon: '$(run)',
+    });
+    assert.deepStrictEqual(
+      manifest.contributes.menus['view/item/context'].find(
+        ({ command }) => command === 'salesforce-tests.runTestMethod'
+      ),
+      {
+        command: 'salesforce-tests.runTestMethod',
+        when: 'view == apexTestsTreeView && viewItem == apexTestMethod',
+        group: 'inline',
+      }
+    );
+  });
+
   it('A3 keeps data-dependent actions disabled and all three views empty while loading', async () => {
     const manifest = readManifest();
     const enablementByCommand = new Map(
@@ -247,6 +272,10 @@ describe('A. VS Code integration and navigation', () => {
     assert.deepStrictEqual(await contextManager.codeCoverageData.getChildren(), []);
     assert.strictEqual(
       enablementByCommand.get('salesforce-tests.runTestClass'),
+      '!apexTestsLoading'
+    );
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.runTestMethod'),
       '!apexTestsLoading'
     );
     assert.strictEqual(
@@ -388,7 +417,7 @@ describe('A. VS Code integration and navigation', () => {
       ),
       {
         command: 'salesforce-tests.runTestClass',
-        when: 'view == apexTestsTreeView',
+        when: 'view == apexTestsTreeView && (viewItem == apexTestClass || viewItem == pinnedApexTestClass)',
         group: 'inline',
       }
     );

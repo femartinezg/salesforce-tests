@@ -26,7 +26,7 @@
           {
             "Id": "fixture-test-id",
             "Name": "FixturePassingTest",
-            "Body": "@IsTest private class FixturePassingTest {}"
+            "Body": "@IsTest private class FixturePassingTest { @IsTest static void passes() {} }"
           },
           {
             "Id": "fixture-class-id",
@@ -133,6 +133,36 @@
   },
   "testRuns": {
     "FixturePassingTest": {
+      "json": {
+        "status": 0,
+        "result": {
+          "summary": {
+            "outcome": "Passed",
+            "testStartTime": "2026-01-02T03:04:05.000Z",
+            "testExecutionTime": "1250"
+          },
+          "tests": [
+            {
+              "FullName": "FixturePassingTest.passes",
+              "Outcome": "Pass"
+            }
+          ],
+          "coverage": {
+            "coverage": [
+              {
+                "name": "FixtureService",
+                "totalLines": 10,
+                "totalCovered": 9
+              }
+            ],
+            "summary": {
+              "orgWideCoverage": "91%"
+            }
+          }
+        }
+      }
+    },
+    "FixturePassingTest.passes": {
       "json": {
         "status": 0,
         "result": {
