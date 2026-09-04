@@ -265,7 +265,51 @@ describe('G. Running individual Apex test methods', () => {
     cancellation.dispose();
   });
 
-  it('G7 reruns a method history target and warns when its method is no longer available', async () => {
+  it('G7 keeps an individual method Running when a concurrent class result finishes first', async () => {
+    const { contextManager, testClass } = createExecutionContext(['passes', 'sibling']);
+    const passes = testClass.methods[0];
+    await configureFakeSf({
+      testRuns: {
+        [`${testClassName}.passes`]: {
+          json: passedResult(`${testClassName}.passes`),
+          gate: 'concurrent-method',
+        },
+        [testClassName]: {
+          json: failedClassResult(testClassName),
+        },
+      },
+    });
+    stubProgress(sandbox);
+    sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+    sandbox.stub(vscode.window, 'showErrorMessage').resolves(undefined);
+    const cancellation = new vscode.CancellationTokenSource();
+
+    await vscode.commands.executeCommand('salesforce-tests.runTestMethod', {
+      testClassName,
+      methodName: 'passes',
+    });
+    try {
+      await waitFor(() => passes.status === 'Running' && testTargets().length === 1);
+      await runTestClass(testClass, contextManager, targetOrg, cancellation.token);
+
+      assert.strictEqual(testClass.status, 'Failed');
+      assert.strictEqual(passes.status, 'Running');
+      assert.strictEqual(passes.startTime, undefined);
+      assert.strictEqual(passes.duration, undefined);
+    } finally {
+      await releaseFakeSfGate('concurrent-method');
+      cancellation.dispose();
+    }
+
+    await waitFor(
+      () => passes.status === 'Passed' && contextManager.runTestCancelTokens.length === 0
+    );
+    assert.deepStrictEqual(passes.startTime, new Date('2026-01-02T03:04:05.000Z'));
+    assert.strictEqual(passes.duration, 1250);
+    assert.deepStrictEqual(testTargets().sort(), [testClassName, `${testClassName}.passes`].sort());
+  });
+
+  it('G8 reruns a method history target and warns when its method is no longer available', async () => {
     const { contextManager, testClass } = createExecutionContext(['passes']);
     const history = new TestRun(
       `${testClassName}.passes`,
@@ -297,7 +341,7 @@ describe('G. Running individual Apex test methods', () => {
     assert.match(String(warning.firstCall.args[0]), /Refresh Apex Tests/);
   });
 
-  it('G8 preserves the last valid method result when execution is rejected', async () => {
+  it('G9 preserves the last valid method result when execution is rejected', async () => {
     const { contextManager, testClass } = createExecutionContext(['passes']);
     const method = testClass.methods[0];
     method.status = 'Passed';
