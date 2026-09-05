@@ -317,17 +317,48 @@ describe('A. VS Code integration and navigation', () => {
       focusCommand: 'codeCoverageTreeView.focus',
     },
   ]) {
-    it(`${scenario.id} focuses the intended view before opening list search`, async () => {
+    it(`${scenario.id} waits for the intended view focus before opening list search`, async () => {
       const executeRegisteredCommand = vscode.commands.executeCommand.bind(vscode.commands);
       const delegatedCommands: string[] = [];
+      let resolveFocus!: () => void;
+      const focusCompleted = new Promise<void>((resolve) => {
+        resolveFocus = resolve;
+      });
       sandbox.stub(vscode.commands, 'executeCommand').callsFake((command: string) => {
         delegatedCommands.push(command);
+        if (command === scenario.focusCommand) return focusCompleted;
         return Promise.resolve(undefined);
       });
 
-      await executeRegisteredCommand(scenario.extensionCommand);
+      const commandExecution = executeRegisteredCommand(scenario.extensionCommand);
+      try {
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.deepStrictEqual(delegatedCommands, [scenario.focusCommand]);
+      } finally {
+        resolveFocus();
+        await commandExecution;
+      }
 
       assert.deepStrictEqual(delegatedCommands, [scenario.focusCommand, 'list.find']);
+    });
+
+    it(`${scenario.id} does not open list search when focusing the view fails`, async () => {
+      const executeRegisteredCommand = vscode.commands.executeCommand.bind(vscode.commands);
+      const delegatedCommands: string[] = [];
+      const focusFailure = Promise.reject(new Error('View focus failed'));
+      void focusFailure.catch(() => undefined);
+      sandbox.stub(vscode.commands, 'executeCommand').callsFake((command: string) => {
+        delegatedCommands.push(command);
+        if (command === scenario.focusCommand) return focusFailure;
+        return Promise.resolve(undefined);
+      });
+
+      await assert.rejects(
+        Promise.resolve(executeRegisteredCommand(scenario.extensionCommand)),
+        /View focus failed/
+      );
+
+      assert.deepStrictEqual(delegatedCommands, [scenario.focusCommand]);
     });
   }
 
