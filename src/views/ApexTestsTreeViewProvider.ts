@@ -49,6 +49,15 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
     return Promise.resolve(children);
   }
 
+  getParent(element: vscode.TreeItem): vscode.TreeItem | undefined {
+    const { testClassName, testMethodName } = element as ApexTestTreeItem;
+    if (!testClassName || !testMethodName) return undefined;
+
+    return this.getRootChildren().find(
+      (candidate) => (candidate as ApexTestTreeItem).testClassName === testClassName
+    );
+  }
+
   getRootChildren(): vscode.TreeItem[] {
     const children: vscode.TreeItem[] = [];
 

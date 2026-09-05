@@ -11,6 +11,7 @@ interface RunTestMethodInput extends ApexTestTreeItem {
 export async function runTestMethodCommandHandler(runTestInput?: unknown): Promise<void> {
   const contextManager = getContextManager();
   const testClasses = contextManager.apexTestsData.testClasses;
+  const invokedFromPalette = typeof runTestInput !== 'object' || runTestInput === null;
   let testClassName: string | undefined;
   let testMethodName: string | undefined;
 
@@ -40,6 +41,18 @@ export async function runTestMethodCommandHandler(runTestInput?: unknown): Promi
   if (!targetOrg) {
     void vscode.window.showErrorMessage(ORG_TARGET_ERROR_MESSAGE);
     return;
+  }
+
+  if (invokedFromPalette) {
+    try {
+      await contextManager.apexTestsView.reveal(testMethod.getTreeItem(), {
+        select: true,
+        focus: false,
+        expand: false,
+      });
+    } catch {
+      // Revealing the method is optional feedback and must not block a valid test run.
+    }
   }
 
   const fullName = testMethod.fullName;

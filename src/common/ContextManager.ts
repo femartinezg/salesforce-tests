@@ -22,6 +22,7 @@ export class ContextManager {
 
   public statusData: StatusTreeViewProvider;
   public apexTestsData: ApexTestsTreeViewProvider;
+  public apexTestsView: vscode.TreeView<vscode.TreeItem>;
   public codeCoverageData: CodeCoverageTreeViewProvider;
   public pinnedClasses: PinnedClasses;
   public runTestCancelTokens: vscode.CancellationTokenSource[] = [];
@@ -51,7 +52,9 @@ export class ContextManager {
     this.statusData = new StatusTreeViewProvider();
     vscode.window.registerTreeDataProvider('statusTreeView', this.statusData);
     this.apexTestsData = new ApexTestsTreeViewProvider(this.pinnedClasses);
-    vscode.window.registerTreeDataProvider('apexTestsTreeView', this.apexTestsData);
+    this.apexTestsView = vscode.window.createTreeView('apexTestsTreeView', {
+      treeDataProvider: this.apexTestsData,
+    });
     this.codeCoverageData = new CodeCoverageTreeViewProvider(this.pinnedClasses);
     vscode.window.registerTreeDataProvider('codeCoverageTreeView', this.codeCoverageData);
   }
