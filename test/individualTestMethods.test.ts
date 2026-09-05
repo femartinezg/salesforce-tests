@@ -1,7 +1,12 @@
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { ApexClass, ApexTestClass, ApexTestMethod } from '../src/classes/Apex';
+import {
+  ApexClass,
+  ApexTestClass,
+  ApexTestMethod,
+  type ApexTestTreeItem,
+} from '../src/classes/Apex';
 import { TestRun } from '../src/classes/TestRun';
 import { getContextManager, getNewContextManager } from '../src/common';
 import { runTestClass } from '../src/common/sfActions';
@@ -105,6 +110,9 @@ describe('G. Running individual Apex test methods', () => {
           iconPath instanceof vscode.ThemeIcon && iconPath.id === 'circle-large-outline'
       )
     );
+    const parent = provider.getParent(methods[0]);
+    assert.strictEqual(parent?.label, 'TreeTest');
+    assert.strictEqual((parent as ApexTestTreeItem).testClassName, 'TreeTest');
   });
 
   it('G3 selects class then method from the palette and updates only the completed method', async () => {
@@ -118,6 +126,7 @@ describe('G. Running individual Apex test methods', () => {
       .resolves(testClassName as never)
       .onSecondCall()
       .resolves('passes' as never);
+    const reveal = sandbox.stub(contextManager.apexTestsView, 'reveal').resolves();
     stubProgress(sandbox);
     sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
 
@@ -134,6 +143,14 @@ describe('G. Running individual Apex test methods', () => {
       ['passes', 'sibling'],
       { placeHolder: 'Select the Apex test method to run' },
     ]);
+    const revealedMethod = reveal.firstCall.args[0] as ApexTestTreeItem;
+    assert.strictEqual(revealedMethod.testClassName, testClassName);
+    assert.strictEqual(revealedMethod.testMethodName, 'passes');
+    assert.deepStrictEqual(reveal.firstCall.args[1], {
+      select: true,
+      focus: false,
+      expand: false,
+    });
     assert.strictEqual(testClass.status, 'Failed');
     assert.strictEqual(sibling.status, 'Failed');
     assert.deepStrictEqual(passes.startTime, new Date('2026-01-02T03:04:05.000Z'));
@@ -145,6 +162,30 @@ describe('G. Running individual Apex test methods', () => {
       className: testClassName,
       methodName: 'passes',
     });
+  });
+
+  it('G3.1 still runs a palette-selected method when revealing it fails', async () => {
+    const { contextManager, testClass } = createExecutionContext(['passes']);
+    sandbox
+      .stub(vscode.window, 'showQuickPick')
+      .onFirstCall()
+      .resolves(testClassName as never)
+      .onSecondCall()
+      .resolves('passes' as never);
+    const reveal = sandbox
+      .stub(contextManager.apexTestsView, 'reveal')
+      .rejects(new Error('Synthetic reveal failure'));
+    stubProgress(sandbox);
+    sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined);
+
+    await vscode.commands.executeCommand('salesforce-tests.runTestMethod');
+    await waitFor(
+      () =>
+        testClass.methods[0].status === 'Passed' && contextManager.runTestCancelTokens.length === 0
+    );
+
+    assert.strictEqual(reveal.calledOnce, true);
+    assert.deepStrictEqual(testTargets(), [`${testClassName}.passes`]);
   });
 
   it('G4 cancels either palette step and ignores unknown or already-running methods', async () => {

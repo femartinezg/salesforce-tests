@@ -105,14 +105,22 @@ describe('A. VS Code integration and navigation', () => {
     assert.notStrictEqual(contextManager.codeCoverageData.apexClasses, undefined);
 
     const registerProvider = sandbox.stub(vscode.window, 'registerTreeDataProvider');
+    const apexTestsView = { dispose: sandbox.stub(), reveal: sandbox.stub() };
+    const createTreeView = sandbox
+      .stub(vscode.window, 'createTreeView')
+      .returns(apexTestsView as unknown as vscode.TreeView<vscode.TreeItem>);
     const isolatedContext = getNewContextManager();
     assert.deepStrictEqual(
       registerProvider.getCalls().map(({ args }) => args[0]),
-      ['statusTreeView', 'apexTestsTreeView', 'codeCoverageTreeView']
+      ['statusTreeView', 'codeCoverageTreeView']
     );
     assert.strictEqual(registerProvider.firstCall.args[1], isolatedContext.statusData);
-    assert.strictEqual(registerProvider.secondCall.args[1], isolatedContext.apexTestsData);
-    assert.strictEqual(registerProvider.thirdCall.args[1], isolatedContext.codeCoverageData);
+    assert.strictEqual(registerProvider.secondCall.args[1], isolatedContext.codeCoverageData);
+    assert.deepStrictEqual(createTreeView.firstCall.args, [
+      'apexTestsTreeView',
+      { treeDataProvider: isolatedContext.apexTestsData },
+    ]);
+    assert.strictEqual(isolatedContext.apexTestsView, apexTestsView);
   });
 
   it('A2.1 contributes history actions only in their intended surfaces', () => {
