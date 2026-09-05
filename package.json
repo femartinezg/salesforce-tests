@@ -93,6 +93,16 @@
         "category": "Salesforce Tests"
       },
       {
+        "command": "salesforce-tests.pinTestMethod",
+        "title": "Pin Method",
+        "category": "Salesforce Tests"
+      },
+      {
+        "command": "salesforce-tests.unpinTestMethod",
+        "title": "Unpin Method",
+        "category": "Salesforce Tests"
+      },
+      {
         "command": "salesforce-tests.refreshOrg",
         "title": "Refresh Org",
         "enablement": "!statusLoading",
@@ -191,6 +201,14 @@
           "when": "false"
         },
         {
+          "command": "salesforce-tests.pinTestMethod",
+          "when": "false"
+        },
+        {
+          "command": "salesforce-tests.unpinTestMethod",
+          "when": "false"
+        },
+        {
           "command": "salesforce-tests.clearTestRuns",
           "when": "false"
         },
@@ -267,13 +285,23 @@
           "group": "navigation@1"
         },
         {
+          "command": "salesforce-tests.pinTestMethod",
+          "when": "view == apexTestsTreeView && viewItem == apexTestMethod",
+          "group": "navigation@1"
+        },
+        {
+          "command": "salesforce-tests.unpinTestMethod",
+          "when": "view == apexTestsTreeView && viewItem == pinnedApexTestMethod",
+          "group": "navigation@1"
+        },
+        {
           "command": "salesforce-tests.runTestClass",
           "when": "view == apexTestsTreeView && (viewItem == apexTestClass || viewItem == pinnedApexTestClass)",
           "group": "inline"
         },
         {
           "command": "salesforce-tests.runTestMethod",
-          "when": "view == apexTestsTreeView && viewItem == apexTestMethod",
+          "when": "view == apexTestsTreeView && (viewItem == apexTestMethod || viewItem == pinnedApexTestMethod)",
           "group": "inline"
         },
         {

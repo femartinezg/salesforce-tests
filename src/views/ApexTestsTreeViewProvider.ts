@@ -42,7 +42,16 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
       const testClassName = (element as ApexTestTreeItem).testClassName;
       if (testClassName && !(element as ApexTestTreeItem).testMethodName) {
         const testClass = this.testClasses?.find(({ name }) => name === testClassName);
-        children = testClass?.methods.map((method) => method.getTreeItem()) ?? [];
+        children =
+          testClass ?
+            this.pinnedClasses.orderTestMethods(testClass.methods).map((method) => {
+              const item = method.getTreeItem();
+              const isPinned = this.pinnedClasses.isTestMethodPinned(method.className, method.name);
+              item.contextValue = isPinned ? 'pinnedApexTestMethod' : 'apexTestMethod';
+              if (isPinned) usePinnedClassIcon(item);
+              return item;
+            })
+          : [];
       }
     }
 

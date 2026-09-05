@@ -6,12 +6,25 @@ interface ClassActionTarget {
   panel: PinnedClassesPanel;
 }
 
+interface TestMethodActionTarget {
+  className: string;
+  methodName: string;
+}
+
 export async function pinClass(input?: unknown): Promise<void> {
   await updatePinnedClass(input, true);
 }
 
 export async function unpinClass(input?: unknown): Promise<void> {
   await updatePinnedClass(input, false);
+}
+
+export async function pinTestMethod(input?: unknown): Promise<void> {
+  await updatePinnedTestMethod(input, true);
+}
+
+export async function unpinTestMethod(input?: unknown): Promise<void> {
+  await updatePinnedTestMethod(input, false);
 }
 
 async function updatePinnedClass(input: unknown, pinned: boolean): Promise<void> {
@@ -32,6 +45,20 @@ async function updatePinnedClass(input: unknown, pinned: boolean): Promise<void>
   await persistence;
 }
 
+async function updatePinnedTestMethod(input: unknown, pinned: boolean): Promise<void> {
+  const target = getTestMethodActionTarget(input);
+  if (!target) return;
+
+  const contextManager = getContextManager();
+  const persistence =
+    pinned ?
+      contextManager.pinnedClasses.pinTestMethod(target.className, target.methodName)
+    : contextManager.pinnedClasses.unpinTestMethod(target.className, target.methodName);
+
+  contextManager.apexTestsData.refresh();
+  await persistence;
+}
+
 function getClassActionTarget(input: unknown): ClassActionTarget | undefined {
   if (!isRecord(input)) return undefined;
 
@@ -40,6 +67,17 @@ function getClassActionTarget(input: unknown): ClassActionTarget | undefined {
 
   const panel = panelForContextValue(input.contextValue);
   return panel ? { className, panel } : undefined;
+}
+
+function getTestMethodActionTarget(input: unknown): TestMethodActionTarget | undefined {
+  if (!isRecord(input)) return undefined;
+  if (input.contextValue !== 'apexTestMethod' && input.contextValue !== 'pinnedApexTestMethod') {
+    return undefined;
+  }
+  if (typeof input.testClassName !== 'string' || typeof input.testMethodName !== 'string') {
+    return undefined;
+  }
+  return { className: input.testClassName, methodName: input.testMethodName };
 }
 
 function getLabel(label: unknown): string | undefined {
