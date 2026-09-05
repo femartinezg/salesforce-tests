@@ -160,7 +160,7 @@ describe('Pinned classes', () => {
     assert.deepStrictEqual(getFakeSfInvocations(), []);
   });
 
-  it('G4 replaces every pinned row glyph while preserving its status or coverage color', async () => {
+  it('G4 gives Running priority over a pinned class icon and restores the pin afterwards', async () => {
     const contextManager = getNewContextManager();
     const passingTest = new ApexTestClass('passing-test', 'PassingTest', 'Passed');
     const failingTest = new ApexTestClass('failing-test', 'FailingTest', 'Failed');
@@ -182,6 +182,20 @@ describe('Pinned classes', () => {
     for (const item of contextManager.codeCoverageData.getRootChildren()) {
       assertPinnedIcon(item, coverageColors.get(item.label as string));
     }
+
+    passingTest.status = 'Running';
+    const runningPinnedTest = itemWithLabel(
+      contextManager.apexTestsData.getRootChildren(),
+      'PassingTest'
+    );
+    assert.strictEqual(getThemeIcon(runningPinnedTest).id, 'sync');
+    assert.strictEqual(runningPinnedTest.description, 'Running...');
+
+    passingTest.status = 'Passed';
+    assertPinnedIcon(
+      itemWithLabel(contextManager.apexTestsData.getRootChildren(), 'PassingTest'),
+      testColors.get('PassingTest')
+    );
 
     await unpin(contextManager.apexTestsData.getRootChildren(), 'PassingTest');
     const unpinnedTest = itemWithLabel(
@@ -225,6 +239,16 @@ describe('Pinned classes', () => {
       'apexTestMethod',
       'apexTestMethod',
     ]);
+    assertPinnedIcon(itemWithLabel(methods, 'beta'), 'testing.iconPassed');
+
+    alphaTest.methods.find(({ name }) => name === 'beta')!.status = 'Running';
+    methods = await contextManager.apexTestsData.getChildren(parent);
+    const runningPinnedMethod = itemWithLabel(methods, 'beta');
+    assert.strictEqual(getThemeIcon(runningPinnedMethod).id, 'sync');
+    assert.strictEqual(runningPinnedMethod.description, 'Running...');
+
+    alphaTest.methods.find(({ name }) => name === 'beta')!.status = 'Passed';
+    methods = await contextManager.apexTestsData.getChildren(parent);
     assertPinnedIcon(itemWithLabel(methods, 'beta'), 'testing.iconPassed');
 
     await pinMethod(methods, 'gamma');
