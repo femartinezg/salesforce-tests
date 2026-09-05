@@ -29,7 +29,7 @@ describe('Code coverage presentation', () => {
     assert.strictEqual(themeIcon(item).color?.id, 'testing.iconFailed');
   });
 
-  it('E2 transitions from Loading to the existing failed visual state when no coverage exists', async () => {
+  it('E2 transitions from Loading to a neutral N/A state when no coverage exists', async () => {
     const contextManager = ContextManager.resetInstance();
     const apexClass = new ApexClass('01p-missing', 'NoCoverageClass');
     contextManager.codeCoverageData.apexClasses = [apexClass];
@@ -43,11 +43,12 @@ describe('Code coverage presentation', () => {
     await retrieveCodeCoverage(contextManager, targetOrg);
 
     const missingItem = apexClass.getTreeItem();
-    assert.strictEqual(missingItem.description, '');
-    assert.strictEqual(missingItem.tooltip, 'NoCoverageClass');
+    assert.strictEqual(missingItem.description, 'N/A');
+    assert.strictEqual(missingItem.tooltip, 'NoCoverageClass\nCode Coverage: N/A');
     assert.strictEqual(apexClass.coveredLines, -1);
     assert.strictEqual(apexClass.totalLines, -1);
-    assert.strictEqual(themeIcon(missingItem).color?.id, 'testing.iconFailed');
+    assert.strictEqual(themeIcon(missingItem).id, 'file-code');
+    assert.strictEqual(themeIcon(missingItem).color, undefined);
   });
 
   it('E3 treats a class with no counted lines as fully covered', async () => {
@@ -123,10 +124,15 @@ describe('Code coverage presentation', () => {
     assert.strictEqual(apexClass.codeCoverage, -1);
     assert.strictEqual(apexClass.coveredLines, -1);
     assert.strictEqual(apexClass.totalLines, -1);
+    const item = apexClass.getTreeItem();
+    assert.strictEqual(item.description, 'N/A');
+    assert.strictEqual(item.tooltip, 'InvalidCoverage\nCode Coverage: N/A');
+    assert.strictEqual(themeIcon(item).color, undefined);
   });
 
   it('E4 preserves the failed, warning, and passed bands at both boundaries', () => {
     const cases = [
+      { coverage: 0, color: 'testing.iconFailed' },
       { coverage: 50, color: 'testing.iconFailed' },
       { coverage: 74.99, color: 'testing.iconFailed' },
       { coverage: 75, color: 'testing.iconQueued' },
@@ -187,6 +193,10 @@ describe('Code coverage presentation', () => {
     assert.strictEqual(includedClass.coveredLines, 6);
     assert.strictEqual(includedClass.totalLines, 8);
     assert.strictEqual(untouchedClass.codeCoverage, -1);
+    const untouchedItem = untouchedClass.getTreeItem();
+    assert.strictEqual(untouchedItem.description, 'N/A');
+    assert.strictEqual(untouchedItem.tooltip, 'UntouchedClass\nCode Coverage: N/A');
+    assert.strictEqual(themeIcon(untouchedItem).color, undefined);
     assert.strictEqual(contextManager.statusData.orgWideCoverage, 91);
     assert.strictEqual(getFakeSfInvocations().length, 1);
     assert.strictEqual(coverageRefreshes, 1);
