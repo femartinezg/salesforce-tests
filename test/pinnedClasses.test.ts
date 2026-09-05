@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { ApexClass, ApexTestClass } from '../src/classes/Apex';
+import { ApexClass, ApexTestClass, ApexTestMethod } from '../src/classes/Apex';
 import { getContextManager, getNewContextManager } from '../src/common';
 import {
   activateExtension,
@@ -160,7 +160,7 @@ describe('Pinned classes', () => {
     assert.deepStrictEqual(getFakeSfInvocations(), []);
   });
 
-  it('G4 replaces every pinned row glyph while preserving its status or coverage color', async () => {
+  it('G4 gives Running priority over a pinned class icon and restores the pin afterwards', async () => {
     const contextManager = getNewContextManager();
     const passingTest = new ApexTestClass('passing-test', 'PassingTest', 'Passed');
     const failingTest = new ApexTestClass('failing-test', 'FailingTest', 'Failed');
@@ -183,6 +183,20 @@ describe('Pinned classes', () => {
       assertPinnedIcon(item, coverageColors.get(item.label as string));
     }
 
+    passingTest.status = 'Running';
+    const runningPinnedTest = itemWithLabel(
+      contextManager.apexTestsData.getRootChildren(),
+      'PassingTest'
+    );
+    assert.strictEqual(getThemeIcon(runningPinnedTest).id, 'sync');
+    assert.strictEqual(runningPinnedTest.description, 'Running...');
+
+    passingTest.status = 'Passed';
+    assertPinnedIcon(
+      itemWithLabel(contextManager.apexTestsData.getRootChildren(), 'PassingTest'),
+      testColors.get('PassingTest')
+    );
+
     await unpin(contextManager.apexTestsData.getRootChildren(), 'PassingTest');
     const unpinnedTest = itemWithLabel(
       contextManager.apexTestsData.getRootChildren(),
@@ -191,6 +205,118 @@ describe('Pinned classes', () => {
     const unpinnedIcon = getThemeIcon(unpinnedTest);
     assert.strictEqual(unpinnedIcon.id, 'pass');
     assert.strictEqual(unpinnedIcon.color?.id, testColors.get('PassingTest'));
+    assert.deepStrictEqual(getFakeSfInvocations(), []);
+  });
+
+  it('G5 pins methods newest-first inside their class without moving, pinning, or expanding the parent', async () => {
+    const contextManager = getNewContextManager();
+    const alphaTest = testClassWithMethods('AlphaTest', [
+      ['alpha', undefined],
+      ['beta', 'Passed'],
+      ['gamma', 'Failed'],
+    ]);
+    contextManager.apexTestsData.testClasses = [
+      alphaTest,
+      testClassWithMethods('BetaTest', [['onlyMethod', undefined]]),
+    ];
+
+    const parent = itemWithLabel(contextManager.apexTestsData.getRootChildren(), 'AlphaTest');
+    assert.strictEqual(parent.collapsibleState, vscode.TreeItemCollapsibleState.Collapsed);
+    await pinMethod(await contextManager.apexTestsData.getChildren(parent), 'beta');
+    assert.deepStrictEqual(labels(contextManager.apexTestsData.getRootChildren()), [
+      'AlphaTest',
+      'BetaTest',
+    ]);
+    assert.strictEqual(
+      itemWithLabel(contextManager.apexTestsData.getRootChildren(), 'AlphaTest').contextValue,
+      'apexTestClass'
+    );
+
+    let methods = await contextManager.apexTestsData.getChildren(parent);
+    assert.deepStrictEqual(labels(methods), ['beta', 'alpha', 'gamma']);
+    assert.deepStrictEqual(contextValues(methods), [
+      'pinnedApexTestMethod',
+      'apexTestMethod',
+      'apexTestMethod',
+    ]);
+    assertPinnedIcon(itemWithLabel(methods, 'beta'), 'testing.iconPassed');
+
+    alphaTest.methods.find(({ name }) => name === 'beta')!.status = 'Running';
+    methods = await contextManager.apexTestsData.getChildren(parent);
+    const runningPinnedMethod = itemWithLabel(methods, 'beta');
+    assert.strictEqual(getThemeIcon(runningPinnedMethod).id, 'sync');
+    assert.strictEqual(runningPinnedMethod.description, 'Running...');
+
+    alphaTest.methods.find(({ name }) => name === 'beta')!.status = 'Passed';
+    methods = await contextManager.apexTestsData.getChildren(parent);
+    assertPinnedIcon(itemWithLabel(methods, 'beta'), 'testing.iconPassed');
+
+    await pinMethod(methods, 'gamma');
+    methods = await contextManager.apexTestsData.getChildren(parent);
+    assert.deepStrictEqual(labels(methods), ['gamma', 'beta', 'alpha']);
+    assertPinnedIcon(itemWithLabel(methods, 'gamma'), 'testing.iconFailed');
+
+    await unpinMethod(methods, 'gamma');
+    methods = await contextManager.apexTestsData.getChildren(parent);
+    assert.deepStrictEqual(labels(methods), ['beta', 'alpha', 'gamma']);
+    assert.deepStrictEqual(getFakeSfInvocations(), []);
+  });
+
+  it('G6 persists method pins across org changes, hides absent methods, and preserves class pins', async () => {
+    const firstOrg = getNewContextManager();
+    firstOrg.apexTestsData.testClasses = [
+      testClassWithMethods('AlphaTest', [
+        ['alpha', undefined],
+        ['beta', undefined],
+        ['gamma', undefined],
+      ]),
+      testClassWithMethods('BetaTest', [['onlyMethod', undefined]]),
+    ];
+    await pin(firstOrg.apexTestsData.getRootChildren(), 'BetaTest');
+    const firstParent = itemWithLabel(firstOrg.apexTestsData.getRootChildren(), 'AlphaTest');
+    await pinMethod(await firstOrg.apexTestsData.getChildren(firstParent), 'beta');
+    await pinMethod(await firstOrg.apexTestsData.getChildren(firstParent), 'gamma');
+
+    const secondOrg = getNewContextManager();
+    secondOrg.apexTestsData.testClasses = [
+      testClassWithMethods('AlphaTest', [
+        ['alpha', undefined],
+        ['beta', undefined],
+      ]),
+      testClassWithMethods('BetaTest', [['otherMethod', undefined]]),
+    ];
+    assert.deepStrictEqual(labels(secondOrg.apexTestsData.getRootChildren()), [
+      'BetaTest',
+      'AlphaTest',
+    ]);
+    const secondParent = itemWithLabel(secondOrg.apexTestsData.getRootChildren(), 'AlphaTest');
+    assert.deepStrictEqual(labels(await secondOrg.apexTestsData.getChildren(secondParent)), [
+      'beta',
+      'alpha',
+    ]);
+
+    const returningOrg = getNewContextManager();
+    returningOrg.apexTestsData.testClasses = [
+      testClassWithMethods('AlphaTest', [
+        ['alpha', undefined],
+        ['beta', undefined],
+        ['gamma', undefined],
+      ]),
+      testClassWithMethods('BetaTest', [['onlyMethod', undefined]]),
+    ];
+    assert.deepStrictEqual(labels(returningOrg.apexTestsData.getRootChildren()), [
+      'BetaTest',
+      'AlphaTest',
+    ]);
+    const returningParent = itemWithLabel(
+      returningOrg.apexTestsData.getRootChildren(),
+      'AlphaTest'
+    );
+    assert.deepStrictEqual(labels(await returningOrg.apexTestsData.getChildren(returningParent)), [
+      'gamma',
+      'beta',
+      'alpha',
+    ]);
     assert.deepStrictEqual(getFakeSfInvocations(), []);
   });
 });
@@ -209,6 +335,21 @@ async function clearPinnedClasses(): Promise<void> {
   for (const item of contextManager.codeCoverageData.getRootChildren()) {
     await vscode.commands.executeCommand('salesforce-tests.unpinClass', item);
   }
+
+  const registeredCommands = await vscode.commands.getCommands(true);
+  if (!registeredCommands.includes('salesforce-tests.unpinTestMethod')) return;
+  for (const className of ['AlphaTest', 'MethodPinCleanupTest']) {
+    const methodClass = testClassWithMethods(className, [
+      ['alpha', undefined],
+      ['beta', undefined],
+      ['gamma', undefined],
+    ]);
+    contextManager.apexTestsData.testClasses = [methodClass];
+    const parent = contextManager.apexTestsData.getRootChildren()[0];
+    for (const item of await contextManager.apexTestsData.getChildren(parent)) {
+      await vscode.commands.executeCommand('salesforce-tests.unpinTestMethod', item);
+    }
+  }
 }
 
 async function pin(items: vscode.TreeItem[], label: string): Promise<void> {
@@ -217,6 +358,20 @@ async function pin(items: vscode.TreeItem[], label: string): Promise<void> {
 
 async function unpin(items: vscode.TreeItem[], label: string): Promise<void> {
   await vscode.commands.executeCommand('salesforce-tests.unpinClass', itemWithLabel(items, label));
+}
+
+async function pinMethod(items: vscode.TreeItem[], label: string): Promise<void> {
+  await vscode.commands.executeCommand(
+    'salesforce-tests.pinTestMethod',
+    itemWithLabel(items, label)
+  );
+}
+
+async function unpinMethod(items: vscode.TreeItem[], label: string): Promise<void> {
+  await vscode.commands.executeCommand(
+    'salesforce-tests.unpinTestMethod',
+    itemWithLabel(items, label)
+  );
 }
 
 function itemWithLabel(items: vscode.TreeItem[], label: string): vscode.TreeItem {
@@ -252,6 +407,17 @@ function getThemeIcon(item: vscode.TreeItem): vscode.ThemeIcon {
 
 function testClasses(...names: string[]): ApexTestClass[] {
   return names.map((name, index) => new ApexTestClass(`test-${index}`, name));
+}
+
+function testClassWithMethods(
+  className: string,
+  methods: [name: string, status: string | undefined][]
+): ApexTestClass {
+  const testClass = new ApexTestClass(`test-${className}`, className);
+  testClass.methods = methods.map(
+    ([methodName, status]) => new ApexTestMethod(className, methodName, status)
+  );
+  return testClass;
 }
 
 function apexClasses(...names: string[]): ApexClass[] {

@@ -6,8 +6,9 @@ import { findClass, findTest } from './commands/find';
 import { clearTestRuns } from './commands/clearTestRuns';
 import { rerunLastTest, rerunTest } from './commands/rerunTest';
 import { clearCodeCoverageCommandHandler } from './commands/clearCodeCoverage';
-import { pinClass, unpinClass } from './commands/pinClass';
+import { pinClass, pinTestMethod, unpinClass, unpinTestMethod } from './commands/pinClass';
 import { ContextManager } from './common/ContextManager';
+import { runTestMethodCommandHandler } from './commands/runTestMethod';
 
 export function activate(context: vscode.ExtensionContext): Promise<void> {
   try {
@@ -48,6 +49,11 @@ function registerCommands(context: vscode.ExtensionContext) {
     )
   );
   context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.runTestMethod', (testMethod) =>
+      runTestMethodCommandHandler(testMethod)
+    )
+  );
+  context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.clearTestRuns', () => clearTestRuns())
   );
   context.subscriptions.push(
@@ -85,5 +91,13 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('salesforce-tests.unpinClass', (item) => unpinClass(item))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.pinTestMethod', (item) => pinTestMethod(item))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('salesforce-tests.unpinTestMethod', (item) =>
+      unpinTestMethod(item)
+    )
   );
 }

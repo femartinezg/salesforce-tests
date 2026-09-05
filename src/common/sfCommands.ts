@@ -148,9 +148,7 @@ export function getUpdateOrgCoverageInvocation(
 }
 
 export function getTestClassInvocation(testClassName: string, targetOrg: string): SfInvocation {
-  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(testClassName)) {
-    throw new Error('Invalid Salesforce test class name');
-  }
+  const validatedTestClassName = validateApexIdentifier(testClassName, 'test class');
   const validatedTargetOrg = validateTargetOrg(targetOrg);
 
   return {
@@ -159,7 +157,32 @@ export function getTestClassInvocation(testClassName: string, targetOrg: string)
       'test',
       'run',
       '--tests',
-      testClassName,
+      validatedTestClassName,
+      '--synchronous',
+      '--code-coverage',
+      '--target-org',
+      validatedTargetOrg,
+      '--json',
+    ],
+    options: LARGE_OUTPUT_OPTIONS,
+  };
+}
+
+export function getTestMethodInvocation(
+  testClassName: string,
+  testMethodName: string,
+  targetOrg: string
+): SfInvocation {
+  const validatedTestClassName = validateApexIdentifier(testClassName, 'test class');
+  const validatedTestMethodName = validateApexIdentifier(testMethodName, 'test method');
+  const validatedTargetOrg = validateTargetOrg(targetOrg);
+  return {
+    args: [
+      'apex',
+      'test',
+      'run',
+      '--tests',
+      `${validatedTestClassName}.${validatedTestMethodName}`,
       '--synchronous',
       '--code-coverage',
       '--target-org',
@@ -223,4 +246,11 @@ function validateTargetOrg(targetOrg: string): string {
     throw new Error('Salesforce target org must be non-empty');
   }
   return targetOrg.trim();
+}
+
+function validateApexIdentifier(value: string, label: string): string {
+  if (typeof value !== 'string' || !/^[A-Za-z][A-Za-z0-9_]*$/.test(value)) {
+    throw new Error(`Invalid Salesforce ${label} name`);
+  }
+  return value;
 }

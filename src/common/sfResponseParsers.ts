@@ -44,6 +44,11 @@ export interface FailedTestDto {
   stackTrace: string;
 }
 
+export interface TestMethodResultDto {
+  fullName: string;
+  outcome: 'Pass' | 'Fail';
+}
+
 export interface TestClassCoverageDto {
   name: string;
   totalLines: number;
@@ -68,6 +73,7 @@ export interface CompletedTestExecutionDto {
   startTimeLabel: string;
   duration: number;
   durationLabel: string;
+  methodResults: TestMethodResultDto[];
   failedTests: FailedTestDto[];
   coverage?: TestCoverageDto;
 }
@@ -250,9 +256,23 @@ export function parseTestExecutionResponse(response: unknown): TestExecutionDto 
     startTimeLabel,
     duration: duration.value,
     durationLabel: duration.label,
+    methodResults: parseTestMethodResults(result?.tests),
     failedTests: parseFailedTests(result?.tests),
     coverage: parseTestCoverage(result?.coverage),
   };
+}
+
+function parseTestMethodResults(value: unknown): TestMethodResultDto[] {
+  if (!Array.isArray(value)) return [];
+  const methodResults: TestMethodResultDto[] = [];
+  for (const candidate of value) {
+    const record = asRecord(candidate);
+    const fullName = optionalString(record?.FullName);
+    const outcome = record?.Outcome;
+    if (fullName === undefined || (outcome !== 'Pass' && outcome !== 'Fail')) continue;
+    methodResults.push({ fullName, outcome });
+  }
+  return methodResults;
 }
 
 export function incompatibleResponseError(

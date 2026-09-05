@@ -213,6 +213,27 @@ describe('Salesforce CLI invocations', () => {
     });
   });
 
+  it('builds a method execution with validated Class.method notation', () => {
+    assert.deepStrictEqual(
+      sfCommands.getTestMethodInvocation('AccountService_Test2', 'createsAccount', targetOrg),
+      {
+        args: [
+          'apex',
+          'test',
+          'run',
+          '--tests',
+          'AccountService_Test2.createsAccount',
+          '--synchronous',
+          '--code-coverage',
+          '--target-org',
+          targetOrg,
+          '--json',
+        ],
+        options: largeOutputOptions,
+      }
+    );
+  });
+
   it('rejects test class names outside the supported Apex identifier subset', () => {
     for (const name of [
       '',
@@ -225,6 +246,24 @@ describe('Salesforce CLI invocations', () => {
       'ÁccountTest',
     ]) {
       assert.throws(() => sfCommands.getTestClassInvocation(name, targetOrg), /test class name/i);
+    }
+  });
+
+  it('rejects unsafe test method identifiers before invoking Salesforce CLI', () => {
+    for (const name of [
+      '',
+      '_method',
+      '1method',
+      'method-name',
+      'method name',
+      'method; sf org logout',
+      'method\n--json',
+      'Áccount',
+    ]) {
+      assert.throws(
+        () => sfCommands.getTestMethodInvocation('AccountTest', name, targetOrg),
+        /test method name/i
+      );
     }
   });
 
@@ -257,6 +296,7 @@ describe('Salesforce CLI invocations', () => {
         ),
       () => sfCommands.getUpdateOrgCoverageInvocation('715000000000001AAA', ''),
       () => sfCommands.getTestClassInvocation('AccountTest', '\t'),
+      () => sfCommands.getTestMethodInvocation('AccountTest', 'passes', '\t'),
       () => sfCommands.getOrgCoverageInvocation(''),
     ]) {
       assert.throws(buildInvocation, /target org/i);

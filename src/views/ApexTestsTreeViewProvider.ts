@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ApexTestClass } from '../classes/Apex';
+import { ApexTestClass, type ApexTestTreeItem } from '../classes/Apex';
 import { PinnedClasses } from '../common/PinnedClasses';
 import { usePinnedClassIcon } from './pinnedClassTreeItem';
 
@@ -38,9 +38,33 @@ export class ApexTestsTreeViewProvider implements vscode.TreeDataProvider<vscode
 
     if (!element) {
       children = this.getRootChildren();
+    } else {
+      const testClassName = (element as ApexTestTreeItem).testClassName;
+      if (testClassName && !(element as ApexTestTreeItem).testMethodName) {
+        const testClass = this.testClasses?.find(({ name }) => name === testClassName);
+        children =
+          testClass ?
+            this.pinnedClasses.orderTestMethods(testClass.methods).map((method) => {
+              const item = method.getTreeItem();
+              const isPinned = this.pinnedClasses.isTestMethodPinned(method.className, method.name);
+              item.contextValue = isPinned ? 'pinnedApexTestMethod' : 'apexTestMethod';
+              if (isPinned) usePinnedClassIcon(item);
+              return item;
+            })
+          : [];
+      }
     }
 
     return Promise.resolve(children);
+  }
+
+  getParent(element: vscode.TreeItem): vscode.TreeItem | undefined {
+    const { testClassName, testMethodName } = element as ApexTestTreeItem;
+    if (!testClassName || !testMethodName) return undefined;
+
+    return this.getRootChildren().find(
+      (candidate) => (candidate as ApexTestTreeItem).testClassName === testClassName
+    );
   }
 
   getRootChildren(): vscode.TreeItem[] {

@@ -322,6 +322,12 @@ describe('Salesforce CLI response parsers', () => {
         startTimeLabel: '2026-01-02T03:04:05.000Z',
         duration: 1250,
         durationLabel: '1250 ms',
+        methodResults: [
+          {
+            fullName: 'FixturePassingTest.passes',
+            outcome: 'Pass',
+          },
+        ],
         failedTests: [],
         coverage: {
           classes: [{ name: 'FixtureService', totalLines: 10, coveredLines: 9 }],
@@ -334,6 +340,12 @@ describe('Salesforce CLI response parsers', () => {
       if (failed.kind !== 'completed') assert.fail('Expected a completed response');
       assert.strictEqual(failed.outcome, 'Failed');
       assert.strictEqual(failed.duration, 875);
+      assert.deepStrictEqual(failed.methodResults, [
+        {
+          fullName: 'FixtureFailingTest.fails',
+          outcome: 'Fail',
+        },
+      ]);
       assert.deepStrictEqual(failed.failedTests, [
         {
           fullName: 'FixtureFailingTest.fails',
@@ -360,6 +372,8 @@ describe('Salesforce CLI response parsers', () => {
       }
       assert.strictEqual(absent.coverage, undefined);
       assert.strictEqual(incompatible.coverage, undefined);
+      assert.deepStrictEqual(absent.methodResults, []);
+      assert.deepStrictEqual(incompatible.methodResults, []);
     });
 
     it('omits incomplete method details while retaining compatible failures', () => {
@@ -368,6 +382,16 @@ describe('Salesforce CLI response parsers', () => {
       assert.strictEqual(parsed.kind, 'completed');
       if (parsed.kind !== 'completed') assert.fail('Expected a completed response');
       assert.strictEqual(parsed.duration, 625);
+      assert.deepStrictEqual(parsed.methodResults, [
+        {
+          fullName: 'FixtureFailingTest.incomplete',
+          outcome: 'Fail',
+        },
+        {
+          fullName: 'FixtureFailingTest.complete',
+          outcome: 'Fail',
+        },
+      ]);
       assert.deepStrictEqual(parsed.failedTests, [
         {
           fullName: 'FixtureFailingTest.complete',

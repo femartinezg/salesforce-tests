@@ -5,6 +5,7 @@ export type PinnedClassesPanel = 'apexTests' | 'codeCoverage';
 interface PersistedPinnedClasses {
   apexTests: string[];
   codeCoverage: string[];
+  apexTestMethods: string[];
 }
 
 const STORAGE_KEY = 'salesforceTests.pinnedClasses';
@@ -39,6 +40,25 @@ export class PinnedClasses {
     return [...pinnedClasses, ...unpinnedClasses];
   }
 
+  isTestMethodPinned(className: string, methodName: string): boolean {
+    return this.values.apexTestMethods.includes(testMethodKey(className, methodName));
+  }
+
+  orderTestMethods<T extends { className: string; name: string }>(methods: readonly T[]): T[] {
+    const methodsByKey = new Map(
+      methods.map((method) => [testMethodKey(method.className, method.name), method])
+    );
+    const pinnedKeys = new Set(this.values.apexTestMethods);
+    const pinnedMethods = this.values.apexTestMethods.flatMap((key) => {
+      const method = methodsByKey.get(key);
+      return method ? [method] : [];
+    });
+    const unpinnedMethods = methods.filter(
+      (method) => !pinnedKeys.has(testMethodKey(method.className, method.name))
+    );
+    return [...pinnedMethods, ...unpinnedMethods];
+  }
+
   pin(panel: PinnedClassesPanel, className: string): Promise<void> {
     this.values[panel] = [
       className,
@@ -58,6 +78,25 @@ export class PinnedClasses {
     return this.persist();
   }
 
+  pinTestMethod(className: string, methodName: string): Promise<void> {
+    const key = testMethodKey(className, methodName);
+    this.values.apexTestMethods = [
+      key,
+      ...this.values.apexTestMethods.filter((pinnedKey) => pinnedKey !== key),
+    ];
+    return this.persist();
+  }
+
+  unpinTestMethod(className: string, methodName: string): Promise<void> {
+    const key = testMethodKey(className, methodName);
+    const pinnedMethods = this.values.apexTestMethods;
+    const remainingMethods = pinnedMethods.filter((pinnedKey) => pinnedKey !== key);
+    if (remainingMethods.length === pinnedMethods.length) return Promise.resolve();
+
+    this.values.apexTestMethods = remainingMethods;
+    return this.persist();
+  }
+
   private persist(): Promise<void> {
     const workspaceState = this.workspaceState;
     if (!workspaceState) return Promise.resolve();
@@ -65,6 +104,7 @@ export class PinnedClasses {
     const snapshot: PersistedPinnedClasses = {
       apexTests: [...this.values.apexTests],
       codeCoverage: [...this.values.codeCoverage],
+      apexTestMethods: [...this.values.apexTestMethods],
     };
     const persistence = this.pendingPersistence
       .catch(() => undefined)
@@ -79,6 +119,7 @@ function parsePinnedClasses(value: unknown): PersistedPinnedClasses {
   return {
     apexTests: parseClassNames(value.apexTests),
     codeCoverage: parseClassNames(value.codeCoverage),
+    apexTestMethods: parseClassNames(value.apexTestMethods),
   };
 }
 
@@ -94,5 +135,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function emptyPinnedClasses(): PersistedPinnedClasses {
-  return { apexTests: [], codeCoverage: [] };
+  return { apexTests: [], codeCoverage: [], apexTestMethods: [] };
+}
+
+function testMethodKey(className: string, methodName: string): string {
+  return `${className}.${methodName}`;
 }

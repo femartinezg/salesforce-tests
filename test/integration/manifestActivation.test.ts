@@ -80,13 +80,16 @@ describe('A. VS Code integration and navigation', () => {
       'salesforce-tests.findClass',
       'salesforce-tests.findTest',
       'salesforce-tests.pinClass',
+      'salesforce-tests.pinTestMethod',
       'salesforce-tests.refreshApexTests',
       'salesforce-tests.refreshCodeCoverage',
       'salesforce-tests.refreshOrg',
       'salesforce-tests.rerunLastTest',
       'salesforce-tests.rerunTest',
       'salesforce-tests.runTestClass',
+      'salesforce-tests.runTestMethod',
       'salesforce-tests.unpinClass',
+      'salesforce-tests.unpinTestMethod',
     ];
     const registeredCommands = await vscode.commands.getCommands(true);
     const contextManager = getContextManager();
@@ -104,14 +107,22 @@ describe('A. VS Code integration and navigation', () => {
     assert.notStrictEqual(contextManager.codeCoverageData.apexClasses, undefined);
 
     const registerProvider = sandbox.stub(vscode.window, 'registerTreeDataProvider');
+    const apexTestsView = { dispose: sandbox.stub(), reveal: sandbox.stub() };
+    const createTreeView = sandbox
+      .stub(vscode.window, 'createTreeView')
+      .returns(apexTestsView as unknown as vscode.TreeView<vscode.TreeItem>);
     const isolatedContext = getNewContextManager();
     assert.deepStrictEqual(
       registerProvider.getCalls().map(({ args }) => args[0]),
-      ['statusTreeView', 'apexTestsTreeView', 'codeCoverageTreeView']
+      ['statusTreeView', 'codeCoverageTreeView']
     );
     assert.strictEqual(registerProvider.firstCall.args[1], isolatedContext.statusData);
-    assert.strictEqual(registerProvider.secondCall.args[1], isolatedContext.apexTestsData);
-    assert.strictEqual(registerProvider.thirdCall.args[1], isolatedContext.codeCoverageData);
+    assert.strictEqual(registerProvider.secondCall.args[1], isolatedContext.codeCoverageData);
+    assert.deepStrictEqual(createTreeView.firstCall.args, [
+      'apexTestsTreeView',
+      { treeDataProvider: isolatedContext.apexTestsData },
+    ]);
+    assert.strictEqual(isolatedContext.apexTestsView, apexTestsView);
   });
 
   it('A2.1 contributes history actions only in their intended surfaces', () => {
@@ -221,6 +232,30 @@ describe('A. VS Code integration and navigation', () => {
     });
   });
 
+  it('A2.4 contributes method execution to the palette and Apex Tests method rows', () => {
+    const manifest = readManifest();
+    const command = manifest.contributes.commands.find(
+      ({ command }) => command === 'salesforce-tests.runTestMethod'
+    );
+    assert.deepStrictEqual(command, {
+      command: 'salesforce-tests.runTestMethod',
+      title: 'Run Test Method',
+      enablement: '!apexTestsLoading',
+      category: 'Salesforce Tests',
+      icon: '$(run)',
+    });
+    assert.deepStrictEqual(
+      manifest.contributes.menus['view/item/context'].find(
+        ({ command }) => command === 'salesforce-tests.runTestMethod'
+      ),
+      {
+        command: 'salesforce-tests.runTestMethod',
+        when: 'view == apexTestsTreeView && (viewItem == apexTestMethod || viewItem == pinnedApexTestMethod)',
+        group: 'inline',
+      }
+    );
+  });
+
   it('A3 keeps data-dependent actions disabled and all three views empty while loading', async () => {
     const manifest = readManifest();
     const enablementByCommand = new Map(
@@ -247,6 +282,10 @@ describe('A. VS Code integration and navigation', () => {
     assert.deepStrictEqual(await contextManager.codeCoverageData.getChildren(), []);
     assert.strictEqual(
       enablementByCommand.get('salesforce-tests.runTestClass'),
+      '!apexTestsLoading'
+    );
+    assert.strictEqual(
+      enablementByCommand.get('salesforce-tests.runTestMethod'),
       '!apexTestsLoading'
     );
     assert.strictEqual(
@@ -362,7 +401,7 @@ describe('A. VS Code integration and navigation', () => {
     });
   }
 
-  it('A5 exposes text-only pin and unpin actions only in each class context menu', () => {
+  it('A5 exposes text-only pin and unpin actions only in their intended context menus', () => {
     const manifest = readManifest();
     const commands = new Map(
       manifest.contributes.commands.map((command) => [command.command, command])
@@ -378,13 +417,30 @@ describe('A. VS Code integration and navigation', () => {
       title: 'Unpin Class',
       category: 'Salesforce Tests',
     });
+    assert.deepStrictEqual(commands.get('salesforce-tests.pinTestMethod'), {
+      command: 'salesforce-tests.pinTestMethod',
+      title: 'Pin Method',
+      category: 'Salesforce Tests',
+    });
+    assert.deepStrictEqual(commands.get('salesforce-tests.unpinTestMethod'), {
+      command: 'salesforce-tests.unpinTestMethod',
+      title: 'Unpin Method',
+      category: 'Salesforce Tests',
+    });
     assert.deepStrictEqual(
       manifest.contributes.menus.commandPalette.filter(({ command }) =>
-        ['salesforce-tests.pinClass', 'salesforce-tests.unpinClass'].includes(command)
+        [
+          'salesforce-tests.pinClass',
+          'salesforce-tests.unpinClass',
+          'salesforce-tests.pinTestMethod',
+          'salesforce-tests.unpinTestMethod',
+        ].includes(command)
       ),
       [
         { command: 'salesforce-tests.pinClass', when: 'false' },
         { command: 'salesforce-tests.unpinClass', when: 'false' },
+        { command: 'salesforce-tests.pinTestMethod', when: 'false' },
+        { command: 'salesforce-tests.unpinTestMethod', when: 'false' },
       ]
     );
 
@@ -413,17 +469,34 @@ describe('A. VS Code integration and navigation', () => {
         group: 'navigation@1',
       },
     ]);
+    const methodActions = manifest.contributes.menus['view/item/context'].filter(({ command }) =>
+      ['salesforce-tests.pinTestMethod', 'salesforce-tests.unpinTestMethod'].includes(command)
+    );
+    assert.deepStrictEqual(methodActions, [
+      {
+        command: 'salesforce-tests.pinTestMethod',
+        when: 'view == apexTestsTreeView && viewItem == apexTestMethod',
+        group: 'navigation@1',
+      },
+      {
+        command: 'salesforce-tests.unpinTestMethod',
+        when: 'view == apexTestsTreeView && viewItem == pinnedApexTestMethod',
+        group: 'navigation@1',
+      },
+    ]);
     assert.deepStrictEqual(
       manifest.contributes.menus['view/item/context'].find(
         ({ command }) => command === 'salesforce-tests.runTestClass'
       ),
       {
         command: 'salesforce-tests.runTestClass',
-        when: 'view == apexTestsTreeView',
+        when: 'view == apexTestsTreeView && (viewItem == apexTestClass || viewItem == pinnedApexTestClass)',
         group: 'inline',
       }
     );
-    assert.ok(classActions.every(({ group }) => !group?.startsWith('inline')));
+    assert.ok(
+      [...classActions, ...methodActions].every(({ group }) => !group?.startsWith('inline'))
+    );
   });
 });
 
