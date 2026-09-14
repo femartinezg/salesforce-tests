@@ -6,6 +6,25 @@ All notable changes to the "Salesforce Tests" extension will be documented in th
 
 ---
 
+## [0.4.0] - 2026-09-14
+
+### Added
+
+- Apex test classes can now be expanded to discover, run, and track individual modern `@IsTest` and legacy `testMethod` methods.
+- Test methods can now be run inline or from the command palette, pinned independently inside their class, and rerun from test history.
+
+### Changed
+
+- Running tests now reveal the selected method and keep class and method status, timing, coverage, and history scoped to the executed target.
+- Pinned classes and methods temporarily show the running icon during execution, then restore their pin with the resulting status color.
+
+### Fixed
+
+- Classes without available code coverage now show a neutral `N/A` state instead of appearing to have failing coverage.
+- Find commands now wait for their target view to receive focus before opening search.
+
+---
+
 ## [0.3.0] - 2026-08-23
 
 ### Added
